@@ -1,0 +1,27 @@
+Provides OAuth2 server functionality based on the
+oauth2-server-php (https://github.com/bshaffer/oauth2-server-php) library.
+
+Dependencies: Entity API, Entity reference.
+
+Features
+--------
+- Entity-based architecture.
+- Exportable contexts (allowing scopes and clients to be divided into groups).
+- Designed for an unbounded number of scopes.
+- Supported grant types:
+  - Authorization code
+  - Client credentials
+  - Refresh token
+  - Password
+- Support for the implicit flow.
+- Support for per-client automatic authorization (skipping the authorization form).
+- Services integration (authentication, scope management).
+
+The tests can be used as an example client-side implementation.
+
+Getting started
+---------------
+1) Enable the module.
+2) Clone the library from GitHub and place it in your libraries folder
+(for example, sites/all/libraries/oauth2-server-php).
+3) Go to admin/config/services/oauth2-contexts and add a context.

@@ -1,0 +1,30 @@
+name = OAuth2
+description = Provides OAuth2 server functionality
+configure = admin/config/services/oauth2
+package = "OAuth2"
+dependencies[] = entity
+dependencies[] = entityreference
+core = 7.x
+configure = admin/config/services/oauth2-contexts
+
+; Metadata controllers
+files[] = oauth2.info.inc
+
+; Storage and Scope classes for the OAuth2 library
+files[] = lib/Storage.php
+files[] = lib/Scope.php
+
+; Admin UI controllers
+files[] = includes/oauth2.context_admin.inc
+files[] = includes/oauth2.scope_admin.inc
+files[] = includes/oauth2.client_admin.inc
+
+; Entity classes.
+files[] = includes/oauth2.authorization_code.inc
+files[] = includes/oauth2.client.inc
+files[] = includes/oauth2.context.inc
+files[] = includes/oauth2.token.inc
+files[] = includes/oauth2.scope.inc
+
+; Tests
+files[] = tests/oauth2.test

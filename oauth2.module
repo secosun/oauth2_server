@@ -1,0 +1,630 @@
+<?php
+
+/**
+ * @file
+ * Provides OAuth2 server functionality.
+ */
+
+/**
+ * Implements hook_init().
+ *
+ * Nags the user about the missing library on OAuth2 admin pages.
+ */
+function oauth2_init() {
+  $item = menu_get_item();
+  if ($item['access'] && strpos($item['path'], 'admin/config/services/oauth2-contexts') === 0) {
+    $path = oauth2_get_library_path();
+    // Check for the existence of one file from the library.
+    if (!$path || !file_exists($path . '/src/OAuth2/Server.php')) {
+      $message = t('The OAuth2 server library is required for the OAuth2 module to function.
+        Download the library from <a href="https://github.com/bshaffer/oauth2-server-php" target="_blank">GitHub</a> and place it in <em>!path</em>.', array('!path' => $path));
+      drupal_set_message($message, 'error');
+    }
+  }
+}
+
+/**
+ * Implements hook_libraries_info().
+ */
+function oauth2_libraries_info() {
+  $libraries = array();
+  $libraries['oauth2-server-php'] = array(
+    'name' => 'OAuth2 Server',
+    'vendor url' => 'https://github.com/bshaffer/oauth2-server-php',
+  );
+  return $libraries;
+}
+
+/**
+ * Returns the filesystem path to the oauth2-server-php library.
+ */
+function oauth2_get_library_path() {
+  $path = 'sites/all/libraries/oauth2-server-php';
+  // If installed, use the Libraries API to locate the library.
+  if (module_exists('libraries')) {
+    module_load_include('module', 'libraries');
+    $path = libraries_get_path('oauth2-server-php');
+  }
+
+  return $path;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function oauth2_menu() {
+  $items = array();
+  $items['authorize'] = array(
+    'page callback' => 'oauth2_authorize',
+    'access arguments' => array('access content'),
+  );
+  $items['token'] = array(
+    'page callback' => 'oauth2_token',
+    'access arguments' => array('access content'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function oauth2_permission() {
+  return array(
+    'administer oauth2' => array(
+      'title' => t('Administer OAuth2'),
+      'description' => t('Manage contexts, scopes, and clients.'),
+      'restrict access' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_services_authentication().
+ */
+function oauth2_services_authentication_info() {
+  return array(
+    'file' => 'includes/oauth2.services_auth.inc',
+    'title' => t('OAuth2 authentication'),
+    'description' => t('An open protocol to allow secure API authorization'),
+    'security_settings' => 'oauth2_services_security_settings',
+    'default_security_settings' => 'oauth2_services_default_security_settings',
+    'authenticate_call' => 'oauth2_services_authenticate_call',
+    'controller_settings' => 'oauth2_services_controller_settings',
+  );
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function oauth2_entity_info() {
+  $items = array();
+  $items['oauth2_context'] = array(
+    'label' => t('OAuth2 context'),
+    'controller class' => 'EntityAPIControllerExportable',
+    'entity class' => 'OAuth2Context',
+    'base table' => 'oauth2_context',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'context_id',
+      'label' => 'label',
+      'name' => 'name',
+    ),
+    'exportable' => TRUE,
+    'export' => array(
+      'default hook' => 'default_oauth2_context',
+    ),
+    'module' => 'oauth2',
+    'access callback' => 'oauth2_context_access',
+    'metadata controller class' => 'EntityDefaultMetadataController',
+    'views controller class' => 'EntityDefaultViewsController',
+    'admin ui' => array(
+      'path' => 'admin/config/services/oauth2-contexts',
+      'file' => 'includes/oauth2.context_admin.inc',
+      'controller class' => 'OAuth2ContextUIController',
+    ),
+  );
+  $items['oauth2_scope'] = array(
+    'label' => t('OAuth2 scope'),
+    'controller class' => 'EntityAPIController',
+    'entity class' => 'OAuth2Scope',
+    'base table' => 'oauth2_scope',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'scope_id',
+      'label' => 'label',
+    ),
+    'module' => 'oauth2',
+    'access callback' => 'oauth2_scope_access',
+    'metadata controller class' => 'OAuth2ScopeMetadataController',
+    'views controller class' => 'EntityDefaultViewsController',
+    'admin ui' => array(
+      'path' => 'admin/config/services/oauth2-contexts/manage/%/scopes',
+      'file' => 'includes/oauth2.scope_admin.inc',
+      'controller class' => 'OAuth2ScopeUIController',
+    ),
+  );
+  $items['oauth2_client'] = array(
+    'label' => t('OAuth2 client'),
+    'controller class' => 'EntityAPIController',
+    'entity class' => 'OAuth2Client',
+    'base table' => 'oauth2_client',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'client_id',
+      'label' => 'label',
+    ),
+    'module' => 'oauth2',
+    'access callback' => 'oauth2_client_access',
+    'metadata controller class' => 'OAuth2ClientMetadataController',
+    'views controller class' => 'EntityDefaultViewsController',
+    'admin ui' => array(
+      'path' => 'admin/config/services/oauth2-contexts/manage/%/clients',
+      'file' => 'includes/oauth2.client_admin.inc',
+      'controller class' => 'OAuth2ClientUIController',
+    ),
+  );
+  $items['oauth2_token'] = array(
+    'label' => t('OAuth2 token'),
+    'controller class' => 'EntityAPIController',
+    'entity class' => 'OAuth2Token',
+    'base table' => 'oauth2_token',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'token_id',
+    ),
+    'bundles' => array(
+      'access' => array(
+        'label' => t('Access token'),
+      ),
+      'refresh' => array(
+        'label' => t('Refresh token')
+      ),
+    ),
+    'module' => 'oauth2',
+    'metadata controller class' => 'OAuth2TokenMetadataController',
+  );
+  $items['oauth2_authorization_code'] = array(
+    'label' => t('OAuth2 authorization code'),
+    'controller class' => 'EntityAPIController',
+    'entity class' => 'OAuth2AuthorizationCode',
+    'base table' => 'oauth2_authorization_code',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'code_id',
+    ),
+    'module' => 'oauth2',
+    'metadata controller class' => 'OAuth2AuthorizationCodeMetadataController',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function oauth2_flush_caches() {
+  $field = field_info_field('scopes');
+  // Create the scopes reference field if it's missing.
+  if (!$field) {
+    $field = array(
+      'field_name' => 'scopes',
+      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'translatable' => FALSE,
+      'settings' => array(
+        'target_type' => 'oauth2_scope',
+      ),
+      'module' => 'entityreference',
+      'type' => 'entityreference',
+    );
+    field_create_field($field);
+  }
+
+  // Go over all bundles that should have an instance of the scopes field,
+  // and create the instance where missing.
+  $needed_instances = array(
+    'oauth2_token' => array('access', 'refresh'),
+    'oauth2_authorization_code' => array('oauth2_authorization_code'),
+  );
+  foreach ($needed_instances as $entity_type => $bundles) {
+    $existing = array();
+    if (!empty($field['bundles'][$entity_type])) {
+      $existing = $field['bundles'][$entity_type];
+    }
+    $diff = array_diff($bundles, $existing);
+    foreach ($diff as $new_bundle) {
+      $instance = array(
+        'label' => 'Scopes',
+        'field_name' => 'scopes',
+        'entity_type' => $entity_type,
+        'bundle' => $new_bundle,
+      );
+      field_create_instance($instance);
+    }
+  }
+}
+
+/**
+ * Access control for oauth2_context entities.
+ *
+ * @param $op
+ *   The operation being performed. One of 'view', 'update', 'create' or
+ *   'delete'.
+ * @param $entity
+ *   Optionally an entity to check access for. If no entity is given, it will be
+ *   determined whether access is allowed for all entities of the given type.
+ * @param $account
+ *   The user to check for. Leave it to NULL to check for the global user.
+ * @param $entity_type
+ *   The entity type of the entity to check for.
+ *
+ * @see entity_access()
+ */
+function oauth2_context_access($op, $entity, $account, $entity_type) {
+  return user_access('administer oauth2', $account);
+}
+
+/**
+ * Access control for oauth2_scope entities.
+ *
+ * @param $op
+ *   The operation being performed. One of 'view', 'update', 'create' or
+ *   'delete'.
+ * @param $entity
+ *   Optionally an entity to check access for. If no entity is given, it will be
+ *   determined whether access is allowed for all entities of the given type.
+ * @param $account
+ *   The user to check for. Leave it to NULL to check for the global user.
+ * @param $entity_type
+ *   The entity type of the entity to check for.
+ *
+ * @see entity_access()
+ */
+function oauth2_scope_access($op, $entity, $account, $entity_type) {
+  if ($entity) {
+    // Scope access depends on context access.
+    $context = entity_load_single('oauth2_context', $entity->context_id);
+    return oauth2_context_access($op, $context, $account, 'oauth2_context');
+  }
+
+  return user_access('administer oauth2', $account);
+}
+
+/**
+ * Access control for oauth2_client entities.
+ *
+ * @param $op
+ *   The operation being performed. One of 'view', 'update', 'create' or
+ *   'delete'.
+ * @param $entity
+ *   Optionally an entity to check access for. If no entity is given, it will be
+ *   determined whether access is allowed for all entities of the given type.
+ * @param $account
+ *   The user to check for. Leave it to NULL to check for the global user.
+ * @param $entity_type
+ *   The entity type of the entity to check for.
+ *
+ * @see entity_access()
+ */
+function oauth2_client_access($op, $entity, $account, $entity_type) {
+  return user_access('administer oauth2', $account);
+}
+
+/**
+ * Entity Metadata getter callback: Returns the matching id for a computed
+ * field.
+ */
+function oauth2_get_properties($entity, array $options, $name) {
+  switch ($name) {
+    case 'context':
+      return $entity->context_id;
+    case 'client':
+      return $entity->client_id;
+    case 'user':
+      return $entity->uid;
+  }
+}
+
+/**
+ * Entity Metadata setter callback: Sets the matching id for a computed
+ * field.
+ */
+function oauth2_set_properties($entity, $name, $value) {
+  switch ($name) {
+    case 'context':
+      // For exportable entities, the "name" is passed instead of the id.
+      // This is why we load the entity (which is already in the static cache).
+      $context = oauth2_entity_load_by_property('oauth2_context', array('name' => $value));
+      $entity->context_id = $context->context_id;
+      break;
+    case 'client':
+      $entity->client_id = $value;
+      break;
+    case 'user':
+      $entity->uid = $value;
+      break;
+  }
+}
+
+/**
+ * Loads an entity by its property values.
+ *
+ * @todo Add this function to Entity API.
+ *
+ * @param $entity_type
+ *   The entity type to load, e.g. node or user.
+ * @param $values
+ *   An associative array where the keys are the property names and the values
+ *   are the values those properties must have.
+ *
+ * @return
+ *   An entity if found, FALSE otherwise.
+ */
+function oauth2_entity_load_by_property($entity_type, array $values) {
+  $entities = entity_load($entity_type, FALSE, $values);
+  return reset($entities);
+}
+
+/**
+ * Registers the OAuth2 autoloader to allow the library classes to be used.
+ */
+function oauth2_register_autoloader() {
+  static $done = FALSE;
+
+  if (!$done) {
+    $path = oauth2_get_library_path();
+    require_once $path . '/src/OAuth2/Autoloader.php';
+    OAuth2_Autoloader::register();
+    $done = TRUE;
+  }
+}
+
+/**
+ * Initializes and returns an OAuth2 server.
+ *
+ * @param $context
+ *   The context entity to use for supplying settings to the server, and
+ *   initializing the scope. NULL only when we expect the validation to
+ *   fail due to an incomplete request.
+ *
+ * @return
+ *   An instance of OAuth2_Server.
+ */
+function oauth2_get_server($context = NULL) {
+  oauth2_register_autoloader();
+  $storage = new OAuth2_Storage_Drupal();
+  if ($context) {
+    // The library only accepts a boolean (not a 0) for this setting.
+    $context->settings['allow_implicit'] = (bool) $context->settings['allow_implicit'];
+
+    $server = new OAuth2_Server($storage, $context->settings);
+    // Initialize the scope util.
+    $scope_util = new OAuth2_Scope_Drupal($context);
+    $server->setScopeUtil($scope_util);
+    // Initialize the grant types.
+    $grant_types = oauth2_grant_types();
+    foreach (array_filter($context->settings['grant_types']) as $grant_type_name) {
+      $grant_type = new $grant_types[$grant_type_name]['class']($storage);
+      $server->addGrantType($grant_type);
+    }
+  }
+  else {
+    $server = new OAuth2_Server($storage);
+  }
+
+  return $server;
+}
+
+/**
+ * Page callback: Authenticates the user and redirect back to the client
+ * with an authorization code.
+ */
+function oauth2_authorize() {
+  global $user;
+
+  // The user is not logged in. Redirect to login.
+  if (!user_is_logged_in()) {
+    // Save the parameters in session so that they can be fetched later.
+    $parameters = drupal_get_query_parameters();
+    $_SESSION['oauth2_authorize'] = $parameters;
+
+    $query = array(
+      'destination' => 'authorize',
+    );
+    drupal_goto('user/login', array('query' => $query));
+  }
+  // Retrieve the parameters from session. Put them in $_GET so that
+  // they are accessible by OAuth2_Request.
+  if (!empty($_SESSION['oauth2_authorize'])) {
+    $_GET += $_SESSION['oauth2_authorize'];
+    unset($_SESSION['oauth2_authorize']);
+  }
+
+  $client_id = isset($_GET['client_id']) ? $_GET['client_id'] : 0;
+  $context = NULL;
+  // Get the client and use it to load the context and initialize the server.
+  if ($client_id) {
+    $client = oauth2_entity_load_by_property('oauth2_client', array('client_key' => $client_id));
+    if ($client) {
+      $context = entity_load_single('oauth2_context', $client->context_id);
+    }
+  }
+
+  // Initialize the server and validate the request.
+  $server = oauth2_get_server($context);
+  $request = OAuth2_Request::createFromGlobals();
+  if (!$server->validateAuthorizeRequest($request)) {
+    return oauth2_send_response($server->getResponse());
+  }
+
+  // Automatic authorization is enabled for this client. Finish authorization.
+  if ($client->automatic_authorization) {
+    $response = $server->handleAuthorizeRequest($request, TRUE, $user->name);
+    return oauth2_send_response($response);
+  }
+  else {
+    // Show the authorize form.
+    return drupal_get_form('oauth2_authorize_form', $client, $context);
+  }
+}
+
+/**
+ * Form callback: Returns the authorize form.
+ *
+ * @todo Implement scope selection.
+ */
+function oauth2_authorize_form($form, &$form_state, $client, $context) {
+  drupal_set_title(t('Authorize @client to use your account?', array('@client' => $client->label)));
+
+  // This application will be able to:
+  $cancel_url = '';
+  $form['authorize'] = array(
+    '#type' => 'submit',
+    '#value' => t('Yes, I authorize this request.'),
+    '#suffix' => l(t('Cancel'), $cancel_url),
+  );
+
+  return $form;
+}
+
+/**
+ * Submit callback for oauth2_authorize_form.
+ *
+ * Completes authentication and redirects back to the client.
+ */
+function oauth2_authorize_form_submit($form, &$form_state) {
+  global $user;
+
+  $context = $form_state['build_info']['args'][1];
+  // Finish the authorization request.
+  $server = oauth2_get_server($context);
+  $response = $server->handleAuthorizeRequest(OAuth2_Request::createFromGlobals(), TRUE, $user->name);
+  return oauth2_send_response($response);
+}
+
+/**
+ * Page callback: exchanges an authorization code for an access token.
+ */
+function oauth2_token() {
+  $client_id = isset($_POST['client_id']) ? $_POST['client_id'] : 0;
+  $context = NULL;
+  // Get the client and use it to load the context and initialize the server.
+  if ($client_id) {
+    $client = oauth2_entity_load_by_property('oauth2_client', array('client_key' => $client_id));
+    if ($client) {
+      $context = entity_load_single('oauth2_context', $client->context_id);
+    }
+  }
+
+  // Initialize the server.
+  $server = oauth2_get_server($context);
+  $response = $server->handleGrantRequest(OAuth2_Request::createFromGlobals());
+  return oauth2_send_response($response);
+}
+
+/**
+ * Verifies access to the passed context.
+ *
+ * @param $context_name
+ *   The name of the context for which access should be verified.
+ * @param $scope
+ *   An optional string of space-separated scopes to check.
+ *
+ * @return
+ *   No return value. If the access check fails, execution is aborted and an
+ *   error response is sent to the user.
+ */
+function oauth2_verify_access($context_name, $scope = NULL) {
+  $context = oauth2_entity_load_by_property('oauth2_context', array('name' => $context_name));
+  $server = oauth2_get_server($context);
+  $token = $server->getAccessTokenData(OAuth2_Request::createFromGlobals());
+  // If there's no token, that means validation failed. Stop here.
+  if (!$token) {
+    return oauth2_send_response($server->getResponse());
+  }
+
+  // Make sure that the token we have matches our context.
+  if ($token['context'] != $context->name) {
+    $error = 'The access token provided is invalid';
+    $response = new OAuth2_Response_AuthenticationError(401, 'invalid_grant', $error, 'bearer', 'Service', $scope);
+    return oauth2_send_response($response);
+  }
+
+  // Check scope, if provided.
+  // @todo Remove once $server->getAccessTokenData() starts forwarding the
+  // $scope parameter to the controller.
+  $scope_util = new OAuth2_Scope_Drupal($context);
+  if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$this->scopeUtil->checkScope($scope, $token["scope"]))) {
+    $error = 'The request requires higher privileges than provided by the access token';
+    $response = new OAuth2_Response_AuthenticationError(401, 'insufficient_scope', $error, 'bearer', 'Service', $scope);
+    return oauth2_send_response($response);
+  }
+}
+
+/**
+ * Sets the appropriate headers and outputs the response.
+ */
+function oauth2_send_response(OAuth2_Response $response) {
+  // @todo The library should implement a getStatusText() method.
+  $status = $response->getStatusCode() . ' ' . $response->statusText;
+  drupal_add_http_header('Status', $status);
+  drupal_add_http_header('Content-Type', 'application/json');
+  foreach ($response->getHttpHeaders() as $name => $header) {
+    drupal_add_http_header($name, $header);
+  }
+
+  echo $response->getResponseBody('json');
+  drupal_exit();
+}
+
+/**
+ * Returns an array of supported grant types and related data.
+ */
+function oauth2_grant_types() {
+  $grant_types = array(
+    'authorization_code' => array(
+      'name' => t('Authorization code'),
+      'class' => 'OAuth2_GrantType_AuthorizationCode',
+    ),
+    'client_credentials' => array(
+      'name' => t('Client credentials'),
+      'class' => 'OAuth2_GrantType_ClientCredentials',
+    ),
+    //'urn:ietf:params:oauth:grant-type:jwt-bearer' => array(
+    //  'name' => t('JWT bearer'),
+    //  'class' => 'OAuth2_GrantType_JWTBearer',
+    //),
+    'refresh_token' => array(
+      'name' => t('Refresh token'),
+      'class' => 'OAuth2_GrantType_RefreshToken',
+      'settings callback' => 'oauth2_refresh_token_settings',
+      'default settings' => array(
+        'always_issue_new_refresh_token' => FALSE,
+      ),
+    ),
+    'password' => array(
+      'name' => t('User credentials'),
+      'class' => 'OAuth2_GrantType_UserCredentials',
+    ),
+  );
+
+  return $grant_types;
+}
+
+/**
+ * Provides a settings form for the refresh_token grant type.
+ */
+function oauth2_refresh_token_settings($config, $dom_id) {
+  $form = array();
+  $form['always_issue_new_refresh_token'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Always issue a new refresh token after the existing one has been used'),
+    '#default_value' => $config['always_issue_new_refresh_token'],
+    '#states' => array(
+      'visible' => array(
+        '#' . $dom_id => array('checked' => TRUE),
+      ),
+    ),
+  );
+  return $form;
+}

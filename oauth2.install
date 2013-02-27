@@ -1,0 +1,265 @@
+<?php
+
+/**
+ * @file
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function oauth2_requirements($phase = 'runtime') {
+  if ($phase == 'runtime') {
+    $found = FALSE;
+    $path = oauth2_get_library_path();
+    // Check for the existence of one file from the library.
+    if ($path && file_exists($path . '/src/OAuth2/Server.php')) {
+      $found = TRUE;
+    }
+    // Prepare the download instructions.
+    $description = t('The OAuth2 server library is required for the OAuth2 module to function.
+      Download the library from <a href="https://github.com/bshaffer/oauth2-server-php" target="_blank">GitHub</a> and place it in <em>!path</em>.', array('!path' => $path));
+
+    return array(
+      'oauth2_server' => array(
+        'title' => t('OAuth2 server library'),
+        'value' => $found ? t('Available') : t('Unavailable'),
+        'description' => !$found ? $description : NULL,
+        'severity' => $found ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+      ),
+    );
+  }
+}
+
+/**
+ * Implements hook_schema().
+ */
+function oauth2_schema() {
+  $schema['oauth2_context'] = array(
+    'description' => 'The base table for contexts.',
+    'fields' => array(
+      'context_id' => array(
+        'description' => 'Primary key: numeric context id.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The machine name for a context.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'label' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'The label of the context.',
+        'default' => '',
+      ),
+      'settings' => array(
+        'description' => 'Context settings, passed to the server.',
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'serialize' => TRUE,
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        // Set the default to ENTITY_CUSTOM without using the constant as it is
+        // not safe to use it at this point.
+        'default' => 0x01,
+        'size' => 'tiny',
+        'description' => 'The exportable status of the context.',
+      ),
+      'module' => array(
+        'description' => 'The name of the providing module if the context has been defined in code.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('context_id'),
+    'unique keys' => array(
+      'name' => array('name'),
+    ),
+  );
+  $schema['oauth2_scope'] = array(
+    'description' => 'The base table for scopes.',
+    'fields' => array(
+      'scope_id' => array(
+        'description' => 'Primary key: numeric scope id.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'context_id' => array(
+        'description' => 'The {oauth2_context}.context_id of the parent context.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'name' => array(
+        'description' => 'The machine name of the scope.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'label' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'The label of the scope.',
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('scope_id'),
+    'unique keys' => array(
+      'name' => array('name'),
+    ),
+  );
+
+  $schema['oauth2_client'] = array(
+    'description' => 'The base table for clients',
+    'fields' => array(
+      'client_id' => array(
+        'description' => 'Primary key: numeric client id.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'context_id' => array(
+        'description' => 'The {oauth2_context}.context_id of the parent context.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'label' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'The label of the client.',
+        'default' => '',
+      ),
+      // The OAuth2 spec calls the client key "client_id", but we need that
+      // for the autoincrement.
+      'client_key' => array(
+        'description' => 'The client key',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'client_secret' => array(
+        'description' => 'The client secret.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'redirect_uri' => array(
+        'description' => 'The absolute URI to redirect to after authorization',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'automatic_authorization' => array(
+        'description' => 'Whether authorization should be completed without user confirmation.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('client_id'),
+  );
+  $schema['oauth2_authorization_code'] = array(
+    'description' => 'The base table for authorization codes',
+    'fields' => array(
+      'code_id' => array(
+        'description' => 'Primary key: numeric code id.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'client_id' => array(
+        'description' => 'The {oauth2_client}.client_id of the client.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uid' => array(
+        'description' => 'The {users}.uid of the resource owner.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'code' => array(
+        'description' => 'The authorization code.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'redirect_uri' => array(
+        'description' => 'The absolute URI to redirect to after authorization',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'expires' => array(
+        'description' => 'The Unix timestamp when the token expires.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('code_id'),
+    'unique keys' => array(
+      'code' => array('code'),
+    ),
+  );
+  $schema['oauth2_token'] = array(
+    'description' => 'The base table for tokens',
+    'fields' => array(
+      'token_id' => array(
+        'description' => 'Primary key: numeric token id.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'client_id' => array(
+        'description' => 'The {oauth2_client}.client_id of the client.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uid' => array(
+        'description' => 'The {users}.uid of the resource owner.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'type' => array(
+        'description' => 'The type of the token (access, refresh).',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'token' => array(
+        'description' => 'The token.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'expires' => array(
+        'description' => 'The Unix timestamp when the token expires.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('token_id'),
+    'unique keys' => array(
+      'token' => array('token'),
+    ),
+  );
+
+  return $schema;
+}

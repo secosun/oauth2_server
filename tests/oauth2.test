@@ -1,0 +1,252 @@
+<?php
+
+/**
+ * @file
+ * OAuth2 tests.
+ */
+
+/**
+ * Test basic API.
+ */
+class OAuth2TestCase extends EntityWebTestCase {
+  /**
+   * The client key of the test client.
+   *
+   * @var string
+   */
+  protected $client_key = 'test_client';
+
+  /**
+   * The client secret of the test client.
+   *
+   * @var string
+   */
+  protected $client_secret = 'test_secret';
+
+  public static function getInfo() {
+    return array(
+      'name' => 'OAuth2',
+      'description' => 'Tests OAuth2 authentication and grant types.',
+      'group' => 'OAuth2',
+    );
+  }
+
+  public function setUp() {
+    parent::setUp('oauth2');
+
+    // Create the context and client.
+    $context = entity_create('oauth2_context', array());
+    $context->name = 'test';
+    $context->label = 'Test';
+    $context->settings = array(
+      'default_scope' => 'default',
+      'allow_implicit' => TRUE,
+      'grant_types' => array(
+        'authorization_code' => 'authorization_code',
+        'client_credentials' => 'client_credentials',
+        'refresh_token' => 'refresh_token',
+        'password' => 'password',
+      ),
+    );
+    $context->save();
+
+    $client = entity_create('oauth2_client', array());
+    $client->context_id = $context->context_id;
+    $client->label = 'Test client';
+    $client->client_key = $this->client_key;
+    $client->client_secret = $this->client_secret;
+    $client->redirect_uri = url('authorized', array('absolute' => TRUE));
+    $client->automatic_authorization = TRUE;
+    $client->save();
+  }
+
+  /**
+   * Performs an authorization request and returns it.
+   *
+   * Used to test authorization, the implicit flow, and the authorization_code
+   * grant type.
+   *
+   * @param $forward_cookies
+   *   Whether the current session should be forwarded.
+   *
+   * @return
+   *   The return value of drupal_http_request().
+   */
+  protected function authorizationCodeRequest($response_type, $forward_cookies = TRUE) {
+    $query = array(
+      'response_type' => $response_type,
+      'client_id' => $this->client_key,
+      'client_secret' => $this->client_secret,
+      // The "authorized" url doesn't actually exist, but we don't need it.
+      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
+    );
+    $authorize_url = url('authorize', array('absolute' => TRUE, 'query' => $query));
+    $options = array();
+    if ($forward_cookies) {
+      $cookie_string = '';
+      foreach ($this->cookies as $name => $data) {
+        $cookie_string .= $name . '=' . $data['value'] . ';';
+      }
+
+      $options = array(
+        'max_redirects' => 0,
+        'headers' => array(
+          'Cookie' => $cookie_string,
+        ),
+      );
+    }
+    return drupal_http_request($authorize_url, $options);
+  }
+
+  /**
+   * Tests the authorization part of the flow.
+   */
+  public function testAuthorization() {
+    // Attempt to authenticate with no user logged in.
+    $result = $this->authorizationCodeRequest('code', FALSE);
+    // Test the login redirect.
+    $login_redirect = FALSE;
+    if ($result->redirect_code == 302 && strpos($result->redirect_url, 'user/login?destination=authorize')) {
+      $login_redirect = TRUE;
+    }
+    $this->assertTrue($login_redirect, 'User was properly redirected to login.');
+
+    // Create a user, log him in, and retry the request.
+    $user = $this->drupalCreateUser(array('access content'));
+    $this->drupalLogin($user);
+    $result = $this->authorizationCodeRequest('code');
+
+    // Test the redirect_uri and authorization code.
+    $redirect_url_parts = explode('?', $result->redirect_url);
+    $authorize_redirect = FALSE;
+    $redirect_uri = url('authorized', array('absolute' => TRUE));
+    if ($result->redirect_code == 302 && $redirect_url_parts[0] == $redirect_uri) {
+      $authorize_redirect = TRUE;
+    }
+    $this->assertTrue($authorize_redirect, 'User was properly redirected to the "redirect_uri".');
+    $redirect_url_params = drupal_get_query_array($redirect_url_parts[1]);
+    $redirect_url_params += array('code' => '');
+    $this->assertTrue($redirect_url_params['code'], 'The server returned an authorization code');
+  }
+
+  /**
+   * Tests the implicit flow.
+   */
+  function testImplicitFlow() {
+    $user = $this->drupalCreateUser(array('access content'));
+    $this->drupalLogin($user);
+    $result = $this->authorizationCodeRequest('token');
+
+    $this->assertEqual($result->code, 200, 'The implicit flow request completed successfully');
+    $redirect_url_parts = explode('?#', $result->redirect_url);
+    $response = drupal_get_query_array($redirect_url_parts[1]);
+    $this->assertGrantResponse($response, FALSE);
+  }
+
+  /**
+   * Tests the "Authorization code" grant type.
+   */
+  public function testAuthorizationCodeGrantType() {
+    $user = $this->drupalCreateUser(array('access content'));
+    $this->drupalLogin($user);
+    // Perform authorization and get the code.
+    $result = $this->authorizationCodeRequest('code');
+    $redirect_url_parts = explode('?', $result->redirect_url);
+    $redirect_url_params = drupal_get_query_array($redirect_url_parts[1]);
+    $authorization_code = $redirect_url_params['code'];
+
+    $token_url = url('token', array('absolute' => TRUE));
+    $data = array(
+      'grant_type' => 'authorization_code',
+      'client_id' => $this->client_key,
+      'client_secret' => $this->client_secret,
+      'code' => $authorization_code,
+    );
+    $options = array(
+      'method' => 'POST',
+      'data' => http_build_query($data),
+      'headers' => array(
+        'Content-Type' => 'application/x-www-form-urlencoded',
+      ),
+    );
+    $result = drupal_http_request($token_url, $options);
+
+    $this->assertEqual($result->code, 200, 'The token request completed successfully');
+    $response = json_decode($result->data);
+    $this->assertGrantResponse($response);
+  }
+
+  /**
+   * Tests the "Client credentials" grant type.
+   */
+  public function testClientCredentialsGrantType() {
+    $token_url = url('token', array('absolute' => TRUE));
+    $data = array(
+      'grant_type' => 'client_credentials',
+      'client_id' => $this->client_key,
+      'client_secret' => $this->client_secret,
+    );
+    $options = array(
+      'method' => 'POST',
+      'data' => http_build_query($data),
+      'headers' => array(
+        'Content-Type' => 'application/x-www-form-urlencoded',
+      ),
+    );
+    $result = drupal_http_request($token_url, $options);
+
+    $this->assertEqual($result->code, 200, 'The token request completed successfully');
+    $response = json_decode($result->data);
+    $this->assertGrantResponse($response, FALSE);
+  }
+
+  /**
+   * Tests the "User credentials" grant type.
+   */
+  public function testPasswordGrantType() {
+    $user = $this->drupalCreateUser(array('access content'));
+
+    $token_url = url('token', array('absolute' => TRUE));
+    $data = array(
+      'grant_type' => 'password',
+      'client_id' => $this->client_key,
+      'client_secret' => $this->client_secret,
+      'username' => $user->name,
+      'password' => $user->pass_raw,
+    );
+    $options = array(
+      'method' => 'POST',
+      'data' => http_build_query($data),
+      'headers' => array(
+        'Content-Type' => 'application/x-www-form-urlencoded',
+      ),
+    );
+    $result = drupal_http_request($token_url, $options);
+
+    $this->assertEqual($result->code, 200, 'The token request completed successfully');
+    $response = json_decode($result->data);
+    $this->assertGrantResponse($response);
+  }
+
+  /**
+   * Assert that the given grant response has the expected values.
+   *
+   * @param $response
+   *   The response object (decoded from a json string).
+   * @param $has_refresh_token
+   *   A boolean indicating whether this response should have a refresh token.
+   */
+  public function assertGrantResponse($response, $has_refresh_token = TRUE) {
+    // Cast the object to an array, since arrays are more forgiving about
+    // missing keys.
+    $response = (array) $response;
+
+    $this->assertTrue($response['access_token'], 'The "access token" value is present in the return values');
+    $this->assertTrue($response['expires_in'], 'The "expires_in" value is present in the return values');
+    $this->assertTrue($response['token_type'], 'The "token_type" value is present in the return values');
+    $this->assertTrue($response['scope'], 'The "scope" value is present in the return values');
+    if ($has_refresh_token) {
+      $this->assertTrue($response['refresh_token'], 'The "refresh_token" value is present in the return values');
+    }
+  }
+}
