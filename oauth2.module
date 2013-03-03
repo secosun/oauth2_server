@@ -394,9 +394,6 @@ function oauth2_get_server($context = NULL) {
   oauth2_register_autoloader();
   $storage = new OAuth2_Storage_Drupal();
   if ($context) {
-    // The library only accepts a boolean (not a 0) for this setting.
-    $context->settings['allow_implicit'] = (bool) $context->settings['allow_implicit'];
-
     $server = new OAuth2_Server($storage, $context->settings);
     // Initialize the scope util.
     $scope_util = new OAuth2_Scope_Drupal($context);
@@ -549,24 +546,13 @@ function oauth2_verify_access($context_name, $scope = NULL) {
     $response = new OAuth2_Response_AuthenticationError(401, 'invalid_grant', $error, 'bearer', 'Service', $scope);
     return oauth2_send_response($response);
   }
-
-  // Check scope, if provided.
-  // @todo Remove once $server->getAccessTokenData() starts forwarding the
-  // $scope parameter to the controller.
-  $scope_util = new OAuth2_Scope_Drupal($context);
-  if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$this->scopeUtil->checkScope($scope, $token["scope"]))) {
-    $error = 'The request requires higher privileges than provided by the access token';
-    $response = new OAuth2_Response_AuthenticationError(401, 'insufficient_scope', $error, 'bearer', 'Service', $scope);
-    return oauth2_send_response($response);
-  }
 }
 
 /**
  * Sets the appropriate headers and outputs the response.
  */
 function oauth2_send_response(OAuth2_Response $response) {
-  // @todo The library should implement a getStatusText() method.
-  $status = $response->getStatusCode() . ' ' . $response->statusText;
+  $status = $response->getStatusCode() . ' ' . $response->getStatusText();
   drupal_add_http_header('Status', $status);
   drupal_add_http_header('Content-Type', 'application/json');
   foreach ($response->getHttpHeaders() as $name => $header) {
