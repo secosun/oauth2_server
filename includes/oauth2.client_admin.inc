@@ -162,6 +162,7 @@ function oauth2_client_form($form, &$form_state, $client, $op = 'edit') {
     '#type' => 'textfield',
     '#default_value' => $client->redirect_uri,
     '#description' => t('The absolute URI to redirect to after authorization'),
+    '#required' => TRUE,
   );
   $form['automatic_authorization'] = array(
     '#title' => t('Automatically authorize this client'),
