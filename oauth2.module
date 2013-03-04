@@ -183,6 +183,7 @@ function oauth2_entity_info() {
     ),
     'module' => 'oauth2',
     'metadata controller class' => 'OAuth2TokenMetadataController',
+    'views controller class' => 'EntityDefaultViewsController',
   );
   $items['oauth2_authorization_code'] = array(
     'label' => t('OAuth2 authorization code'),
@@ -195,6 +196,8 @@ function oauth2_entity_info() {
     ),
     'module' => 'oauth2',
     'metadata controller class' => 'OAuth2AuthorizationCodeMetadataController',
+    // Authorization codes don't need Views integration.
+    'views controller class' => FALSE,
   );
 
   return $items;
