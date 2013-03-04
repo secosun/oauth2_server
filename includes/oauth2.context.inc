@@ -25,7 +25,7 @@ class OAuth2Context extends Entity {
    * @var array
    */
   public $settings = array(
-    'default_scope' => 'default',
+    'default_scope' => 'basic',
     'allow_implicit' => FALSE,
     'grant_types' => array(
       'authorization_code' => 'authorization_code',

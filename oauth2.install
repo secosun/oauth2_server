@@ -114,9 +114,6 @@ function oauth2_schema() {
       ),
     ),
     'primary key' => array('scope_id'),
-    'unique keys' => array(
-      'name' => array('name'),
-    ),
   );
 
   $schema['oauth2_client'] = array(
@@ -262,4 +259,14 @@ function oauth2_schema() {
   );
 
   return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function oauth2_uninstall() {
+  // Delete attached fields.
+  field_attach_delete_bundle('oauth2_authorization_code', 'oauth2_authorization_code');
+  field_attach_delete_bundle('oauth2_token', 'access');
+  field_attach_delete_bundle('oauth2_token', 'refresh');
 }

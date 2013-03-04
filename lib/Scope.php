@@ -68,10 +68,16 @@ class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
   }
 
   public function getDefaultScope() {
-    return $this->context->settings['default_scope'];
+    // If there's a valid default scope set, return it.
+    $default_scope = $this->context->settings['default_scope'];
+    if (!empty($default_scope) && $scope = oauth2_scope_load($this->context->context_id, $default_scope)) {
+      return $default_scope;
+    }
+
+    return FALSE;
   }
 
-  public function getSupportedScopes() {
+  public function getSupportedScopes($client_key = null) {
     // The OAuth2 module is designed for an unbounded number of scopes, so it
     // is not feasible to return them all. Instead, we return a magic value
     // that tells checkScope() to query against the database.

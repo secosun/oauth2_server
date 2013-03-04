@@ -150,9 +150,18 @@ function oauth2_context_form_validate($form, &$form_state) {
  * Form API submit callback for the type form.
  */
 function oauth2_context_form_submit(&$form, &$form_state) {
+  // Save the context.
   $context = entity_ui_form_submit_build_entity($form, $form_state);
-  // Save and go back.
   $context->save();
+  // If this was a new context, create a default scope as well.
+  if ($form_state['op'] == 'add') {
+    $scope = entity_create('oauth2_scope', array());
+    $scope->context_id = $context->context_id;
+    $scope->name = 'basic';
+    $scope->label = 'Basic';
+    $scope->save();
+  }
+
   $form_state['redirect'] = 'admin/config/services/oauth2-contexts';
 }
 

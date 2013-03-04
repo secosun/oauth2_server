@@ -172,6 +172,7 @@ function oauth2_entity_info() {
     'fieldable' => TRUE,
     'entity keys' => array(
       'id' => 'token_id',
+      'bundle' => 'type',
     ),
     'bundles' => array(
       'access' => array(
@@ -395,8 +396,8 @@ function oauth2_register_autoloader() {
  */
 function oauth2_get_server($context = NULL) {
   oauth2_register_autoloader();
-  $storage = new OAuth2_Storage_Drupal();
   if ($context) {
+    $storage = new OAuth2_Storage_Drupal($context);
     $server = new OAuth2_Server($storage, $context->settings);
     // Initialize the scope util.
     $scope_util = new OAuth2_Scope_Drupal($context);
@@ -409,6 +410,9 @@ function oauth2_get_server($context = NULL) {
     }
   }
   else {
+    // Pass a dummy context.
+    $context = entity_crete('oauth2_context', array());
+    $storage = new OAuth2_Storage_Drupal($context);
     $server = new OAuth2_Server($storage);
   }
 

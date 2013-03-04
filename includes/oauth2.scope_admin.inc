@@ -131,11 +131,11 @@ class OAuth2ScopeUIController extends EntityDefaultUIController {
    * Overrides EntityDefaultUIController::overviewTableRow().
    */
   public function applyOperation($op, $entity) {
-    // Make sure the parent context always has a valid default scope.
+    // If the default scope is about to be deleted, reset the context setting.
     if ($op == 'delete') {
       $context = oauth2_entity_load_by_property('oauth2_context', array('name' => arg(5)));
       if ($context && $context->settings['default_scope'] == $entity->name) {
-        $context->settings['default_scope'] = 'default';
+        $context->settings['default_scope'] = '';
         $context->save();
       }
     }
@@ -225,9 +225,8 @@ function oauth2_scope_form_submit(&$form, &$form_state) {
     $context->save();
   }
   elseif (!$default && $context->settings['default_scope'] == $previous_scope->name) {
-    // This scope is no longer marked as Default, revert the context setting
-    // to its initial state.
-    $context->settings['default_scope'] = 'default';
+    // This scope is no longer marked as default, reset the context setting.
+    $context->settings['default_scope'] = '';
     $context->save();
   }
   // Unset the value of "Default" so that it doesn't get set on the entity.
@@ -256,9 +255,16 @@ function oauth2_scope_form_submit_delete(&$form, &$form_state) {
  *
  * @param $name
  *   The name of the scope.
+ * @param $element
+ *   The name form element array.
+ * @param $form_state
+ *   Form state.
+ *
  * @return
  *   TRUE if the given scope exists. FALSE otherwise.
  */
-function oauth2_scope_exists($name) {
-  $scope = oauth2_entity_load_by_property('oauth2_scope', array('name' => $name));
+function oauth2_scope_exists($name, $element, $form_state) {
+  $context = $form_state['context'];
+  $scope = oauth2_entity_load_by_property('oauth2_scope', array('name' => $name, 'context_id' => $context->context_id));
+  return !empty($scope);
 }
