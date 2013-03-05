@@ -85,7 +85,7 @@ class OAuth2ClientUIController extends EntityDefaultUIController {
    * Overrides EntityDefaultUIController::overviewTable().
    */
   public function overviewTable($conditions = array()) {
-    $context = oauth2_entity_load_by_property('oauth2_context', array('name' => arg(5)));
+    $context = oauth2_context_load(arg(5));
     $conditions = array();
     if ($context) {
       $conditions['context_id'] = $context->context_id;
@@ -129,7 +129,7 @@ class OAuth2ClientUIController extends EntityDefaultUIController {
  */
 function oauth2_client_form($form, &$form_state, $client, $op = 'edit') {
   // Load the parent context.
-  $context = oauth2_entity_load_by_property('oauth2_context', array('name' => arg(5)));
+  $context = oauth2_context_load(arg(5));
   if (!$context) {
     return $form;
   }

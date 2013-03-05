@@ -85,7 +85,7 @@ class OAuth2ScopeUIController extends EntityDefaultUIController {
    * Overrides EntityDefaultUIController::overviewTable().
    */
   public function overviewTable($conditions = array()) {
-    $this->context = oauth2_entity_load_by_property('oauth2_context', array('name' => arg(5)));
+    $this->context = oauth2_context_load(arg(5));
     $conditions = array();
     if ($this->context) {
       $conditions['context_id'] = $this->context->context_id;
@@ -133,7 +133,7 @@ class OAuth2ScopeUIController extends EntityDefaultUIController {
   public function applyOperation($op, $entity) {
     // If the default scope is about to be deleted, reset the context setting.
     if ($op == 'delete') {
-      $context = oauth2_entity_load_by_property('oauth2_context', array('name' => arg(5)));
+      $context = oauth2_context_load(arg(5));
       if ($context && $context->settings['default_scope'] == $entity->name) {
         $context->settings['default_scope'] = '';
         $context->save();
@@ -149,7 +149,7 @@ class OAuth2ScopeUIController extends EntityDefaultUIController {
  */
 function oauth2_scope_form($form, &$form_state, $scope, $op = 'edit') {
   // Load the parent context.
-  $context = oauth2_entity_load_by_property('oauth2_context', array('name' => arg(5)));
+  $context = oauth2_context_load(arg(5));
   if (!$context) {
     return $form;
   }
@@ -234,11 +234,9 @@ function oauth2_scope_form_submit(&$form, &$form_state) {
 
   $scope = entity_ui_form_submit_build_entity($form, $form_state);
   $scope->context_id = $context->context_id;
-  // Save and go back.
   $scope->save();
 
-  $context = arg(5);
-  $form_state['redirect'] = 'admin/config/services/oauth2-contexts/manage/' . $context . '/scopes';
+  $form_state['redirect'] = 'admin/config/services/oauth2-contexts/manage/' . $context->name . '/scopes';
 }
 
 /**
@@ -265,6 +263,5 @@ function oauth2_scope_form_submit_delete(&$form, &$form_state) {
  */
 function oauth2_scope_exists($name, $element, $form_state) {
   $context = $form_state['context'];
-  $scope = oauth2_entity_load_by_property('oauth2_scope', array('name' => $name, 'context_id' => $context->context_id));
-  return !empty($scope);
+  return oauth2_scope_load($context->context_id, $name);
 }

@@ -269,6 +269,32 @@ function oauth2_context_access($op, $entity, $account, $entity_type) {
 }
 
 /**
+ * Loads a single OAuth2 context entity.
+ *
+ * @param $name
+ *   The context machine-name.
+ *
+ * @return
+ *   The context entity, or FALSE.
+ */
+function oauth2_context_load($name) {
+  return entity_load_single('oauth2_context', $name);
+}
+
+/**
+ * Loads multiple OAuth2 context entities.
+ *
+ * @param $names
+ *   An array of context machine-names.
+ *
+ * @return
+ *   An array of context entities indexed by their ids.
+ */
+function oauth2_context_load_multiple($names) {
+  return entity_load_multiple_by_name('oauth2_context', $names);
+}
+
+/**
  * Access control for oauth2_scope entities.
  *
  * @param $op
@@ -295,6 +321,45 @@ function oauth2_scope_access($op, $entity, $account, $entity_type) {
 }
 
 /**
+ * Loads a single OAuth2 scope entity.
+ *
+ * @param $context_id
+ *   The context id.
+ * @param $name
+ *   The scope machine-name.
+ *
+ * @return
+ *   The scope entity, or FALSE.
+ */
+function oauth2_scope_load($context_id, $name) {
+  $conditions = array(
+    'context_id' => $context_id,
+    'name' => $name,
+  );
+  $scopes = entity_load('oauth2_scope', FALSE, $conditions);
+  return reset($scopes);
+}
+
+/**
+ * Loads multiple OAuth2 scope entities.
+ *
+ * @param $context_id
+ *   The context id.
+ * @param $names
+ *   An array of scope machine-names.
+ *
+ * @return
+ *   An array of scope entities indexed by their ids.
+ */
+function oauth2_scope_load_multiple($context_id, $names) {
+  $conditions = array(
+    'context_id' => $context_id,
+    'name' => $names,
+  );
+  return entity_load('oauth2_scope', FALSE, $conditions);
+}
+
+/**
  * Access control for oauth2_client entities.
  *
  * @param $op
@@ -312,6 +377,87 @@ function oauth2_scope_access($op, $entity, $account, $entity_type) {
  */
 function oauth2_client_access($op, $entity, $account, $entity_type) {
   return user_access('administer oauth2', $account);
+}
+
+/**
+ * Loads a single OAuth2 client entity.
+ *
+ * @param $client_key
+ *   The client key.
+ *
+ * @return
+ *   The client entity, or FALSE.
+ */
+function oauth2_client_load($client_key) {
+  $clients = entity_load('oauth2_client', FALSE, array('client_key' => $client_key));
+  return reset($clients);
+}
+
+/**
+ * Loads multiple OAuth2 client entities.
+ *
+ * @param $client_keys
+ *   An array of client keys.
+ *
+ * @return
+ *   An array of client entities indexed by their ids.
+ */
+function oauth2_client_load_multiple($client_keys) {
+  return entity_load('oauth2_client', FALSE, array('client_key' => $client_keys));
+}
+
+/**
+ * Loads a single OAuth2 token entity.
+ *
+ * @param $token
+ *   The token.
+ *
+ * @return
+ *   The token entity, or FALSE.
+ */
+function oauth2_token_load($token) {
+  $tokens = entity_load('oauth2_token', FALSE, array('token' => $token));
+  return reset($tokens);
+}
+
+/**
+ * Loads multiple OAuth2 token entities.
+ *
+ * @param $tokens
+ *   An array of tokens.
+ *
+ * @return
+ *   An array of token entities indexed by their ids.
+ */
+function oauth2_token_load_multiple($tokens) {
+  return entity_load('oauth2_token', FALSE, array('token' => $tokens));
+}
+
+/**
+ * Loads a single OAuth2 authorization code entity.
+ *
+ * @param $code
+ *   The code.
+ *
+ * @return
+ *   The authorization code entity, or FALSE.
+ */
+function oauth2_authorization_code_load($code) {
+  $codes = entity_load('oauth2_authorization_code', FALSE, array('code' => $code));
+  return reset($codes);
+}
+
+/**
+ * Loads multiple OAuth2 authorization code entities.
+ *
+ * @param $codes
+ *   An array of codes.
+ *
+ * @return
+ *   An array of authorization code entities indexed by their ids.
+ */
+function oauth2_authorization_code_load_multiple($codes) {
+  return entity_load('oauth2_authorization_code', FALSE, array('codes' => $codes));
 }
 
 /**
@@ -338,7 +484,7 @@ function oauth2_set_properties($entity, $name, $value) {
     case 'context':
       // For exportable entities, the "name" is passed instead of the id.
       // This is why we load the entity (which is already in the static cache).
-      $context = oauth2_entity_load_by_property('oauth2_context', array('name' => $value));
+      $context = oauth2_context_load($value);
       $entity->context_id = $context->context_id;
       break;
     case 'client':
@@ -348,25 +494,6 @@ function oauth2_set_properties($entity, $name, $value) {
       $entity->uid = $value;
       break;
   }
-}
-
-/**
- * Loads an entity by its property values.
- *
- * @todo Add this function to Entity API.
- *
- * @param $entity_type
- *   The entity type to load, e.g. node or user.
- * @param $values
- *   An associative array where the keys are the property names and the values
- *   are the values those properties must have.
- *
- * @return
- *   An entity if found, FALSE otherwise.
- */
-function oauth2_entity_load_by_property($entity_type, array $values) {
-  $entities = entity_load($entity_type, FALSE, $values);
-  return reset($entities);
 }
 
 /**
@@ -411,7 +538,7 @@ function oauth2_get_server($context = NULL) {
   }
   else {
     // Pass a dummy context.
-    $context = entity_crete('oauth2_context', array());
+    $context = entity_create('oauth2_context', array());
     $storage = new OAuth2_Storage_Drupal($context);
     $server = new OAuth2_Server($storage);
   }
@@ -448,7 +575,7 @@ function oauth2_authorize() {
   $context = NULL;
   // Get the client and use it to load the context and initialize the server.
   if ($client_id) {
-    $client = oauth2_entity_load_by_property('oauth2_client', array('client_key' => $client_id));
+    $client = oauth2_client_load($client_id);
     if ($client) {
       $context = entity_load_single('oauth2_context', $client->context_id);
     }
@@ -514,7 +641,7 @@ function oauth2_token() {
   $context = NULL;
   // Get the client and use it to load the context and initialize the server.
   if ($client_id) {
-    $client = oauth2_entity_load_by_property('oauth2_client', array('client_key' => $client_id));
+    $client = oauth2_client_load($client_id);
     if ($client) {
       $context = entity_load_single('oauth2_context', $client->context_id);
     }
@@ -539,7 +666,7 @@ function oauth2_token() {
  *   error response is sent to the user.
  */
 function oauth2_verify_access($context_name, $scope = NULL) {
-  $context = oauth2_entity_load_by_property('oauth2_context', array('name' => $context_name));
+  $context = oauth2_context_load($context_name);
   $server = oauth2_get_server($context);
   $token = $server->getAccessTokenData(OAuth2_Request::createFromGlobals());
   // If there's no token, that means validation failed. Stop here.

@@ -26,7 +26,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   }
 
   public function getClientDetails($client_key) {
-    $client = oauth2_entity_load_by_property('oauth2_client', array('client_key' => $client_key));
+    $client = oauth2_client_load($client_key);
     if ($client) {
       // Return a client array in the format expected by the library.
       $client = array(
@@ -47,7 +47,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
 
   /* AccessTokenInterface */
   public function getAccessToken($access_token) {
-    $token = oauth2_entity_load_by_property('oauth2_token', array('token' => $access_token));
+    $token = oauth2_token_load($access_token);
     if ($token) {
       $token_wrapper = entity_metadata_wrapper('oauth2_token', $token);
       $scopes = array();
@@ -69,7 +69,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   }
 
   public function setAccessToken($access_token, $client_key, $username, $expires, $scope = null) {
-    $client = oauth2_entity_load_by_property('oauth2_client', array('client_key' => $client_key));
+    $client = oauth2_client_load($client_key);
     if (!$client) {
       throw new InvalidArgumentException("The supplied client couldn't be loaded.");
     }
@@ -94,7 +94,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
 
   /* AuthorizationCodeInterface */
   public function getAuthorizationCode($code) {
-    $code = oauth2_entity_load_by_property('oauth2_authorization_code', array('code' => $code));
+    $code = oauth2_authorization_code_load($code);
     if ($code) {
       $code_wrapper = entity_metadata_wrapper('oauth2_authorization_code', $code);
       $scopes = array();
@@ -118,9 +118,9 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
 
   public function setAuthorizationCode($code, $client_key, $username, $redirect_uri, $expires, $scope = null) {
     // If no code was found, start with a new entity.
-    $authorization_code = oauth2_entity_load_by_property('oauth2_authorization_code', array('code' => $code));
+    $authorization_code = oauth2_authorization_code_load($code);
     if (!$authorization_code) {
-      $client = oauth2_entity_load_by_property('oauth2_client', array('client_key' => $client_key));
+      $client = oauth2_client_load($client_key);
       if (!$client) {
         throw new InvalidArgumentException("The supplied client couldn't be loaded.");
       }
@@ -144,7 +144,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   }
 
   public function expireAuthorizationCode($code) {
-    $code = oauth2_entity_load_by_property('oauth2_authorization_code', array('code' => $code));
+    $code = oauth2_authorization_code_load($code);
     $code->delete();
   }
 
@@ -169,7 +169,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   }
 
   public function setRefreshToken($refresh_token, $client_key, $username, $expires, $scope = null) {
-    $client = oauth2_entity_load_by_property('oauth2_client', array('client_key' => $client_key));
+    $client = oauth2_client_load($client_key);
     if (!$client) {
       throw new InvalidArgumentException("The supplied client couldn't be loaded.");
     }
@@ -190,7 +190,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   }
 
   public function unsetRefreshToken($refresh_token) {
-    $token = oauth2_entity_load_by_property('oauth2_token', array('token' => $refresh_token));
+    $token = oauth2_token_load($refresh_token);
     $token->delete();
   }
 
@@ -206,7 +206,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
     $entity->scopes = array();
     if ($scope) {
       $scopes = preg_split('/\s+/', $scope);
-      $loaded_scopes = entity_load('oauth2_scope', FALSE, array('name' => $scopes, 'context_id' => $this->context->context_id));
+      $loaded_scopes = oauth2_scope_load_multiple($this->context->context_id, $scopes);
       foreach ($loaded_scopes as $loaded_scope) {
         $entity->scopes[LANGUAGE_NONE][] = array(
           'target_id' => $loaded_scope->scope_id,
