@@ -44,6 +44,37 @@ class OAuth2ContextUIController extends EntityDefaultUIController {
     $additional_cols[] = l(t('scopes'), $this->path . '/manage/' . $id . '/scopes');
     return parent::overviewTableRow($conditions, $id, $entity, $additional_cols);
   }
+
+  /**
+   * Overrides EntityDefaultUIController::operationForm().
+   */
+  public function operationForm($form, &$form_state, $entity, $op) {
+    if ($op == 'delete') {
+      $query = new EntityFieldQuery;
+      $query->entityCondition('entity_type', 'oauth2_scope');
+      $query->propertyCondition('context_id', $entity->context_id);
+      $query->count();
+      $num_scopes = $query->execute();
+
+      $num_clients = 0;
+      // If there's at least one scope, we know the delete can't proceed,
+      // so no need to count clients.
+      if ($num_scopes == 0) {
+        $query = new EntityFieldQuery;
+        $query->entityCondition('entity_type', 'oauth2_client');
+        $query->propertyCondition('context_id', $entity->context_id);
+        $query->count();
+        $num_clients = $query->execute();
+      }
+
+      if ($num_scopes > 0 || $num_clients > 0) {
+        drupal_set_message(t('This context has associated scopes and/or clients, it cannot be deleted.'), 'error');
+        return array();
+      }
+    }
+
+    return parent::operationForm($form, $form_state, $entity, $op);
+  }
 }
 
 /**
