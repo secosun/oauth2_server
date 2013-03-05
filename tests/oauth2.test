@@ -9,6 +9,8 @@
  * Test basic API.
  */
 class OAuth2TestCase extends EntityWebTestCase {
+  protected $profile = 'testing';
+
   /**
    * The client key of the test client.
    *
@@ -39,7 +41,7 @@ class OAuth2TestCase extends EntityWebTestCase {
     $context->name = 'test';
     $context->label = 'Test';
     $context->settings = array(
-      'default_scope' => 'default',
+      'default_scope' => 'basic',
       'allow_implicit' => TRUE,
       'grant_types' => array(
         'authorization_code' => 'authorization_code',
@@ -58,6 +60,12 @@ class OAuth2TestCase extends EntityWebTestCase {
     $client->redirect_uri = url('authorized', array('absolute' => TRUE));
     $client->automatic_authorization = TRUE;
     $client->save();
+
+    $scope = entity_create('oauth2_scope', array());
+    $scope->context_id = $context->context_id;
+    $scope->name = 'basic';
+    $scope->label = 'Basic';
+    $scope->save();
   }
 
   /**
@@ -76,10 +84,14 @@ class OAuth2TestCase extends EntityWebTestCase {
     $query = array(
       'response_type' => $response_type,
       'client_id' => $this->client_key,
-      'client_secret' => $this->client_secret,
       // The "authorized" url doesn't actually exist, but we don't need it.
       'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
+    // The token response type (implicit flow) doesn't need the client_secret.
+    if ($response_type == 'code') {
+      $query['client_secret'] = $this->client_secret;
+    }
+
     $authorize_url = url('authorize', array('absolute' => TRUE, 'query' => $query));
     $options = array();
     if ($forward_cookies) {
@@ -102,7 +114,7 @@ class OAuth2TestCase extends EntityWebTestCase {
    * Tests the authorization part of the flow.
    */
   public function testAuthorization() {
-    // Attempt to authenticate with no user logged in.
+    // Attempt authorization with no user logged in.
     $result = $this->authorizationCodeRequest('code', FALSE);
     // Test the login redirect.
     $login_redirect = FALSE;
@@ -120,7 +132,7 @@ class OAuth2TestCase extends EntityWebTestCase {
     $redirect_url_parts = explode('?', $result->redirect_url);
     $authorize_redirect = FALSE;
     $redirect_uri = url('authorized', array('absolute' => TRUE));
-    if ($result->redirect_code == 302 && $redirect_url_parts[0] == $redirect_uri) {
+    if ($result->code == 302 && $redirect_url_parts[0] == $redirect_uri) {
       $authorize_redirect = TRUE;
     }
     $this->assertTrue($authorize_redirect, 'User was properly redirected to the "redirect_uri".');
@@ -137,7 +149,7 @@ class OAuth2TestCase extends EntityWebTestCase {
     $this->drupalLogin($user);
     $result = $this->authorizationCodeRequest('token');
 
-    $this->assertEqual($result->code, 200, 'The implicit flow request completed successfully');
+    $this->assertEqual($result->code, 302, 'The implicit flow request completed successfully');
     $redirect_url_parts = explode('?#', $result->redirect_url);
     $response = drupal_get_query_array($redirect_url_parts[1]);
     $this->assertGrantResponse($response, FALSE);
@@ -161,6 +173,7 @@ class OAuth2TestCase extends EntityWebTestCase {
       'client_id' => $this->client_key,
       'client_secret' => $this->client_secret,
       'code' => $authorization_code,
+      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
     $options = array(
       'method' => 'POST',
@@ -185,6 +198,7 @@ class OAuth2TestCase extends EntityWebTestCase {
       'grant_type' => 'client_credentials',
       'client_id' => $this->client_key,
       'client_secret' => $this->client_secret,
+      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
     $options = array(
       'method' => 'POST',
@@ -213,6 +227,7 @@ class OAuth2TestCase extends EntityWebTestCase {
       'client_secret' => $this->client_secret,
       'username' => $user->name,
       'password' => $user->pass_raw,
+      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
     $options = array(
       'method' => 'POST',
