@@ -147,7 +147,7 @@ function oauth2_client_form($form, &$form_state, $client, $op = 'edit') {
   );
   $form['client_key'] = array(
     '#title' => t('Client ID'),
-    '#type' => 'textarea',
+    '#type' => 'textfield',
     '#default_value' => $client->client_key,
     '#required' => TRUE,
   );
@@ -197,6 +197,11 @@ function oauth2_client_form($form, &$form_state, $client, $op = 'edit') {
  */
 function oauth2_client_form_validate($form, &$form_state) {
   entity_form_field_validate('oauth2_client', $form, $form_state);
+
+  // The client key must be unique across contexts.
+  if ($client = oauth2_client_load($form_state['values']['client_key'])) {
+    form_set_error('client_key', t('The chosen Client ID is already in use.'));
+  }
 }
 
 /**

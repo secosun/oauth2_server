@@ -114,6 +114,9 @@ function oauth2_schema() {
       ),
     ),
     'primary key' => array('scope_id'),
+    'indexes' => array(
+      'context' => array('context_id'),
+    ),
   );
 
   $schema['oauth2_client'] = array(
@@ -132,17 +135,18 @@ function oauth2_schema() {
         'default' => 0,
       ),
       'label' => array(
+        'description' => 'The label of the client.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
-        'description' => 'The label of the client.',
         'default' => '',
       ),
       // The OAuth2 spec calls the client key "client_id", but we need that
       // for the autoincrement.
       'client_key' => array(
         'description' => 'The client key',
-        'type' => 'text',
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
       ),
       'client_secret' => array(
@@ -165,6 +169,12 @@ function oauth2_schema() {
       ),
     ),
     'primary key' => array('client_id'),
+    'unique keys' => array(
+      'client_key' => array('client_key'),
+    ),
+    'indexes' => array(
+      'context' => array('context_id'),
+    ),
   );
   $schema['oauth2_authorization_code'] = array(
     'description' => 'The base table for authorization codes',
