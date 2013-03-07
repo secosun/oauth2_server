@@ -62,6 +62,10 @@ function oauth2_menu() {
     'page callback' => 'oauth2_token',
     'access arguments' => array('access content'),
   );
+  $items['verify_token'] = array(
+    'page callback' => 'oauth2_verify_token',
+    'access arguments' => array('access content'),
+  );
 
   return $items;
 }
@@ -651,6 +655,38 @@ function oauth2_token() {
   $server = oauth2_get_server($context);
   $response = $server->handleGrantRequest(OAuth2_Request::createFromGlobals());
   return oauth2_send_response($response);
+}
+
+/**
+ * Page callback: verifies the provided token for the provided client_id.
+ */
+function oauth2_verify_token($token) {
+  $data = array(
+    'verified' => FALSE,
+    'scope' => '',
+  );
+  // If one of the parameters is missing, we can stop here.
+  if (empty($token) || empty($_GET['client_id'])) {
+    return drupal_json_output($data);
+  }
+
+  $token = oauth2_token_load($token);
+  $client = oauth2_client_load($_GET['client_id']);
+  // The token exists, hasn't expired, and belongs to the provided client.
+  if ($token && $client && $token->expires > time() && $token->client_id == $client->client_id) {
+    $token_wrapper = entity_metadata_wrapper('oauth2_token', $token);
+    $scopes = array();
+    foreach ($token_wrapper->scopes as $scope_wrapper) {
+      $scopes[] = $scope_wrapper->name->value();
+    }
+
+    $data = array(
+      'verified' => TRUE,
+      'scope' => implode(' ', $scopes),
+    );
+  }
+
+  return drupal_json_output($data);
 }
 
 /**
