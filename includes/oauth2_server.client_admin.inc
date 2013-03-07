@@ -7,7 +7,7 @@
 /**
  * UI controller.
  */
-class OAuth2ClientUIController extends EntityDefaultUIController {
+class OAuth2ServerClientUIController extends EntityDefaultUIController {
 
   public function __construct($entity_type, $entity_info) {
     $this->statusKey = 'status';
@@ -15,7 +15,7 @@ class OAuth2ClientUIController extends EntityDefaultUIController {
     $this->entityInfo = $entity_info;
     // Stop the UI from mentioning "OAuth2 client" everywhere.
     $this->entityInfo['label'] = 'Client';
-    // Replace the % placeholder with the context name, since the path
+    // Replace the % placeholder with the server name, since the path
     // is used for links and redirects.
     $this->path = str_replace('%', arg(5), $this->entityInfo['admin ui']['path']);
   }
@@ -25,16 +25,16 @@ class OAuth2ClientUIController extends EntityDefaultUIController {
    */
   public function hook_menu() {
     $items = array();
-    $path = 'admin/config/services/oauth2-contexts/manage/%/clients';
+    $path = 'admin/config/services/oauth2-servers/manage/%/clients';
     $id_pos = count(explode('/', $path));
 
     $items[$path] = array(
       'title' => 'Clients',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('oauth2_client_overview_form', 'oauth2_client'),
+      'page arguments' => array('oauth2_server_client_overview_form', 'oauth2_server_client'),
       'description' => 'Manage clients.',
       'access callback' => 'entity_access',
-      'access arguments' => array('view', 'oauth2_client'),
+      'access arguments' => array('view', 'oauth2_server_client'),
       'type' => MENU_LOCAL_TASK,
       'file' => 'includes/entity.ui.inc',
       'weight' => 10,
@@ -42,12 +42,12 @@ class OAuth2ClientUIController extends EntityDefaultUIController {
     $items[$path . '/add'] = array(
       'title' => 'Add client',
       'page callback' => 'entity_ui_get_form',
-      'page arguments' => array('oauth2_client', NULL, 'add'),
+      'page arguments' => array('oauth2_server_client', NULL, 'add'),
       'access callback' => 'entity_access',
-      'access arguments' => array('create', 'oauth2_client'),
+      'access arguments' => array('create', 'oauth2_server_client'),
       'type' => MENU_LOCAL_ACTION,
       'file' => $this->entityInfo['admin ui']['file'],
-      'file path' => drupal_get_path('module', 'oauth2'),
+      'file path' => drupal_get_path('module', 'oauth2_server')
     );
     // The regular Entity API way would be to use
     // $path . '/manage/%entity_object' here, but Drupal's Menu API is limited
@@ -55,26 +55,26 @@ class OAuth2ClientUIController extends EntityDefaultUIController {
     $items[$path . '/%entity_object'] = array(
       'title' => 'Edit',
       'title callback' => 'entity_label',
-      'title arguments' => array('oauth2_client', $id_pos),
+      'title arguments' => array('oauth2_server_client', $id_pos),
       'page callback' => 'entity_ui_get_form',
-      'page arguments' => array('oauth2_client', $id_pos),
-      'load arguments' => array('oauth2_client'),
+      'page arguments' => array('oauth2_server_client', $id_pos),
+      'load arguments' => array('oauth2_server_client'),
       'access callback' => 'entity_access',
-      'access arguments' => array('update', 'oauth2_client', $id_pos),
+      'access arguments' => array('update', 'oauth2_server_client', $id_pos),
       'file' => $this->entityInfo['admin ui']['file'],
-      'file path' => drupal_get_path('module', 'oauth2'),
+      'file path' => drupal_get_path('module', 'oauth2_server')
     );
     $items[$path . '/%entity_object/edit'] = array(
       'title' => 'Edit',
-      'load arguments' => array('oauth2_client'),
+      'load arguments' => array('oauth2_server_client'),
       'type' => MENU_DEFAULT_LOCAL_TASK,
     );
     $items[$path . '/%entity_object/delete'] = array(
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('oauth2_client_operation_form', 'oauth2_client', $id_pos, 'delete'),
-      'load arguments' => array('oauth2_client'),
+      'page arguments' => array('oauth2_server_client_operation_form', 'oauth2_server_client', $id_pos, 'delete'),
+      'load arguments' => array('oauth2_server_client'),
       'access callback' => 'entity_access',
-      'access arguments' => array('delete', 'oauth2_client', $id_pos),
+      'access arguments' => array('delete', 'oauth2_server_client', $id_pos),
       'file' => 'includes/entity.ui.inc',
     );
 
@@ -85,16 +85,7 @@ class OAuth2ClientUIController extends EntityDefaultUIController {
    * Overrides EntityDefaultUIController::overviewTable().
    */
   public function overviewTable($conditions = array()) {
-    $context = oauth2_context_load(arg(5));
-    $conditions = array();
-    if ($context) {
-      $conditions['context_id'] = $context->context_id;
-    }
-    else {
-      // The parent context wasn't found, add a dummy filter for no results.
-      $conditions['context_id'] = -1;
-    }
-
+    $conditions['server'] = arg(5);
     return parent::overviewTable($conditions);
   }
 
@@ -127,16 +118,16 @@ class OAuth2ClientUIController extends EntityDefaultUIController {
 /**
  * Generates the client editing form.
  */
-function oauth2_client_form($form, &$form_state, $client, $op = 'edit') {
-  // Load the parent context.
-  $context = oauth2_context_load(arg(5));
-  if (!$context) {
+function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
+  // Load the parent server.
+  $server = oauth2_server_load(arg(5));
+  if (!$server) {
     return $form;
   }
 
-  $form['context_id'] = array(
+  $form['server'] = array(
     '#type' => 'value',
-    '#value' => $context->context_id,
+    '#value' => $server->name,
   );
   $form['label'] = array(
     '#title' => t('Label'),
@@ -171,7 +162,7 @@ function oauth2_client_form($form, &$form_state, $client, $op = 'edit') {
     '#description' => t('This will cause the authorization form to be skipped. <b>Warning:</b> Give to trusted clients only!'),
   );
 
-  field_attach_form('oauth2_client', $client, $form, $form_state);
+  field_attach_form('oauth2_server_client', $client, $form, $form_state);
 
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
@@ -186,7 +177,7 @@ function oauth2_client_form($form, &$form_state, $client, $op = 'edit') {
       '#value' => t('Delete client'),
       '#weight' => 45,
       '#limit_validation_errors' => array(),
-      '#submit' => array('oauth2_client_form_submit_delete')
+      '#submit' => array('oauth2_server_client_form_submit_delete')
     );
   }
   return $form;
@@ -195,32 +186,36 @@ function oauth2_client_form($form, &$form_state, $client, $op = 'edit') {
 /**
  * Validation callback.
  */
-function oauth2_client_form_validate($form, &$form_state) {
-  entity_form_field_validate('oauth2_client', $form, $form_state);
+function oauth2_server_client_form_validate($form, &$form_state) {
+  entity_form_field_validate('oauth2_server_client', $form, $form_state);
 
-  // The client key must be unique across contexts.
-  if ($client = oauth2_client_load($form_state['values']['client_key'])) {
-    form_set_error('client_key', t('The chosen Client ID is already in use.'));
+  // The client key must be unique across servers.
+  $client = $form_state['build_info']['args'][0];
+  $client_key = $form_state['values']['client_key'];
+  if (empty($client->client_id) || $client->client_key != $client_key) {
+    if ($client = oauth2_server_client_load($client_key)) {
+      form_set_error('client_key', t('The chosen Client ID is already in use.'));
+    }
   }
 }
 
 /**
  * Form API submit callback for the type form.
  */
-function oauth2_client_form_submit(&$form, &$form_state) {
+function oauth2_server_client_form_submit(&$form, &$form_state) {
   $client = entity_ui_form_submit_build_entity($form, $form_state);
   // Save and go back.
   $client->save();
 
-  $context = arg(5);
-  $form_state['redirect'] = 'admin/config/services/oauth2-contexts/manage/' . $context . '/clients';
+  $server = arg(5);
+  $form_state['redirect'] = 'admin/config/services/oauth2-servers/manage/' . $server . '/clients';
 }
 
 /**
  * Form API submit callback for the delete button.
  */
-function oauth2_client_form_submit_delete(&$form, &$form_state) {
-  $context = arg(5);
-  $form_state['redirect'] = 'admin/config/services/oauth2-contexts/manage/' . $context
-                             . '/clients/' . $form_state['oauth2_client']->client_id . '/delete';
+function oauth2_server_client_form_submit_delete(&$form, &$form_state) {
+  $server = arg(5);
+  $form_state['redirect'] = 'admin/config/services/oauth2-servers/manage/' . $server
+                             . '/clients/' . $form_state['oauth2_server_client']->client_id . '/delete';
 }

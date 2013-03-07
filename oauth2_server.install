@@ -7,10 +7,10 @@
 /**
  * Implements hook_requirements().
  */
-function oauth2_requirements($phase = 'runtime') {
+function oauth2_server_requirements($phase = 'runtime') {
   if ($phase == 'runtime') {
     $found = FALSE;
-    $path = oauth2_get_library_path();
+    $path = oauth2_server_get_library_path();
     // Check for the existence of one file from the library.
     if ($path && file_exists($path . '/src/OAuth2/Server.php')) {
       $found = TRUE;
@@ -33,18 +33,18 @@ function oauth2_requirements($phase = 'runtime') {
 /**
  * Implements hook_schema().
  */
-function oauth2_schema() {
-  $schema['oauth2_context'] = array(
-    'description' => 'The base table for contexts.',
+function oauth2_server_schema() {
+  $schema['oauth2_server'] = array(
+    'description' => 'The base table for servers.',
     'fields' => array(
-      'context_id' => array(
-        'description' => 'Primary key: numeric context id.',
+      'server_id' => array(
+        'description' => 'Primary key: numeric server id.',
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'name' => array(
-        'description' => 'The machine name for a context.',
+        'description' => 'The machine name for a server.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
@@ -53,11 +53,11 @@ function oauth2_schema() {
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
-        'description' => 'The label of the context.',
+        'description' => 'The label of the server.',
         'default' => '',
       ),
       'settings' => array(
-        'description' => 'Context settings, passed to the server.',
+        'description' => 'Settings passed to the server library.',
         'type' => 'text',
         'size' => 'big',
         'not null' => TRUE,
@@ -70,21 +70,21 @@ function oauth2_schema() {
         // not safe to use it at this point.
         'default' => 0x01,
         'size' => 'tiny',
-        'description' => 'The exportable status of the context.',
+        'description' => 'The exportable status of the server.',
       ),
       'module' => array(
-        'description' => 'The name of the providing module if the context has been defined in code.',
+        'description' => 'The name of the providing module if the server has been defined in code.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => FALSE,
       ),
     ),
-    'primary key' => array('context_id'),
+    'primary key' => array('server_id'),
     'unique keys' => array(
       'name' => array('name'),
     ),
   );
-  $schema['oauth2_scope'] = array(
+  $schema['oauth2_server_scope'] = array(
     'description' => 'The base table for scopes.',
     'fields' => array(
       'scope_id' => array(
@@ -93,11 +93,11 @@ function oauth2_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'context_id' => array(
-        'description' => 'The {oauth2_context}.context_id of the parent context.',
-        'type' => 'int',
+      'server' => array(
+        'description' => 'The {oauth2_server}.name of the parent server.',
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
-        'default' => 0,
       ),
       'name' => array(
         'description' => 'The machine name of the scope.',
@@ -115,11 +115,11 @@ function oauth2_schema() {
     ),
     'primary key' => array('scope_id'),
     'indexes' => array(
-      'context' => array('context_id'),
+      'server' => array('server'),
     ),
   );
 
-  $schema['oauth2_client'] = array(
+  $schema['oauth2_server_client'] = array(
     'description' => 'The base table for clients',
     'fields' => array(
       'client_id' => array(
@@ -128,11 +128,11 @@ function oauth2_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'context_id' => array(
-        'description' => 'The {oauth2_context}.context_id of the parent context.',
-        'type' => 'int',
+      'server' => array(
+        'description' => 'The {oauth2_server}.name of the parent server.',
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
-        'default' => 0,
       ),
       'label' => array(
         'description' => 'The label of the client.',
@@ -173,10 +173,10 @@ function oauth2_schema() {
       'client_key' => array('client_key'),
     ),
     'indexes' => array(
-      'context' => array('context_id'),
+      'server' => array('server'),
     ),
   );
-  $schema['oauth2_authorization_code'] = array(
+  $schema['oauth2_server_authorization_code'] = array(
     'description' => 'The base table for authorization codes',
     'fields' => array(
       'code_id' => array(
@@ -186,7 +186,7 @@ function oauth2_schema() {
         'not null' => TRUE,
       ),
       'client_id' => array(
-        'description' => 'The {oauth2_client}.client_id of the client.',
+        'description' => 'The {oauth2_server_client}.client_id of the client.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -221,7 +221,7 @@ function oauth2_schema() {
       'code' => array('code'),
     ),
   );
-  $schema['oauth2_token'] = array(
+  $schema['oauth2_server_token'] = array(
     'description' => 'The base table for tokens',
     'fields' => array(
       'token_id' => array(
@@ -231,7 +231,7 @@ function oauth2_schema() {
         'not null' => TRUE,
       ),
       'client_id' => array(
-        'description' => 'The {oauth2_client}.client_id of the client.',
+        'description' => 'The {oauth2_server_client}.client_id of the client.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -274,9 +274,9 @@ function oauth2_schema() {
 /**
  * Implements hook_uninstall().
  */
-function oauth2_uninstall() {
+function oauth2_server_uninstall() {
   // Delete attached fields.
-  field_attach_delete_bundle('oauth2_authorization_code', 'oauth2_authorization_code');
-  field_attach_delete_bundle('oauth2_token', 'access');
-  field_attach_delete_bundle('oauth2_token', 'refresh');
+  field_attach_delete_bundle('oauth2_server_authorization_code', 'oauth2_server_authorization_code');
+  field_attach_delete_bundle('oauth2_server_token', 'access');
+  field_attach_delete_bundle('oauth2_server_token', 'refresh');
 }

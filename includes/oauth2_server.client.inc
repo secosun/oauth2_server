@@ -1,16 +1,16 @@
 <?php
 
 /**
- * Entity class representing the oauth2_client entity type.
+ * Entity class representing the oauth2_server_client entity type.
  */
-class OAuth2Client extends Entity {
+class OAuth2ServerClient extends Entity {
 
   /**
-   * The id of the parent context.
+   * The machine name of the parent server.
    *
-   * @var integer
+   * @var string
    */
-  public $context_id;
+  public $server;
 
   /**
    * The label of the client.
@@ -48,6 +48,6 @@ class OAuth2Client extends Entity {
   public $automatic_authorization = FALSE;
 
   public function __construct($values = array()) {
-    parent::__construct($values, 'oauth2_client');
+    parent::__construct($values, 'oauth2_server_client');
   }
 }

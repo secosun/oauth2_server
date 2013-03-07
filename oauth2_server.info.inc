@@ -5,47 +5,43 @@
  * Provides Entity metadata integration.
  */
 
-class OAuth2ScopeMetadataController extends EntityDefaultMetadataController {
+class OAuth2ServerScopeMetadataController extends EntityDefaultMetadataController {
 
   public function entityPropertyInfo() {
     $info = parent::entityPropertyInfo();
     $properties = &$info[$this->type]['properties'];
 
-    unset($properties['context_id']);
-    $properties['context'] = array(
-      'label' => t("Context"),
-      'type' => 'oauth2_context',
-      'description' => t("The parent context."),
-      'getter callback' => 'oauth2_get_properties',
-      'setter callback' => 'oauth2_set_properties',
+    $properties['server'] = array(
+      'label' => t("Server"),
+      'type' => 'oauth2_server',
+      'description' => t("The parent server."),
+      'setter callback' => 'entity_property_verbatim_set',
       'required' => TRUE,
-      'schema field' => 'context_id',
+      'schema field' => 'server',
     );
     return $info;
   }
 }
 
-class OAuth2ClientMetadataController extends EntityDefaultMetadataController {
+class OAuth2ServerClientMetadataController extends EntityDefaultMetadataController {
 
   public function entityPropertyInfo() {
     $info = parent::entityPropertyInfo();
     $properties = &$info[$this->type]['properties'];
 
-    unset($properties['context_id']);
-    $properties['context'] = array(
-      'label' => t("Context"),
-      'type' => 'oauth2_context',
-      'description' => t("The parent context."),
-      'getter callback' => 'oauth2_get_properties',
-      'setter callback' => 'oauth2_set_properties',
+    $properties['server'] = array(
+      'label' => t("Server"),
+      'type' => 'oauth2_server',
+      'description' => t("The parent server."),
+      'setter callback' => 'entity_property_verbatim_set',
       'required' => TRUE,
-      'schema field' => 'context_id',
+      'schema field' => 'server',
     );
     return $info;
   }
 }
 
-class OAuth2TokenMetadataController extends EntityDefaultMetadataController {
+class OAuth2ServerTokenMetadataController extends EntityDefaultMetadataController {
 
   public function entityPropertyInfo() {
     $info = parent::entityPropertyInfo();
@@ -54,10 +50,10 @@ class OAuth2TokenMetadataController extends EntityDefaultMetadataController {
     unset($properties['client_id']);
     $properties['client'] = array(
       'label' => t("Client"),
-      'type' => 'oauth2_client',
+      'type' => 'oauth2_server_client',
       'description' => t("The associated client."),
-      'getter callback' => 'oauth2_get_properties',
-      'setter callback' => 'oauth2_set_properties',
+      'getter callback' => 'oauth2_server_get_properties',
+      'setter callback' => 'oauth2_server_set_properties',
       'required' => TRUE,
       'schema field' => 'client_id',
     );
@@ -66,8 +62,8 @@ class OAuth2TokenMetadataController extends EntityDefaultMetadataController {
       'label' => t("User"),
       'type' => 'user',
       'description' => t("The resource owner."),
-      'getter callback' => 'oauth2_get_properties',
-      'setter callback' => 'oauth2_set_properties',
+      'getter callback' => 'oauth2_server_get_properties',
+      'setter callback' => 'oauth2_server_set_properties',
       'required' => TRUE,
       'schema field' => 'uid',
     );
@@ -83,7 +79,7 @@ class OAuth2TokenMetadataController extends EntityDefaultMetadataController {
   }
 }
 
-class OAuth2AuthorizationCodeMetadataController extends EntityDefaultMetadataController {
+class OAuth2ServerAuthorizationCodeMetadataController extends EntityDefaultMetadataController {
 
   public function entityPropertyInfo() {
     $info = parent::entityPropertyInfo();
@@ -92,10 +88,10 @@ class OAuth2AuthorizationCodeMetadataController extends EntityDefaultMetadataCon
     unset($properties['client_id']);
     $properties['client'] = array(
       'label' => t("Client"),
-      'type' => 'oauth2_client',
+      'type' => 'oauth2_server_client',
       'description' => t("The associated client."),
-      'getter callback' => 'oauth2_get_properties',
-      'setter callback' => 'oauth2_set_properties',
+      'getter callback' => 'oauth2_server_get_properties',
+      'setter callback' => 'oauth2_server_set_properties',
       'required' => TRUE,
       'schema field' => array('client_id'),
     );
@@ -104,8 +100,8 @@ class OAuth2AuthorizationCodeMetadataController extends EntityDefaultMetadataCon
       'label' => t("User"),
       'type' => 'user',
       'description' => t("The resource owner."),
-      'getter callback' => 'oauth2_get_properties',
-      'setter callback' => 'oauth2_set_properties',
+      'getter callback' => 'oauth2_server_get_properties',
+      'setter callback' => 'oauth2_server_set_properties',
       'required' => TRUE,
       'schema field' => 'uid',
     );

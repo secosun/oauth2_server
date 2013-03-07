@@ -5,10 +5,10 @@
  */
 class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
 {
-  private $context;
+  private $server;
 
-  public function __construct($context) {
-    $this->context = $context;
+  public function __construct($server) {
+    $this->server = $server;
   }
 
   /**
@@ -23,7 +23,7 @@ class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
    *
    * @see http://tools.ietf.org/html/rfc6749#section-7
    *
-   * @ingroup oauth2_section_7
+   * @ingroup oauth2_server_section_7
    */
   public function checkScope($required_scope, $available_scope) {
     // The required scope should match or be a subset of the available scope
@@ -34,13 +34,8 @@ class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
     if ($available_scope == '*') {
       // Get all scope entities that match the provided scope.
       // Compare the difference.
-      $query = new EntityFieldQuery();
-      $query->entityCondition('entity_type', 'oauth2_scope');
-      $query->propertyCondition('name', $required_scope);
-      $results = $query->execute();
-      if ($results) {
-        $scope_ids = array_keys($results['oauth2_scope']);
-        $scopes = entity_load('oauth2_scope', $scope_ids);
+      $scopes = oauth2_server_scope_load_multiple($this->server->name, $required_scope);
+      if ($scopes) {
         $found_scope = array();
         foreach ($scopes as $scope) {
           $found_scope[] = $scope->name;
@@ -69,8 +64,8 @@ class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
 
   public function getDefaultScope() {
     // If there's a valid default scope set, return it.
-    $default_scope = $this->context->settings['default_scope'];
-    if (!empty($default_scope) && $scope = oauth2_scope_load($this->context->context_id, $default_scope)) {
+    $default_scope = $this->server->settings['default_scope'];
+    if (!empty($default_scope) && $scope = oauth2_server_scope_load($this->server->name, $default_scope)) {
       return $default_scope;
     }
 

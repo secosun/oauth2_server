@@ -1,16 +1,16 @@
 <?php
 
 /**
- * Entity class representing the oauth2_scope entity type.
+ * Entity class representing the oauth2_server_scope entity type.
  */
-class OAuth2Scope extends Entity {
+class OAuth2ServerScope extends Entity {
 
   /**
-   * The id of the parent context.
+   * The machine name of the parent server.
    *
-   * @var integer
+   * @var string
    */
-  public $context_id;
+  public $server;
 
   /**
    * The machine name of the scope.
@@ -27,6 +27,6 @@ class OAuth2Scope extends Entity {
   public $label;
 
   public function __construct($values = array()) {
-    parent::__construct($values, 'oauth2_scope');
+    parent::__construct($values, 'oauth2_server_scope');
   }
 }

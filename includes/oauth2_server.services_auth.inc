@@ -18,7 +18,7 @@
  * @return
  *  Returns nothing, or a error message if authentication fails.
  */
-function oauth2_services_authenticate_call($settings, $method, $args) {
+function oauth2_server_services_authenticate_call($settings, $method, $args) {
   $endpoint = array();
   if (isset($method['endpoint']['oauth2'])) {
     $endpoint += array_filter($method['endpoint']['oauth2']);
@@ -30,48 +30,48 @@ function oauth2_services_authenticate_call($settings, $method, $args) {
     return FALSE;
   }
 
-  // No context specified, cannot proceed.
-  if (empty($settings['context'])) {
-    throw new Exception('No context configured for Services OAuth2 authentication.');
+  // No server specified, cannot proceed.
+  if (empty($settings['server'])) {
+    throw new Exception('No server configured for Services OAuth2 authentication.');
   }
 
-  oauth2_verify_access($settings['context']);
+  oauth2_server_verify_access($settings['server']);
 }
 
-function oauth2_services_security_settings_authorization($settings) {
+function oauth2_server_services_security_settings_authorization($settings) {
   return isset($settings['authorization']) ? $settings['authorization'] : '';
 }
 
-function oauth2_services_security_settings($settings, &$form_state) {
-  if (isset($form_state['values']['oauth2']['context'])) {
-    $settings['context'] = $form_state['values']['oauth2']['context'];
+function oauth2_server_services_security_settings($settings, &$form_state) {
+  if (isset($form_state['values']['oauth2']['server'])) {
+    $settings['server'] = $form_state['values']['oauth2']['server'];
   }
 
   $options = array('' => t('- Select -'));
-  $contexts = entity_load('oauth2_context');
-  foreach ($contexts as $context) {
-    $options[$context->name] = $context->label;
+  $servers = entity_load('oauth2_server');
+  foreach ($servers as $server) {
+    $options[$server->name] = $server->label;
   }
 
   $form = array();
-  $form['context'] = array(
+  $form['server'] = array(
     '#type' => 'select',
     '#options' => $options,
-    '#default_value' => isset($settings['context']) ? $settings['context'] : '',
-    '#title' => t('OAuth2 context'),
+    '#default_value' => isset($settings['server']) ? $settings['server'] : '',
+    '#title' => t('OAuth2 server'),
     '#required' => TRUE,
   );
 
   return $form;
 }
 
-function oauth2_services_default_security_settings() {
+function oauth2_server_services_default_security_settings() {
   return array(
-    'context' => '',
+    'server' => '',
   );
 }
 
-function oauth2_services_controller_settings($settings, $controller, $endpoint, $class, $name) {
+function oauth2_server_services_controller_settings($settings, $controller, $endpoint, $class, $name) {
   $form = array();
   $form['require_authentication'] = array(
     '#type'          => 'checkbox',

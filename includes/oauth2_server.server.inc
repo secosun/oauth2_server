@@ -1,26 +1,26 @@
 <?php
 
 /**
- * Entity class representing the oauth2_context entity type.
+ * Entity class representing the oauth2_server entity type.
  */
-class OAuth2Context extends Entity {
+class OAuth2Server extends Entity {
 
   /**
-   * The machine name of the context.
+   * The machine name of the server.
    *
    * @var string
    */
   public $name;
 
   /**
-   * The label of the context.
+   * The label of the server.
    *
    * @var string
    */
   public $label;
 
   /**
-   * An array of settings passed to the OAuth2 server.
+   * An array of settings.
    *
    * @var array
    */
@@ -34,6 +34,6 @@ class OAuth2Context extends Entity {
   );
 
   public function __construct($values = array()) {
-    parent::__construct($values, 'oauth2_context');
+    parent::__construct($values, 'oauth2_server');
   }
 }

@@ -8,7 +8,7 @@
 /**
  * Test basic API.
  */
-class OAuth2TestCase extends EntityWebTestCase {
+class OAuth2ServerTestCase extends EntityWebTestCase {
   protected $profile = 'testing';
 
   /**
@@ -27,20 +27,20 @@ class OAuth2TestCase extends EntityWebTestCase {
 
   public static function getInfo() {
     return array(
-      'name' => 'OAuth2',
+      'name' => 'OAuth2 Server',
       'description' => 'Tests OAuth2 authentication and grant types.',
       'group' => 'OAuth2',
     );
   }
 
   public function setUp() {
-    parent::setUp('oauth2');
+    parent::setUp('oauth2_server');
 
-    // Create the context and client.
-    $context = entity_create('oauth2_context', array());
-    $context->name = 'test';
-    $context->label = 'Test';
-    $context->settings = array(
+    // Create the server and client.
+    $server = entity_create('oauth2_server', array());
+    $server->name = 'test';
+    $server->label = 'Test';
+    $server->settings = array(
       'default_scope' => 'basic',
       'allow_implicit' => TRUE,
       'grant_types' => array(
@@ -50,10 +50,10 @@ class OAuth2TestCase extends EntityWebTestCase {
         'password' => 'password',
       ),
     );
-    $context->save();
+    $server->save();
 
-    $client = entity_create('oauth2_client', array());
-    $client->context_id = $context->context_id;
+    $client = entity_create('oauth2_server_client', array());
+    $client->server = $server->name;
     $client->label = 'Test client';
     $client->client_key = $this->client_key;
     $client->client_secret = $this->client_secret;
@@ -61,8 +61,8 @@ class OAuth2TestCase extends EntityWebTestCase {
     $client->automatic_authorization = TRUE;
     $client->save();
 
-    $scope = entity_create('oauth2_scope', array());
-    $scope->context_id = $context->context_id;
+    $scope = entity_create('oauth2_server_scope', array());
+    $scope->server = $server->name;
     $scope->name = 'basic';
     $scope->label = 'Basic';
     $scope->save();
@@ -92,7 +92,7 @@ class OAuth2TestCase extends EntityWebTestCase {
       $query['client_secret'] = $this->client_secret;
     }
 
-    $authorize_url = url('authorize', array('absolute' => TRUE, 'query' => $query));
+    $authorize_url = url('oauth2/authorize', array('absolute' => TRUE, 'query' => $query));
     $options = array();
     if ($forward_cookies) {
       $cookie_string = '';
@@ -118,7 +118,7 @@ class OAuth2TestCase extends EntityWebTestCase {
     $result = $this->authorizationCodeRequest('code', FALSE);
     // Test the login redirect.
     $login_redirect = FALSE;
-    if ($result->redirect_code == 302 && strpos($result->redirect_url, 'user/login?destination=authorize')) {
+    if ($result->redirect_code == 302 && strpos($result->redirect_url, 'user/login?destination=oauth2/authorize')) {
       $login_redirect = TRUE;
     }
     $this->assertTrue($login_redirect, 'User was properly redirected to login.');
@@ -162,7 +162,7 @@ class OAuth2TestCase extends EntityWebTestCase {
           'client_id' => $this->client_key,
         ),
       );
-      $verification_url = url('verify_token/' . $response['access_token'], $options);
+      $verification_url = url('oauth2/verify_token/' . $response['access_token'], $options);
       $result = drupal_http_request($verification_url);
       $verification_response = json_decode($result->data);
 
@@ -183,7 +183,7 @@ class OAuth2TestCase extends EntityWebTestCase {
     $redirect_url_params = drupal_get_query_array($redirect_url_parts[1]);
     $authorization_code = $redirect_url_params['code'];
 
-    $token_url = url('token', array('absolute' => TRUE));
+    $token_url = url('oauth2/token', array('absolute' => TRUE));
     $data = array(
       'grant_type' => 'authorization_code',
       'client_id' => $this->client_key,
@@ -209,7 +209,7 @@ class OAuth2TestCase extends EntityWebTestCase {
    * Tests the "Client credentials" grant type.
    */
   public function testClientCredentialsGrantType() {
-    $token_url = url('token', array('absolute' => TRUE));
+    $token_url = url('oauth2/token', array('absolute' => TRUE));
     $data = array(
       'grant_type' => 'client_credentials',
       'client_id' => $this->client_key,
@@ -236,7 +236,7 @@ class OAuth2TestCase extends EntityWebTestCase {
   public function testPasswordGrantType() {
     $user = $this->drupalCreateUser(array('access content'));
 
-    $token_url = url('token', array('absolute' => TRUE));
+    $token_url = url('oauth2/token', array('absolute' => TRUE));
     $data = array(
       'grant_type' => 'password',
       'client_id' => $this->client_key,

@@ -10,10 +10,10 @@
  *
  * Nags the user about the missing library on OAuth2 admin pages.
  */
-function oauth2_init() {
+function oauth2_server_init() {
   $item = menu_get_item();
-  if ($item['access'] && strpos($item['path'], 'admin/config/services/oauth2-contexts') === 0) {
-    $path = oauth2_get_library_path();
+  if ($item['access'] && strpos($item['path'], 'admin/config/services/oauth2-servers') === 0) {
+    $path = oauth2_server_get_library_path();
     // Check for the existence of one file from the library.
     if (!$path || !file_exists($path . '/src/OAuth2/Server.php')) {
       $message = t('The OAuth2 server library is required for the OAuth2 module to function.
@@ -26,7 +26,7 @@ function oauth2_init() {
 /**
  * Implements hook_libraries_info().
  */
-function oauth2_libraries_info() {
+function oauth2_server_libraries_info() {
   $libraries = array();
   $libraries['oauth2-server-php'] = array(
     'name' => 'OAuth2 Server',
@@ -38,7 +38,7 @@ function oauth2_libraries_info() {
 /**
  * Returns the filesystem path to the oauth2-server-php library.
  */
-function oauth2_get_library_path() {
+function oauth2_server_get_library_path() {
   $path = 'sites/all/libraries/oauth2-server-php';
   // If installed, use the Libraries API to locate the library.
   if (module_exists('libraries')) {
@@ -52,18 +52,18 @@ function oauth2_get_library_path() {
 /**
  * Implements hook_menu().
  */
-function oauth2_menu() {
+function oauth2_server_menu() {
   $items = array();
-  $items['authorize'] = array(
-    'page callback' => 'oauth2_authorize',
+  $items['oauth2/authorize'] = array(
+    'page callback' => 'oauth2_server_authorize',
     'access arguments' => array('access content'),
   );
-  $items['token'] = array(
-    'page callback' => 'oauth2_token',
+  $items['oauth2/token'] = array(
+    'page callback' => 'oauth2_server_token',
     'access arguments' => array('access content'),
   );
-  $items['verify_token'] = array(
-    'page callback' => 'oauth2_verify_token',
+  $items['oauth2/verify_token'] = array(
+    'page callback' => 'oauth2_server_verify_token',
     'access arguments' => array('access content'),
   );
 
@@ -73,11 +73,11 @@ function oauth2_menu() {
 /**
  * Implements hook_permission().
  */
-function oauth2_permission() {
+function oauth2_server_permission() {
   return array(
-    'administer oauth2' => array(
-      'title' => t('Administer OAuth2'),
-      'description' => t('Manage contexts, scopes, and clients.'),
+    'administer oauth2 server' => array(
+      'title' => t('Administer OAuth2 Server'),
+      'description' => t('Manage servers, scopes, and clients.'),
       'restrict access' => TRUE,
     ),
   );
@@ -86,93 +86,93 @@ function oauth2_permission() {
 /**
  * Implements hook_services_authentication().
  */
-function oauth2_services_authentication_info() {
+function oauth2_server_services_authentication_info() {
   return array(
-    'file' => 'includes/oauth2.services_auth.inc',
+    'file' => 'includes/oauth2_server.services_auth.inc',
     'title' => t('OAuth2 authentication'),
     'description' => t('An open protocol to allow secure API authorization'),
-    'security_settings' => 'oauth2_services_security_settings',
-    'default_security_settings' => 'oauth2_services_default_security_settings',
-    'authenticate_call' => 'oauth2_services_authenticate_call',
-    'controller_settings' => 'oauth2_services_controller_settings',
+    'security_settings' => 'oauth2_server_services_security_settings',
+    'default_security_settings' => 'oauth2_server_services_default_security_settings',
+    'authenticate_call' => 'oauth2_server_services_authenticate_call',
+    'controller_settings' => 'oauth2_server_services_controller_settings',
   );
 }
 
 /**
  * Implements hook_entity_info().
  */
-function oauth2_entity_info() {
+function oauth2_server_entity_info() {
   $items = array();
-  $items['oauth2_context'] = array(
-    'label' => t('OAuth2 context'),
+  $items['oauth2_server'] = array(
+    'label' => t('OAuth2 Server'),
     'controller class' => 'EntityAPIControllerExportable',
-    'entity class' => 'OAuth2Context',
-    'base table' => 'oauth2_context',
+    'entity class' => 'OAuth2Server',
+    'base table' => 'oauth2_server',
     'fieldable' => TRUE,
     'entity keys' => array(
-      'id' => 'context_id',
+      'id' => 'server_id',
       'label' => 'label',
       'name' => 'name',
     ),
     'exportable' => TRUE,
     'export' => array(
-      'default hook' => 'default_oauth2_context',
+      'default hook' => 'default_oauth2_server',
     ),
-    'module' => 'oauth2',
-    'access callback' => 'oauth2_context_access',
+    'module' => 'oauth2_server',
+    'access callback' => 'oauth2_server_access',
     'metadata controller class' => 'EntityDefaultMetadataController',
     'views controller class' => 'EntityDefaultViewsController',
     'admin ui' => array(
-      'path' => 'admin/config/services/oauth2-contexts',
-      'file' => 'includes/oauth2.context_admin.inc',
-      'controller class' => 'OAuth2ContextUIController',
+      'path' => 'admin/config/services/oauth2-servers',
+      'file' => 'includes/oauth2_server.server_admin.inc',
+      'controller class' => 'OAuth2ServerUIController',
     ),
   );
-  $items['oauth2_scope'] = array(
-    'label' => t('OAuth2 scope'),
+  $items['oauth2_server_scope'] = array(
+    'label' => t('OAuth2 Server - Scope'),
     'controller class' => 'EntityAPIController',
-    'entity class' => 'OAuth2Scope',
-    'base table' => 'oauth2_scope',
+    'entity class' => 'OAuth2ServerScope',
+    'base table' => 'oauth2_server_scope',
     'fieldable' => TRUE,
     'entity keys' => array(
       'id' => 'scope_id',
       'label' => 'label',
     ),
-    'module' => 'oauth2',
-    'access callback' => 'oauth2_scope_access',
-    'metadata controller class' => 'OAuth2ScopeMetadataController',
+    'module' => 'oauth2_server',
+    'access callback' => 'oauth2_server_scope_access',
+    'metadata controller class' => 'OAuth2ServerScopeMetadataController',
     'views controller class' => 'EntityDefaultViewsController',
     'admin ui' => array(
-      'path' => 'admin/config/services/oauth2-contexts/manage/%/scopes',
-      'file' => 'includes/oauth2.scope_admin.inc',
-      'controller class' => 'OAuth2ScopeUIController',
+      'path' => 'admin/config/services/oauth2-servers/manage/%/scopes',
+      'file' => 'includes/oauth2_server.scope_admin.inc',
+      'controller class' => 'OAuth2ServerScopeUIController',
     ),
   );
-  $items['oauth2_client'] = array(
-    'label' => t('OAuth2 client'),
+  $items['oauth2_server_client'] = array(
+    'label' => t('OAuth2 Server - Client'),
     'controller class' => 'EntityAPIController',
-    'entity class' => 'OAuth2Client',
-    'base table' => 'oauth2_client',
+    'entity class' => 'OAuth2ServerClient',
+    'base table' => 'oauth2_server_client',
     'fieldable' => TRUE,
     'entity keys' => array(
       'id' => 'client_id',
       'label' => 'label',
     ),
-    'module' => 'oauth2',
-    'access callback' => 'oauth2_client_access',
-    'metadata controller class' => 'OAuth2ClientMetadataController',
+    'module' => 'oauth2_server',
+    'access callback' => 'oauth2_server_client_access',
+    'metadata controller class' => 'OAuth2ServerClientMetadataController',
     'views controller class' => 'EntityDefaultViewsController',
     'admin ui' => array(
-      'path' => 'admin/config/services/oauth2-contexts/manage/%/clients',
-      'file' => 'includes/oauth2.client_admin.inc',
-      'controller class' => 'OAuth2ClientUIController',
+      'path' => 'admin/config/services/oauth2-servers/manage/%/clients',
+      'file' => 'includes/oauth2_server.client_admin.inc',
+      'controller class' => 'OAuth2ServerClientUIController',
     ),
   );
-  $items['oauth2_token'] = array(
-    'label' => t('OAuth2 token'),
+  $items['oauth2_server_token'] = array(
+    'label' => t('OAuth2 Server - Token'),
     'controller class' => 'EntityAPIController',
-    'entity class' => 'OAuth2Token',
-    'base table' => 'oauth2_token',
+    'entity class' => 'OAuth2ServerToken',
+    'base table' => 'oauth2_server_token',
     'fieldable' => TRUE,
     'entity keys' => array(
       'id' => 'token_id',
@@ -186,21 +186,21 @@ function oauth2_entity_info() {
         'label' => t('Refresh token')
       ),
     ),
-    'module' => 'oauth2',
-    'metadata controller class' => 'OAuth2TokenMetadataController',
+    'module' => 'oauth2_server',
+    'metadata controller class' => 'OAuth2ServerTokenMetadataController',
     'views controller class' => 'EntityDefaultViewsController',
   );
-  $items['oauth2_authorization_code'] = array(
-    'label' => t('OAuth2 authorization code'),
+  $items['oauth2_server_authorization_code'] = array(
+    'label' => t('OAuth2 Server - Authorization code'),
     'controller class' => 'EntityAPIController',
-    'entity class' => 'OAuth2AuthorizationCode',
-    'base table' => 'oauth2_authorization_code',
+    'entity class' => 'OAuth2ServerAuthorizationCode',
+    'base table' => 'oauth2_server_authorization_code',
     'fieldable' => TRUE,
     'entity keys' => array(
       'id' => 'code_id',
     ),
-    'module' => 'oauth2',
-    'metadata controller class' => 'OAuth2AuthorizationCodeMetadataController',
+    'module' => 'oauth2_server',
+    'metadata controller class' => 'OAuth2ServerAuthorizationCodeMetadataController',
     // Authorization codes don't need Views integration.
     'views controller class' => FALSE,
   );
@@ -211,7 +211,7 @@ function oauth2_entity_info() {
 /**
  * Implements hook_flush_caches().
  */
-function oauth2_flush_caches() {
+function oauth2_server_flush_caches() {
   $field = field_info_field('scopes');
   // Create the scopes reference field if it's missing.
   if (!$field) {
@@ -220,7 +220,7 @@ function oauth2_flush_caches() {
       'cardinality' => FIELD_CARDINALITY_UNLIMITED,
       'translatable' => FALSE,
       'settings' => array(
-        'target_type' => 'oauth2_scope',
+        'target_type' => 'oauth2_server_scope',
       ),
       'module' => 'entityreference',
       'type' => 'entityreference',
@@ -231,8 +231,8 @@ function oauth2_flush_caches() {
   // Go over all bundles that should have an instance of the scopes field,
   // and create the instance where missing.
   $needed_instances = array(
-    'oauth2_token' => array('access', 'refresh'),
-    'oauth2_authorization_code' => array('oauth2_authorization_code'),
+    'oauth2_server_token' => array('access', 'refresh'),
+    'oauth2_server_authorization_code' => array('oauth2_server_authorization_code'),
   );
   foreach ($needed_instances as $entity_type => $bundles) {
     $existing = array();
@@ -253,7 +253,7 @@ function oauth2_flush_caches() {
 }
 
 /**
- * Access control for oauth2_context entities.
+ * Access control for oauth2_server entities.
  *
  * @param $op
  *   The operation being performed. One of 'view', 'update', 'create' or
@@ -268,38 +268,38 @@ function oauth2_flush_caches() {
  *
  * @see entity_access()
  */
-function oauth2_context_access($op, $entity, $account, $entity_type) {
-  return user_access('administer oauth2', $account);
+function oauth2_server_access($op, $entity, $account, $entity_type) {
+  return user_access('administer oauth2 server', $account);
 }
 
 /**
- * Loads a single OAuth2 context entity.
+ * Loads a single server entity.
  *
  * @param $name
- *   The context machine-name.
+ *   The server machine name.
  *
  * @return
- *   The context entity, or FALSE.
+ *   The server entity, or FALSE.
  */
-function oauth2_context_load($name) {
-  return entity_load_single('oauth2_context', $name);
+function oauth2_server_load($name) {
+  return entity_load_single('oauth2_server', $name);
 }
 
 /**
- * Loads multiple OAuth2 context entities.
+ * Loads multiple server entities.
  *
  * @param $names
- *   An array of context machine-names.
+ *   An array of server machine names.
  *
  * @return
- *   An array of context entities indexed by their ids.
+ *   An array of server entities indexed by their ids.
  */
-function oauth2_context_load_multiple($names) {
-  return entity_load_multiple_by_name('oauth2_context', $names);
+function oauth2_server_load_multiple($names) {
+  return entity_load_multiple_by_name('oauth2_server', $names);
 }
 
 /**
- * Access control for oauth2_scope entities.
+ * Access control for oauth2_server_scope entities.
  *
  * @param $op
  *   The operation being performed. One of 'view', 'update', 'create' or
@@ -314,57 +314,57 @@ function oauth2_context_load_multiple($names) {
  *
  * @see entity_access()
  */
-function oauth2_scope_access($op, $entity, $account, $entity_type) {
+function oauth2_server_scope_access($op, $entity, $account, $entity_type) {
   if ($entity) {
-    // Scope access depends on context access.
-    $context = entity_load_single('oauth2_context', $entity->context_id);
-    return oauth2_context_access($op, $context, $account, 'oauth2_context');
+    // Scope access depends on server access.
+    $server = oauth2_server_load($entity->server);
+    return oauth2_server_access($op, $server, $account, 'oauth2_server');
   }
 
-  return user_access('administer oauth2', $account);
+  return user_access('administer oauth2 server', $account);
 }
 
 /**
- * Loads a single OAuth2 scope entity.
+ * Loads a single scope entity.
  *
- * @param $context_id
- *   The context id.
+ * @param $server
+ *   The server machine name.
  * @param $name
- *   The scope machine-name.
+ *   The scope machine name.
  *
  * @return
  *   The scope entity, or FALSE.
  */
-function oauth2_scope_load($context_id, $name) {
+function oauth2_server_scope_load($server, $name) {
   $conditions = array(
-    'context_id' => $context_id,
+    'server' => $server,
     'name' => $name,
   );
-  $scopes = entity_load('oauth2_scope', FALSE, $conditions);
+  $scopes = entity_load('oauth2_server_scope', FALSE, $conditions);
   return reset($scopes);
 }
 
 /**
- * Loads multiple OAuth2 scope entities.
+ * Loads multiple scope entities.
  *
- * @param $context_id
- *   The context id.
+ * @param $server
+ *   The server machine name.
  * @param $names
- *   An array of scope machine-names.
+ *   An array of scope machine names.
  *
  * @return
  *   An array of scope entities indexed by their ids.
  */
-function oauth2_scope_load_multiple($context_id, $names) {
+function oauth2_server_scope_load_multiple($server, $names) {
   $conditions = array(
-    'context_id' => $context_id,
+    'server' => $server,
     'name' => $names,
   );
-  return entity_load('oauth2_scope', FALSE, $conditions);
+  return entity_load('oauth2_server_scope', FALSE, $conditions);
 }
 
 /**
- * Access control for oauth2_client entities.
+ * Access control for oauth2_server_client entities.
  *
  * @param $op
  *   The operation being performed. One of 'view', 'update', 'create' or
@@ -379,12 +379,12 @@ function oauth2_scope_load_multiple($context_id, $names) {
  *
  * @see entity_access()
  */
-function oauth2_client_access($op, $entity, $account, $entity_type) {
-  return user_access('administer oauth2', $account);
+function oauth2_server_client_access($op, $entity, $account, $entity_type) {
+  return user_access('administer oauth2 server', $account);
 }
 
 /**
- * Loads a single OAuth2 client entity.
+ * Loads a single client entity.
  *
  * @param $client_key
  *   The client key.
@@ -392,13 +392,13 @@ function oauth2_client_access($op, $entity, $account, $entity_type) {
  * @return
  *   The client entity, or FALSE.
  */
-function oauth2_client_load($client_key) {
-  $clients = entity_load('oauth2_client', FALSE, array('client_key' => $client_key));
+function oauth2_server_client_load($client_key) {
+  $clients = entity_load('oauth2_server_client', FALSE, array('client_key' => $client_key));
   return reset($clients);
 }
 
 /**
- * Loads multiple OAuth2 client entities.
+ * Loads multiple client entities.
  *
  * @param $client_keys
  *   An array of client keys.
@@ -406,12 +406,12 @@ function oauth2_client_load($client_key) {
  * @return
  *   An array of client entities indexed by their ids.
  */
-function oauth2_client_load_multiple($client_keys) {
-  return entity_load('oauth2_client', FALSE, array('client_key' => $client_keys));
+function oauth2_server_client_load_multiple($client_keys) {
+  return entity_load('oauth2_server_client', FALSE, array('client_key' => $client_keys));
 }
 
 /**
- * Loads a single OAuth2 token entity.
+ * Loads a single token entity.
  *
  * @param $token
  *   The token.
@@ -419,13 +419,13 @@ function oauth2_client_load_multiple($client_keys) {
  * @return
  *   The token entity, or FALSE.
  */
-function oauth2_token_load($token) {
-  $tokens = entity_load('oauth2_token', FALSE, array('token' => $token));
+function oauth2_server_token_load($token) {
+  $tokens = entity_load('oauth2_server_token', FALSE, array('token' => $token));
   return reset($tokens);
 }
 
 /**
- * Loads multiple OAuth2 token entities.
+ * Loads multiple token entities.
  *
  * @param $tokens
  *   An array of tokens.
@@ -433,12 +433,12 @@ function oauth2_token_load($token) {
  * @return
  *   An array of token entities indexed by their ids.
  */
-function oauth2_token_load_multiple($tokens) {
-  return entity_load('oauth2_token', FALSE, array('token' => $tokens));
+function oauth2_server_token_load_multiple($tokens) {
+  return entity_load('oauth2_server_token', FALSE, array('token' => $tokens));
 }
 
 /**
- * Loads a single OAuth2 authorization code entity.
+ * Loads a single authorization code entity.
  *
  * @param $code
  *   The code.
@@ -446,13 +446,13 @@ function oauth2_token_load_multiple($tokens) {
  * @return
  *   The authorization code entity, or FALSE.
  */
-function oauth2_authorization_code_load($code) {
-  $codes = entity_load('oauth2_authorization_code', FALSE, array('code' => $code));
+function oauth2_server_authorization_code_load($code) {
+  $codes = entity_load('oauth2_server_authorization_code', FALSE, array('code' => $code));
   return reset($codes);
 }
 
 /**
- * Loads multiple OAuth2 authorization code entities.
+ * Loads multiple authorization code entities.
  *
  * @param $codes
  *   An array of codes.
@@ -460,18 +460,16 @@ function oauth2_authorization_code_load($code) {
  * @return
  *   An array of authorization code entities indexed by their ids.
  */
-function oauth2_authorization_code_load_multiple($codes) {
-  return entity_load('oauth2_authorization_code', FALSE, array('codes' => $codes));
+function oauth2_server_authorization_code_load_multiple($codes) {
+  return entity_load('oauth2_server_authorization_code', FALSE, array('codes' => $codes));
 }
 
 /**
  * Entity Metadata getter callback: Returns the matching id for a computed
  * field.
  */
-function oauth2_get_properties($entity, array $options, $name) {
+function oauth2_server_get_properties($entity, array $options, $name) {
   switch ($name) {
-    case 'context':
-      return $entity->context_id;
     case 'client':
       return $entity->client_id;
     case 'user':
@@ -483,14 +481,8 @@ function oauth2_get_properties($entity, array $options, $name) {
  * Entity Metadata setter callback: Sets the matching id for a computed
  * field.
  */
-function oauth2_set_properties($entity, $name, $value) {
+function oauth2_server_set_properties($entity, $name, $value) {
   switch ($name) {
-    case 'context':
-      // For exportable entities, the "name" is passed instead of the id.
-      // This is why we load the entity (which is already in the static cache).
-      $context = oauth2_context_load($value);
-      $entity->context_id = $context->context_id;
-      break;
     case 'client':
       $entity->client_id = $value;
       break;
@@ -503,11 +495,11 @@ function oauth2_set_properties($entity, $name, $value) {
 /**
  * Registers the OAuth2 autoloader to allow the library classes to be used.
  */
-function oauth2_register_autoloader() {
+function oauth2_server_register_autoloader() {
   static $done = FALSE;
 
   if (!$done) {
-    $path = oauth2_get_library_path();
+    $path = oauth2_server_get_library_path();
     require_once $path . '/src/OAuth2/Autoloader.php';
     OAuth2_Autoloader::register();
     $done = TRUE;
@@ -517,89 +509,89 @@ function oauth2_register_autoloader() {
 /**
  * Initializes and returns an OAuth2 server.
  *
- * @param $context
- *   The context entity to use for supplying settings to the server, and
+ * @param $server
+ *   The server entity to use for supplying settings to the server, and
  *   initializing the scope. NULL only when we expect the validation to
  *   fail due to an incomplete request.
  *
  * @return
  *   An instance of OAuth2_Server.
  */
-function oauth2_get_server($context = NULL) {
-  oauth2_register_autoloader();
-  if ($context) {
-    $storage = new OAuth2_Storage_Drupal($context);
-    $server = new OAuth2_Server($storage, $context->settings);
+function oauth2_server_start($server = NULL) {
+  oauth2_server_register_autoloader();
+  if ($server) {
+    $storage = new OAuth2_Storage_Drupal($server);
+    $oauth2_server = new OAuth2_Server($storage, $server->settings);
     // Initialize the scope util.
-    $scope_util = new OAuth2_Scope_Drupal($context);
-    $server->setScopeUtil($scope_util);
+    $scope_util = new OAuth2_Scope_Drupal($server);
+    $oauth2_server->setScopeUtil($scope_util);
     // Initialize the grant types.
-    $grant_types = oauth2_grant_types();
-    foreach (array_filter($context->settings['grant_types']) as $grant_type_name) {
+    $grant_types = oauth2_server_grant_types();
+    foreach (array_filter($server->settings['grant_types']) as $grant_type_name) {
       $grant_type = new $grant_types[$grant_type_name]['class']($storage);
-      $server->addGrantType($grant_type);
+      $oauth2_server->addGrantType($grant_type);
     }
   }
   else {
-    // Pass a dummy context.
-    $context = entity_create('oauth2_context', array());
-    $storage = new OAuth2_Storage_Drupal($context);
-    $server = new OAuth2_Server($storage);
+    // Pass a dummy server.
+    $server = entity_create('oauth2_server', array());
+    $storage = new OAuth2_Storage_Drupal($server);
+    $oauth2_server = new OAuth2_Server($storage);
   }
 
-  return $server;
+  return $oauth2_server;
 }
 
 /**
  * Page callback: Authenticates the user and redirect back to the client
  * with an authorization code.
  */
-function oauth2_authorize() {
+function oauth2_server_authorize() {
   global $user;
 
   // The user is not logged in. Redirect to login.
   if (!user_is_logged_in()) {
     // Save the parameters in session so that they can be fetched later.
     $parameters = drupal_get_query_parameters();
-    $_SESSION['oauth2_authorize'] = $parameters;
+    $_SESSION['oauth2_server_authorize'] = $parameters;
 
     $query = array(
-      'destination' => 'authorize',
+      'destination' => 'oauth2/authorize',
     );
     drupal_goto('user/login', array('query' => $query));
   }
   // Retrieve the parameters from session. Put them in $_GET so that
   // they are accessible by OAuth2_Request.
-  if (!empty($_SESSION['oauth2_authorize'])) {
-    $_GET += $_SESSION['oauth2_authorize'];
-    unset($_SESSION['oauth2_authorize']);
+  if (!empty($_SESSION['oauth2_server_authorize'])) {
+    $_GET += $_SESSION['oauth2_server_authorize'];
+    unset($_SESSION['oauth2_server_authorize']);
   }
 
   $client_id = isset($_GET['client_id']) ? $_GET['client_id'] : 0;
-  $context = NULL;
-  // Get the client and use it to load the context and initialize the server.
+  $server = NULL;
+  // Get the client and use it to load the server and initialize the server.
   if ($client_id) {
-    $client = oauth2_client_load($client_id);
+    $client = oauth2_server_client_load($client_id);
     if ($client) {
-      $context = entity_load_single('oauth2_context', $client->context_id);
+      $server = oauth2_server_load($client->server);
     }
   }
 
   // Initialize the server and validate the request.
-  $server = oauth2_get_server($context);
+  $oauth2_server = oauth2_server_start($server);
   $request = OAuth2_Request::createFromGlobals();
-  if (!$server->validateAuthorizeRequest($request)) {
-    return oauth2_send_response($server->getResponse());
+  if (!$oauth2_server->validateAuthorizeRequest($request)) {
+    return oauth2_server_send_response($oauth2_server->getResponse());
   }
 
   // Automatic authorization is enabled for this client. Finish authorization.
   if ($client->automatic_authorization) {
-    $response = $server->handleAuthorizeRequest($request, TRUE, $user->name);
-    return oauth2_send_response($response);
+    $response = $oauth2_server->handleAuthorizeRequest($request, TRUE, $user->name);
+    return oauth2_server_send_response($response);
   }
   else {
     // Show the authorize form.
-    return drupal_get_form('oauth2_authorize_form', $client, $context);
+    return drupal_get_form('oauth2_server_authorize_form', $client, $server);
   }
 }
 
@@ -608,7 +600,7 @@ function oauth2_authorize() {
  *
  * @todo Implement scope selection.
  */
-function oauth2_authorize_form($form, &$form_state, $client, $context) {
+function oauth2_server_authorize_form($form, &$form_state, $client, $server) {
   drupal_set_title(t('Authorize @client to use your account?', array('@client' => $client->label)));
 
   // This application will be able to:
@@ -623,44 +615,44 @@ function oauth2_authorize_form($form, &$form_state, $client, $context) {
 }
 
 /**
- * Submit callback for oauth2_authorize_form.
+ * Submit callback for oauth2_server_authorize_form.
  *
  * Completes authentication and redirects back to the client.
  */
-function oauth2_authorize_form_submit($form, &$form_state) {
+function oauth2_server_authorize_form_submit($form, &$form_state) {
   global $user;
 
-  $context = $form_state['build_info']['args'][1];
+  $server = $form_state['build_info']['args'][1];
   // Finish the authorization request.
-  $server = oauth2_get_server($context);
-  $response = $server->handleAuthorizeRequest(OAuth2_Request::createFromGlobals(), TRUE, $user->name);
-  return oauth2_send_response($response);
+  $oauth2_server = oauth2_server_start($server);
+  $response = $oauth2_server->handleAuthorizeRequest(OAuth2_Request::createFromGlobals(), TRUE, $user->name);
+  return oauth2_server_send_response($response);
 }
 
 /**
  * Page callback: exchanges an authorization code for an access token.
  */
-function oauth2_token() {
+function oauth2_server_token() {
   $client_id = isset($_POST['client_id']) ? $_POST['client_id'] : 0;
-  $context = NULL;
-  // Get the client and use it to load the context and initialize the server.
+  $server = NULL;
+  // Get the client and use it to load the server and initialize the server.
   if ($client_id) {
-    $client = oauth2_client_load($client_id);
+    $client = oauth2_server_client_load($client_id);
     if ($client) {
-      $context = entity_load_single('oauth2_context', $client->context_id);
+      $server = oauth2_server_load($client->server);
     }
   }
 
   // Initialize the server.
-  $server = oauth2_get_server($context);
-  $response = $server->handleGrantRequest(OAuth2_Request::createFromGlobals());
-  return oauth2_send_response($response);
+  $oauth2_server = oauth2_server_start($server);
+  $response = $oauth2_server->handleGrantRequest(OAuth2_Request::createFromGlobals());
+  return oauth2_server_send_response($response);
 }
 
 /**
  * Page callback: verifies the provided token for the provided client_id.
  */
-function oauth2_verify_token($token) {
+function oauth2_server_verify_token($token) {
   $data = array(
     'verified' => FALSE,
     'scope' => '',
@@ -670,11 +662,11 @@ function oauth2_verify_token($token) {
     return drupal_json_output($data);
   }
 
-  $token = oauth2_token_load($token);
-  $client = oauth2_client_load($_GET['client_id']);
+  $token = oauth2_server_token_load($token);
+  $client = oauth2_server_client_load($_GET['client_id']);
   // The token exists, hasn't expired, and belongs to the provided client.
   if ($token && $client && $token->expires > time() && $token->client_id == $client->client_id) {
-    $token_wrapper = entity_metadata_wrapper('oauth2_token', $token);
+    $token_wrapper = entity_metadata_wrapper('oauth2_server_token', $token);
     $scopes = array();
     foreach ($token_wrapper->scopes as $scope_wrapper) {
       $scopes[] = $scope_wrapper->name->value();
@@ -690,10 +682,10 @@ function oauth2_verify_token($token) {
 }
 
 /**
- * Verifies access to the passed context.
+ * Verifies access to the passed server.
  *
- * @param $context_name
- *   The name of the context for which access should be verified.
+ * @param $server_name
+ *   The name of the server for which access should be verified.
  * @param $scope
  *   An optional string of space-separated scopes to check.
  *
@@ -701,27 +693,27 @@ function oauth2_verify_token($token) {
  *   No return value. If the access check fails, execution is aborted and an
  *   error response is sent to the user.
  */
-function oauth2_verify_access($context_name, $scope = NULL) {
-  $context = oauth2_context_load($context_name);
-  $server = oauth2_get_server($context);
-  $token = $server->getAccessTokenData(OAuth2_Request::createFromGlobals());
+function oauth2_server_verify_access($server_name, $scope = NULL) {
+  $server = oauth2_server_load($server_name);
+  $oauth2_server = oauth2_server_start($server);
+  $token = $oauth2_server->getAccessTokenData(OAuth2_Request::createFromGlobals());
   // If there's no token, that means validation failed. Stop here.
   if (!$token) {
-    return oauth2_send_response($server->getResponse());
+    return oauth2_server_send_response($oauth2_server->getResponse());
   }
 
-  // Make sure that the token we have matches our context.
-  if ($token['context'] != $context->name) {
+  // Make sure that the token we have matches our server.
+  if ($token['server'] != $server->name) {
     $error = 'The access token provided is invalid';
     $response = new OAuth2_Response_AuthenticationError(401, 'invalid_grant', $error, 'bearer', 'Service', $scope);
-    return oauth2_send_response($response);
+    return oauth2_server_send_response($response);
   }
 }
 
 /**
  * Sets the appropriate headers and outputs the response.
  */
-function oauth2_send_response(OAuth2_Response $response) {
+function oauth2_server_send_response(OAuth2_Response $response) {
   $status = $response->getStatusCode() . ' ' . $response->getStatusText();
   drupal_add_http_header('Status', $status);
   drupal_add_http_header('Content-Type', 'application/json');
@@ -736,7 +728,7 @@ function oauth2_send_response(OAuth2_Response $response) {
 /**
  * Returns an array of supported grant types and related data.
  */
-function oauth2_grant_types() {
+function oauth2_server_grant_types() {
   $grant_types = array(
     'authorization_code' => array(
       'name' => t('Authorization code'),
@@ -753,7 +745,7 @@ function oauth2_grant_types() {
     'refresh_token' => array(
       'name' => t('Refresh token'),
       'class' => 'OAuth2_GrantType_RefreshToken',
-      'settings callback' => 'oauth2_refresh_token_settings',
+      'settings callback' => 'oauth2_server_refresh_token_settings',
       'default settings' => array(
         'always_issue_new_refresh_token' => FALSE,
       ),
@@ -770,7 +762,7 @@ function oauth2_grant_types() {
 /**
  * Provides a settings form for the refresh_token grant type.
  */
-function oauth2_refresh_token_settings($config, $dom_id) {
+function oauth2_server_refresh_token_settings($config, $dom_id) {
   $form = array();
   $form['always_issue_new_refresh_token'] = array(
     '#type' => 'checkbox',

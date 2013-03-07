@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Entity class representing the oauth2_token entity type.
+ * Entity class representing the oauth2_server_authorization_code entity type.
  */
-class OAuth2Token extends Entity {
+class OAuth2ServerAuthorizationCode extends Entity {
 
   /**
    * The id of the associated client.
@@ -20,27 +20,27 @@ class OAuth2Token extends Entity {
   public $uid;
 
   /**
-   * The type of the token (access, refresh).
+   * The code.
    *
    * @var string
    */
-  public $type;
+  public $code;
 
   /**
-   * The token.
+   * The absolute URI to redirect to after authorization.
    *
    * @var string
    */
-  public $token;
+  public $redirect_uri;
 
   /**
-   * The Unix timestamp when the token expires.
+   * The Unix timestamp when the code expires.
    *
    * @var integer
    */
   public $expires;
 
   public function __construct($values = array()) {
-    parent::__construct($values, 'oauth2_token');
+    parent::__construct($values, 'oauth2_server_authorization_code');
   }
 }
