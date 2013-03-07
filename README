@@ -15,7 +15,7 @@ Features
   - Password
 - Support for the implicit flow.
 - Support for per-client automatic authorization (skipping the authorization form).
-- Services integration (authentication, scope management).
+- Services integration (authentication).
 
 The tests can be used as an example client-side implementation.
 
