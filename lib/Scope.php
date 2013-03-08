@@ -34,8 +34,16 @@ class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
     if ($available_scope == '*') {
       // Get all scope entities that match the provided scope.
       // Compare the difference.
-      $scopes = oauth2_server_scope_load_multiple($this->server->name, $required_scope);
-      if ($scopes) {
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'oauth2_server_scope');
+      $query->propertyCondition('server', $this->server->name);
+      $query->propertyCondition('name', $required_scope);
+      $query->addTag('oauth2_server_scope_access');
+      $query->addMetaData('oauth2_server', $this->server);
+      $results = $query->execute();
+      if ($results) {
+        $scope_ids = array_keys($results['oauth2_server_scope']);
+        $scopes = entity_load('oauth2_server_scope', $scope_ids);
         $found_scope = array();
         foreach ($scopes as $scope) {
           $found_scope[] = $scope->name;
@@ -63,7 +71,18 @@ class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
   }
 
   public function getDefaultScope() {
-    // If there's a valid default scope set, return it.
+    // Allow any hook_oauth2_server_default_scope() implementations to supply
+    // the default scope. The first one to return a scope wins.
+    foreach (module_implements('oauth2_server_default_scope') as $module) {
+      $function = $module . '_' . 'oauth2_server_default_scope';
+      $args = array($this->server);
+      $result = call_user_func_array($function, $args);
+      if (is_array($result)) {
+        return implode(' ', $result);
+      }
+    }
+
+    // If there's a valid default scope set in server settings, return it.
     $default_scope = $this->server->settings['default_scope'];
     if (!empty($default_scope) && $scope = oauth2_server_scope_load($this->server->name, $default_scope)) {
       return $default_scope;

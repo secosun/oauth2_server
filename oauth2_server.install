@@ -115,6 +115,7 @@ function oauth2_server_schema() {
     ),
     'primary key' => array('scope_id'),
     'indexes' => array(
+      'name' => array('name'),
       'server' => array('server'),
     ),
   );
