@@ -577,20 +577,23 @@ function oauth2_server_authorize() {
     }
   }
 
-  // Initialize the server and validate the request.
+  // Initialize the server.
   $oauth2_server = oauth2_server_start($server);
   $request = OAuth2_Request::createFromGlobals();
-  if (!$oauth2_server->validateAuthorizeRequest($request)) {
-    return oauth2_server_send_response($oauth2_server->getResponse());
-  }
 
   // Automatic authorization is enabled for this client. Finish authorization.
+  // handleAuthorizeRequest() will call validateAuthorizeRequest().
   if ($client->automatic_authorization) {
     $response = $oauth2_server->handleAuthorizeRequest($request, TRUE, $user->name);
     return oauth2_server_send_response($response);
   }
   else {
-    // Show the authorize form.
+    // Validate the request.
+    if (!$oauth2_server->validateAuthorizeRequest($request)) {
+      return oauth2_server_send_response($oauth2_server->getResponse());
+    }
+
+    // Validation passed, show the authorize form.
     return drupal_get_form('oauth2_server_authorize_form', $client, $server);
   }
 }
