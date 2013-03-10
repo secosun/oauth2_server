@@ -49,6 +49,7 @@ class OAuth2ServerTestCase extends EntityWebTestCase {
         'refresh_token' => 'refresh_token',
         'password' => 'password',
       ),
+      'always_issue_new_refresh_token' => TRUE,
     );
     $server->save();
 
@@ -256,6 +257,55 @@ class OAuth2ServerTestCase extends EntityWebTestCase {
 
     $this->assertEqual($result->code, 200, 'The token request completed successfully');
     $response = json_decode($result->data);
+    $this->assertGrantResponse($response);
+  }
+
+  /**
+   * Tests the "Refresh token" grant type.
+   */
+  public function testRefreshTokenGrantType() {
+    // Do a password grant first, in order to get the refresh token.
+    $user = $this->drupalCreateUser(array('access content'));
+    $token_url = url('oauth2/token', array('absolute' => TRUE));
+    $data = array(
+      'grant_type' => 'password',
+      'client_id' => $this->client_key,
+      'client_secret' => $this->client_secret,
+      'username' => $user->name,
+      'password' => $user->pass_raw,
+      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
+    );
+    $options = array(
+      'method' => 'POST',
+      'data' => http_build_query($data),
+      'headers' => array(
+        'Content-Type' => 'application/x-www-form-urlencoded',
+      ),
+    );
+    $result = drupal_http_request($token_url, $options);
+    $response = json_decode($result->data);
+    $refresh_token = $response->refresh_token;
+
+    $data = array(
+      'grant_type' => 'refresh_token',
+      'refresh_token' => $refresh_token,
+      'client_id' => $this->client_key,
+      'client_secret' => $this->client_secret,
+      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
+    );
+    $options = array(
+      'method' => 'POST',
+      'data' => http_build_query($data),
+      'headers' => array(
+        'Content-Type' => 'application/x-www-form-urlencoded',
+      ),
+    );
+    $result = drupal_http_request($token_url, $options);
+
+    $this->assertEqual($result->code, 200, 'The token request completed successfully');
+    $response = json_decode($result->data);
+    // The response will include a new refresh_token because
+    // always_issue_new_refresh_token is TRUE.
     $this->assertGrantResponse($response);
   }
 

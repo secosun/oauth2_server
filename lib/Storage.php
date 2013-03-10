@@ -59,7 +59,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
         'server' => $this->server->name,
         'client_id' => $token_wrapper->client->client_key->value(),
         'user_id' => $token_wrapper->user->name->value(),
-        'token' => $token_wrapper->token->value(),
+        'access_token' => $token_wrapper->token->value(),
         'expires' => $token_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
       );
@@ -165,7 +165,25 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
 
   /* RefreshTokenInterface */
   public function getRefreshToken($refresh_token) {
-    return $this->getAccessToken($refresh_token);
+    $token = oauth2_server_token_load($refresh_token);
+    if ($token) {
+      $token_wrapper = entity_metadata_wrapper('oauth2_server_token', $token);
+      $scopes = array();
+      foreach ($token_wrapper->scopes as $scope_wrapper) {
+        $scopes[] = $scope_wrapper->name->value();
+      }
+      // Return a token array in the format expected by the library.
+      $token = array(
+        'server' => $this->server->name,
+        'client_id' => $token_wrapper->client->client_key->value(),
+        'user_id' => $token_wrapper->user->name->value(),
+        'refresh_token' => $token_wrapper->token->value(),
+        'expires' => $token_wrapper->expires->value(),
+        'scope' => implode(' ', $scopes),
+      );
+    }
+
+    return (array) $token;
   }
 
   public function setRefreshToken($refresh_token, $client_key, $username, $expires, $scope = null) {

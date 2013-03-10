@@ -528,7 +528,7 @@ function oauth2_server_start($server = NULL) {
     // Initialize the grant types.
     $grant_types = oauth2_server_grant_types();
     foreach (array_filter($server->settings['grant_types']) as $grant_type_name) {
-      $grant_type = new $grant_types[$grant_type_name]['class']($storage);
+      $grant_type = new $grant_types[$grant_type_name]['class']($storage, $server->settings);
       $oauth2_server->addGrantType($grant_type);
     }
   }
