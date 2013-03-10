@@ -520,7 +520,7 @@ function oauth2_server_register_autoloader() {
 function oauth2_server_start($server = NULL) {
   oauth2_server_register_autoloader();
   if ($server) {
-    $storage = new OAuth2_Storage_Drupal($server);
+    $storage = new OAuth2_Storage_Drupal();
     $oauth2_server = new OAuth2_Server($storage, $server->settings);
     // Initialize the scope util.
     $scope_util = new OAuth2_Scope_Drupal($server);
@@ -533,9 +533,7 @@ function oauth2_server_start($server = NULL) {
     }
   }
   else {
-    // Pass a dummy server.
-    $server = entity_create('oauth2_server', array());
-    $storage = new OAuth2_Storage_Drupal($server);
+    $storage = new OAuth2_Storage_Drupal();
     $oauth2_server = new OAuth2_Server($storage);
   }
 

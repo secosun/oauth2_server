@@ -8,17 +8,6 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
     OAuth2_Storage_UserCredentialsInterface, OAuth2_Storage_RefreshTokenInterface
 {
 
-  /**
-   * The server entity.
-   *
-   * @var OAuth2Server
-   */
-  protected $server;
-
-  public function __construct($server) {
-    $this->server = $server;
-  }
-
   /* ClientCredentialsInterface */
   public function checkClientCredentials($client_key, $client_secret = null) {
     $client = $this->getClientDetails($client_key);
@@ -42,7 +31,9 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   public function checkRestrictedGrantType($client_key, $grant_type) {
     // The oauth2 module implements grant types on the server level,
     // not on the client level.
-    return in_array($grant_type, $this->server->settings['grant_types']);
+    $client = oauth2_server_client_load($client_key);
+    $server = oauth2_server_load($client->server);
+    return in_array($grant_type, $server->settings['grant_types']);
   }
 
   /* AccessTokenInterface */
@@ -56,7 +47,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
       }
       // Return a token array in the format expected by the library.
       $token = array(
-        'server' => $this->server->name,
+        'server' => $token_wrapper->client->server->raw(),
         'client_id' => $token_wrapper->client->client_key->value(),
         'user_id' => $token_wrapper->user->name->value(),
         'access_token' => $token_wrapper->token->value(),
@@ -65,28 +56,33 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
       );
     }
 
-    return (array) $token;
+    return $token;
   }
 
   public function setAccessToken($access_token, $client_key, $username, $expires, $scope = null) {
-    $client = oauth2_server_client_load($client_key);
-    if (!$client) {
-      throw new InvalidArgumentException("The supplied client couldn't be loaded.");
-    }
-    // The username is not required, the "Client credentials" grant type
-    // doesn't provide it, for instance.
-    $uid = 0;
-    if ($username) {
-      $user = user_load_by_name($username);
-      $uid = $user->uid;
+    // If no token was found, start with a new entity.
+    $token = oauth2_server_token_load($access_token);
+    if (!$token) {
+      $client = oauth2_server_client_load($client_key);
+      if (!$client) {
+        throw new InvalidArgumentException("The supplied client couldn't be loaded.");
+      }
+      // The username is not required, the "Client credentials" grant type
+      // doesn't provide it, for instance.
+      $uid = 0;
+      if ($username) {
+        $user = user_load_by_name($username);
+        $uid = $user->uid;
+      }
+
+      $token = entity_create('oauth2_server_token', array('type' => 'access'));
+      $token->client_id = $client->client_id;
+      $token->uid = $user->uid;
+      $token->token = $access_token;
     }
 
-    $token = entity_create('oauth2_server_token', array('type' => 'access'));
-    $token->client_id = $client->client_id;
-    $token->uid = $user->uid;
-    $token->token = $access_token;
     $token->expires = $expires;
-    $this->setScopeData($token, $scope);
+    $this->setScopeData($token, $client->server, $scope);
 
     $status = $token->save();
     return $status;
@@ -103,10 +99,10 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
       }
       // Return a code array in the format expected by the library.
       $code = array(
-        'server' => $this->server->name,
+        'server' => $code_wrapper->client->server->raw(),
         'client_id' => $code_wrapper->client->client_key->value(),
         'user_id' => $code_wrapper->user->name->value(),
-        'code' => $code_wrapper->code->value(),
+        'authorization_code' => $code_wrapper->code->value(),
         'redirect_uri' => $code_wrapper->redirect_uri->value(),
         'expires' => $code_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
@@ -137,7 +133,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
 
     $authorization_code->redirect_uri = $redirect_uri;
     $authorization_code->expires = $expires;
-    $this->setScopeData($authorization_code, $scope);
+    $this->setScopeData($authorization_code, $client->server, $scope);
 
     $status = $authorization_code->save();
     return $status;
@@ -174,7 +170,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
       }
       // Return a token array in the format expected by the library.
       $token = array(
-        'server' => $this->server->name,
+        'server' => $token_wrapper->client->server->raw(),
         'client_id' => $token_wrapper->client->client_key->value(),
         'user_id' => $token_wrapper->user->name->value(),
         'refresh_token' => $token_wrapper->token->value(),
@@ -183,25 +179,30 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
       );
     }
 
-    return (array) $token;
+    return $token;
   }
 
   public function setRefreshToken($refresh_token, $client_key, $username, $expires, $scope = null) {
-    $client = oauth2_server_client_load($client_key);
-    if (!$client) {
-      throw new InvalidArgumentException("The supplied client couldn't be loaded.");
-    }
-    $user = user_load_by_name($username);
-    if (!$user) {
-      throw new InvalidArgumentException("The supplied user couldn't be loaded.");
+    // If no token was found, start with a new entity.
+    $token = oauth2_server_token_load($refresh_token);
+    if (!$token) {
+      $client = oauth2_server_client_load($client_key);
+      if (!$client) {
+        throw new InvalidArgumentException("The supplied client couldn't be loaded.");
+      }
+      $user = user_load_by_name($username);
+      if (!$user) {
+        throw new InvalidArgumentException("The supplied user couldn't be loaded.");
+      }
+
+      $token = entity_create('oauth2_server_token', array('type' => 'refresh'));
+      $token->client_id = $client->client_id;
+      $token->uid = $user->uid;
+      $token->token = $refresh_token;
     }
 
-    $token = entity_create('oauth2_server_token', array('type' => 'refresh'));
-    $token->client_id = $client->client_id;
-    $token->uid = $user->uid;
-    $token->token = $refresh_token;
     $token->expires = $expires;
-    $this->setScopeData($token, $scope);
+    $this->setScopeData($token, $client->server, $scope);
 
     $status = $token->save();
     return $status;
@@ -217,14 +218,16 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
    *
    * @param $entity
    *   The entity containing the "scopes" entityreference field.
+   * @param $server
+   *   The machine name of the server.
    * @param $scope
    *   Scopes in a space-separated string.
    */
-  private function setScopeData($entity, $scope) {
+  private function setScopeData($entity, $server, $scope) {
     $entity->scopes = array();
     if ($scope) {
       $scopes = preg_split('/\s+/', $scope);
-      $loaded_scopes = oauth2_server_scope_load_multiple($this->server->name, $scopes);
+      $loaded_scopes = oauth2_server_scope_load_multiple($server, $scopes);
       foreach ($loaded_scopes as $loaded_scope) {
         $entity->scopes[LANGUAGE_NONE][] = array(
           'target_id' => $loaded_scope->scope_id,

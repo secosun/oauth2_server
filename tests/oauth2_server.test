@@ -8,7 +8,7 @@
 /**
  * Test basic API.
  */
-class OAuth2ServerTestCase extends EntityWebTestCase {
+class OAuth2ServerTestCase extends DrupalWebTestCase {
   protected $profile = 'testing';
 
   /**
@@ -322,12 +322,211 @@ class OAuth2ServerTestCase extends EntityWebTestCase {
     // Make sure we have an array.
     $response = (array) $response;
 
-    $this->assertTrue($response['access_token'], 'The "access token" value is present in the return values');
-    $this->assertTrue($response['expires_in'], 'The "expires_in" value is present in the return values');
-    $this->assertTrue($response['token_type'], 'The "token_type" value is present in the return values');
-    $this->assertTrue($response['scope'], 'The "scope" value is present in the return values');
+    $this->assertTrue(array_key_exists('access_token', $response), 'The "access token" value is present in the return values');
+    $this->assertTrue(array_key_exists('expires_in', $response), 'The "expires_in" value is present in the return values');
+    $this->assertTrue(array_key_exists('token_type', $response), 'The "token_type" value is present in the return values');
+    $this->assertTrue(array_key_exists('scope', $response), 'The "scope" value is present in the return values');
     if ($has_refresh_token) {
-      $this->assertTrue($response['refresh_token'], 'The "refresh_token" value is present in the return values');
+      $this->assertTrue(array_key_exists('refresh_token', $response), 'The "refresh_token" value is present in the return values');
     }
+  }
+}
+
+/**
+ * Test OAuth2_Storage_Drupal.
+ */
+class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
+  protected $profile = 'testing';
+
+  /**
+   * The client key of the test client.
+   *
+   * @var string
+   */
+  protected $client_key = 'test_client';
+
+  /**
+   * The client secret of the test client.
+   *
+   * @var string
+   */
+  protected $client_secret = 'test_secret';
+
+  /**
+   * The storage instance to be tested.
+   *
+   * @var OAuth2_Storage_Drupal
+   */
+  protected $storage;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'OAuth2 Server Storage',
+      'description' => 'Tests the Storage implementation for the oauth2-server-php library.',
+      'group' => 'OAuth2',
+    );
+  }
+
+  public function setUp() {
+    parent::setUp('oauth2_server');
+    oauth2_server_register_autoloader();
+
+    // Create the server and client.
+    $server = entity_create('oauth2_server', array());
+    $server->name = 'test';
+    $server->label = 'Test';
+    $server->settings = array(
+      'default_scope' => '',
+      'allow_implicit' => TRUE,
+      'grant_types' => array(
+        'authorization_code' => 'authorization_code',
+        'client_credentials' => 'client_credentials',
+        'refresh_token' => 'refresh_token',
+        'password' => 'password',
+      ),
+      'always_issue_new_refresh_token' => TRUE,
+    );
+    $server->save();
+
+    $client = entity_create('oauth2_server_client', array());
+    $client->server = $server->name;
+    $client->label = 'Test client';
+    $client->client_key = $this->client_key;
+    $client->client_secret = $this->client_secret;
+    $client->redirect_uri = url('authorized', array('absolute' => TRUE));
+    $client->automatic_authorization = TRUE;
+    $client->save();
+
+    $this->storage = new OAuth2_Storage_Drupal();
+  }
+
+  public function testCheckClientCredentials() {
+    // Nonexistent client_id.
+    $result = $this->storage->checkClientCredentials('fakeclient', 'testpass');
+    $this->assertFalse($result, 'Invalid client credentials correctly detected.');
+
+    // Invalid client_secret.
+    $result = $this->storage->checkClientCredentials($this->client_key, 'invalidcredentials');
+    $this->assertFalse($result, 'Invalid client_secret correctly detected.');
+
+    // Valid credentials.
+    $result = $this->storage->checkClientCredentials($this->client_key, $this->client_secret);
+    $this->assertTrue($result, 'Valid client credentials correctly detected.');
+  }
+
+  public function testGetClientDetails() {
+    // Nonexistent client_id.
+    $details = $this->storage->getClientDetails('fakeclient');
+    $this->assertFalse($details, 'Invalid client_id correctly detected.');
+
+    // Valid client_id.
+    $details = $this->storage->getClientDetails($this->client_key);
+    $this->assertNotNull($details, 'Client details successfully returned.');
+    $this->assertTrue(array_key_exists('client_id', $details), 'The "client_id" value is present in the client details.');
+    $this->assertTrue(array_key_exists('client_secret', $details), 'The "client_secret" value is present in the client details.');
+    $this->assertTrue(array_key_exists('redirect_uri', $details), 'The "redirect_uri" value is present in the client details.');
+  }
+
+  public function testAccessToken() {
+    $user = $this->drupalCreateUser(array('access content'));
+
+    $token = $this->storage->getAccessToken('newtoken');
+    $this->assertFalse($token, 'Trying to load a nonexistent token is unsuccessful.');
+
+    $expires = time() + 20;
+    $success = $this->storage->setAccessToken('newtoken', $this->client_key, $user->name, $expires);
+    $this->assertTrue($success, 'A new access token has been successfully created.');
+
+    // Verify the return format of getAccessToken().
+    $token = $this->storage->getAccessToken('newtoken');
+    $this->assertTrue($token, 'An access token was successfully returned.');
+    $this->assertTrue(array_key_exists('access_token', $token), 'The "access_token" value is present in the token array.');
+    $this->assertTrue(array_key_exists('client_id', $token), 'The "client_id" value is present in the token array.');
+    $this->assertTrue(array_key_exists('user_id', $token), 'The "user_id" value is present in the token array.');
+    $this->assertTrue(array_key_exists('expires', $token), 'The "expires" value is present in the token array.');
+    $this->assertEqual($token['access_token'], 'newtoken', 'The "access_token" key has the expected value.');
+    $this->assertEqual($token['client_id'], $this->client_key, 'The "client_id" key has the expected value.');
+    $this->assertEqual($token['user_id'], $user->name, 'The "user_id" key has the expected value.');
+    $this->assertEqual($token['expires'], $expires, 'The "expires" key has the expected value.');
+
+    // Update the token.
+    $expires = time() + 42;
+    $success = $this->storage->setAccessToken('newtoken', $this->client_key, $user->name, $expires);
+    $this->assertTrue($success, 'The access token was successfully updated.');
+
+    $token = $this->storage->getAccessToken('newtoken');
+    $this->assertTrue($token, 'An access token was successfully returned.');
+    $this->assertEqual($token['expires'], $expires, 'The expires timestamp matches the new value.');
+  }
+
+  public function testSetRefreshToken() {
+    $user = $this->drupalCreateUser(array('access content'));
+
+    $token = $this->storage->getRefreshToken('refreshtoken');
+    $this->assertFalse($token, 'Trying to load a nonexistent token is unsuccessful.');
+
+    $expires = time() + 20;
+    $success = $this->storage->setRefreshToken('refreshtoken', $this->client_key, $user->name, $expires);
+    $this->assertTrue($success, 'A new refresh token has been successfully created.');
+
+    // Verify the return format of getRefreshToken().
+    $token = $this->storage->getRefreshToken('refreshtoken');
+    $this->assertTrue($token, 'A refresh token was successfully returned.');
+    $this->assertTrue(array_key_exists('refresh_token', $token), 'The "refresh_token" value is present in the token array.');
+    $this->assertTrue(array_key_exists('client_id', $token), 'The "client_id" value is present in the token array.');
+    $this->assertTrue(array_key_exists('user_id', $token), 'The "user_id" value is present in the token array.');
+    $this->assertTrue(array_key_exists('expires', $token), 'The "expires" value is present in the token array.');
+    $this->assertEqual($token['refresh_token'], 'refreshtoken', 'The "refresh_token" key has the expected value.');
+    $this->assertEqual($token['client_id'], $this->client_key, 'The "client_id" key has the expected value.');
+    $this->assertEqual($token['user_id'], $user->name, 'The "user_id" key has the expected value.');
+    $this->assertEqual($token['expires'], $expires, 'The "expires" key has the expected value.');
+  }
+
+  public function testAuthorizationCode() {
+    $user = $this->drupalCreateUser(array('access content'));
+
+    $code = $this->storage->getAuthorizationCode('newcode');
+    $this->assertFalse($code, 'Trying to load a nonexistent authorization code is unsuccessful.');
+
+    $expires = time() + 20;
+    $success = $this->storage->setAuthorizationCode('newcode', $this->client_key, $user->name, 'http://example.com', $expires);
+    $this->assertTrue($success, 'A new authorization code was sucessfully created.');
+
+    // Verify the return format of getAuthorizationCode().
+    $code = $this->storage->getAuthorizationCode('newcode');
+    $this->assertTrue($code, 'An authorization code was successfully returned.');
+    $this->assertTrue(array_key_exists('authorization_code', $code), 'The "authorization_code" value is present in the code array.');
+    $this->assertTrue(array_key_exists('client_id', $code), 'The "client_id" value is present in the code array.');
+    $this->assertTrue(array_key_exists('user_id', $code), 'The "user_id" value is present in the code array.');
+    $this->assertTrue(array_key_exists('redirect_uri', $code), 'The "redirect_uri" value is present in the code array.');
+    $this->assertTrue(array_key_exists('expires', $code), 'The "expires" value is present in the code array.');
+    $this->assertEqual($code['authorization_code'], 'newcode', 'The "authorization_code" key has the expected value.');
+    $this->assertEqual($code['client_id'], $this->client_key, 'The "client_id" key has the expected value.');
+    $this->assertEqual($code['user_id'], $user->name, 'The "user_id" key has the expected value.');
+    $this->assertEqual($code['redirect_uri'], 'http://example.com', 'The "redirect_uri" key has the expected value.');
+    $this->assertEqual($code['expires'], $expires, 'The "expires" key has the expected value.');
+
+    // Change an existing code
+    $expires = time() + 42;
+    $success = $this->storage->setAuthorizationCode('newcode', $this->client_key, $user->name, 'http://example.org', $expires);
+    $this->assertTrue($success, 'The authorization code was sucessfully updated.');
+
+    $code = $this->storage->getAuthorizationCode('newcode');
+    $this->assertTrue($code, 'An authorization code was successfully returned.');
+    $this->assertEqual($code['expires'], $expires, 'The expires timestamp matches the new value.');
+  }
+
+  public function testCheckUserCredentials() {
+    $user = $this->drupalCreateUser(array('access content'));
+
+    // Correct credentials
+    $result = $this->storage->checkUserCredentials($user->name, $user->pass_raw);
+    $this->assertTrue($result, 'Valid user credentials correctly detected.');
+    // Invalid username.
+    $result = $this->storage->checkUserCredentials('fakeusername', $user->pass_raw);
+    $this->assertFalse($result, 'Invalid username correctly detected.');
+    // Invalid password.
+    $result = $this->storage->checkUserCredentials($user->name, 'fakepass');
+    $this->assertFalse($result, 'Invalid password correctly detected');
   }
 }
