@@ -105,7 +105,7 @@ function oauth2_server_entity_info() {
   $items = array();
   $items['oauth2_server'] = array(
     'label' => t('OAuth2 Server'),
-    'controller class' => 'EntityAPIControllerExportable',
+    'controller class' => 'OAuth2ServerEntityController',
     'entity class' => 'OAuth2Server',
     'base table' => 'oauth2_server',
     'fieldable' => TRUE,

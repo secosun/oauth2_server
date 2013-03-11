@@ -9,14 +9,13 @@ configure = admin/config/services/oauth2-servers
 ; Metadata controllers
 files[] = oauth2_server.info.inc
 
-; Storage and Scope classes for the OAuth2 library
-files[] = lib/Storage.php
-files[] = lib/Scope.php
-
 ; Admin UI controllers
 files[] = includes/oauth2_server.server_admin.inc
 files[] = includes/oauth2_server.scope_admin.inc
 files[] = includes/oauth2_server.client_admin.inc
+
+; Entity controllers
+files[] = includes/oauth2_server.server_controller.inc
 
 ; Entity classes.
 files[] = includes/oauth2_server.server.inc
@@ -24,6 +23,10 @@ files[] = includes/oauth2_server.scope.inc
 files[] = includes/oauth2_server.client.inc
 files[] = includes/oauth2_server.authorization_code.inc
 files[] = includes/oauth2_server.token.inc
+
+; Storage and Scope classes for the OAuth2 library
+files[] = lib/Storage.php
+files[] = lib/Scope.php
 
 ; Tests
 files[] = tests/oauth2_server.test

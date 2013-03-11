@@ -44,14 +44,12 @@ function hook_oauth2_server_default_scope($server) {
 
 /**
  * An example hook_entity_query_alter() implementation for scope access.
- *
- * Every scope EFQ has the tag "oauth2_server_scope_access" and the server
- * in $query->metaData['oauth2_server'].
  */
 function example_entity_query_alter($query) {
   global $user;
 
-  // Detect the scope query.
+  // This is an EFQ used to get all scopes available to the user
+  // (inside the Scope class, or when showing the authorize form, for instance).
   if (!empty($query->tags['oauth2_server_scope_access'])) {
     $server = $query->metaData['oauth2_server'];
 
@@ -59,6 +57,16 @@ function example_entity_query_alter($query) {
     // in an example "users" entityreference field.
     if ($server->name == 'test' && $user->uid) {
       $query->fieldCondition('users', 'target_id', $user->uid);
+    }
+  }
+
+  // This is an EFQ used to get all exportable scopes.
+  if (!empty($query->tags['oauth2_server_scope_export'])) {
+    $server = $query->metaData['oauth2_server'];
+
+    // On the "test" server only export scopes assigned to admin.
+    if ($server->name == 'test') {
+      $query->fieldCondition('users', 'target_id', 1);
     }
   }
 }
