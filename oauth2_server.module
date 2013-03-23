@@ -520,24 +520,29 @@ function oauth2_server_register_autoloader() {
 function oauth2_server_start($server = NULL) {
   oauth2_server_register_autoloader();
   if ($server) {
-    $storage = new OAuth2_Storage_Drupal();
-    $oauth2_server = new OAuth2_Server($storage, $server->settings);
-    // Initialize the scope util.
-    $scope_util = new OAuth2_Scope_Drupal($server);
-    $oauth2_server->setScopeUtil($scope_util);
-    // Initialize the grant types.
-    $grant_types = oauth2_server_grant_types();
-    foreach (array_filter($server->settings['grant_types']) as $grant_type_name) {
-      $grant_type = new $grant_types[$grant_type_name]['class']($storage, $server->settings);
-      $oauth2_server->addGrantType($grant_type);
+    $oauth2_servers = &drupal_static(__FUNCTION__);
+    if (!isset($oauth2_servers[$server->name])) {
+      $storage = new OAuth2_Storage_Drupal();
+      $oauth2_server = new OAuth2_Server($storage, $server->settings);
+      // Initialize the scope util.
+      $scope_util = new OAuth2_Scope_Drupal($server);
+      $oauth2_server->setScopeUtil($scope_util);
+      // Initialize the grant types.
+      $grant_types = oauth2_server_grant_types();
+      foreach (array_filter($server->settings['grant_types']) as $grant_type_name) {
+        $grant_type = new $grant_types[$grant_type_name]['class']($storage, $server->settings);
+        $oauth2_server->addGrantType($grant_type);
+      }
+      // Store the server in the static cache.
+      $oauth2_servers[$server->name] = $oauth2_server;
     }
+
+    return $oauth2_servers[$server->name];
   }
   else {
     $storage = new OAuth2_Storage_Drupal();
-    $oauth2_server = new OAuth2_Server($storage);
+    return new OAuth2_Server($storage);
   }
-
-  return $oauth2_server;
 }
 
 /**
