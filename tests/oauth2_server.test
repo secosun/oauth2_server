@@ -157,7 +157,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $this->assertEqual($result->code, 302, 'The implicit flow request completed successfully');
     $redirect_url_parts = explode('?#', $result->redirect_url);
     $response = drupal_get_query_array($redirect_url_parts[1]);
-    $this->assertGrantResponse($response, FALSE);
+    $this->assertTokenResponse($response, FALSE);
 
     // We have received an access token. Verify it, just like we would in JS.
     if (!empty($response['access_token'])) {
@@ -207,7 +207,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
 
     $this->assertEqual($result->code, 200, 'The token request completed successfully');
     $response = json_decode($result->data);
-    $this->assertGrantResponse($response);
+    $this->assertTokenResponse($response);
   }
 
   /**
@@ -232,7 +232,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
 
     $this->assertEqual($result->code, 200, 'The token request completed successfully');
     $response = json_decode($result->data);
-    $this->assertGrantResponse($response, FALSE);
+    $this->assertTokenResponse($response, FALSE);
   }
 
   /**
@@ -261,7 +261,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
 
     $this->assertEqual($result->code, 200, 'The token request completed successfully');
     $response = json_decode($result->data);
-    $this->assertGrantResponse($response);
+    $this->assertTokenResponse($response);
   }
 
   /**
@@ -310,11 +310,11 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $response = json_decode($result->data);
     // The response will include a new refresh_token because
     // always_issue_new_refresh_token is TRUE.
-    $this->assertGrantResponse($response);
+    $this->assertTokenResponse($response);
   }
 
   /**
-   * Assert that the given grant response has the expected values.
+   * Assert that the given token response has the expected values.
    *
    * @param $response
    *   The response (either an object decoded from a json string or the
@@ -322,7 +322,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
    * @param $has_refresh_token
    *   A boolean indicating whether this response should have a refresh token.
    */
-  public function assertGrantResponse($response, $has_refresh_token = TRUE) {
+  public function assertTokenResponse($response, $has_refresh_token = TRUE) {
     // Make sure we have an array.
     $response = (array) $response;
 

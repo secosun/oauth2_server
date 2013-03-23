@@ -651,7 +651,7 @@ function oauth2_server_token() {
 
   // Initialize the server.
   $oauth2_server = oauth2_server_start($server);
-  $response = $oauth2_server->handleGrantRequest(OAuth2_Request::createFromGlobals());
+  $response = $oauth2_server->handleTokenRequest(OAuth2_Request::createFromGlobals());
   return oauth2_server_send_response($response);
 }
 
@@ -702,7 +702,7 @@ function oauth2_server_verify_token($token) {
 function oauth2_server_verify_access($server_name, $scope = NULL) {
   $server = oauth2_server_load($server_name);
   $oauth2_server = oauth2_server_start($server);
-  $token = $oauth2_server->getAccessTokenData(OAuth2_Request::createFromGlobals());
+  $token = $oauth2_server->getAccessTokenData(OAuth2_Request::createFromGlobals(), $scope);
   // If there's no token, that means validation failed. Stop here.
   if (!$token) {
     return oauth2_server_send_response($oauth2_server->getResponse());
