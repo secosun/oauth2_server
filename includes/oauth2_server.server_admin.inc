@@ -110,9 +110,12 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     '#type' => 'fieldset',
     '#title' => t('Settings'),
   );
-  // Make sure the default_scope setting is not lost when saving the form.
-  // It is actually edited from the Scope UI to avoid showing a select box
-  // with potentially thousands of options here.
+  $form['settings']['enforce_state'] = array(
+    '#type' => 'value',
+    '#value' => $server->settings['enforce_state'],
+  );
+  // The default scope is actually edited from the Scope UI to avoid showing
+  // a select box with potentially thousands of options here.
   $form['settings']['default_scope'] = array(
     '#type' => 'value',
     '#value' => $server->settings['default_scope'],

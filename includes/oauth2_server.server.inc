@@ -26,6 +26,7 @@ class OAuth2Server extends Entity {
    */
   public $settings = array(
     'default_scope' => 'basic',
+    'enforce_state' => TRUE,
     'allow_implicit' => FALSE,
     'grant_types' => array(
       'authorization_code' => 'authorization_code',

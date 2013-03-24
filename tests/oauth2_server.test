@@ -42,6 +42,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $server->label = 'Test';
     $server->settings = array(
       'default_scope' => 'basic',
+      'enforce_state' => TRUE,
       'allow_implicit' => TRUE,
       'grant_types' => array(
         'authorization_code' => 'authorization_code',
@@ -85,6 +86,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $query = array(
       'response_type' => $response_type,
       'client_id' => $this->client_key,
+      'state' => drupal_get_token($this->client_key),
       // The "authorized" url doesn't actually exist, but we don't need it.
       'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
@@ -140,6 +142,8 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $redirect_url_params = drupal_get_query_array($redirect_url_parts[1]);
     $redirect_url_params += array('code' => '');
     $this->assertTrue($redirect_url_params['code'], 'The server returned an authorization code');
+    $valid_token = drupal_valid_token($redirect_url_params['state'], $this->client_key);
+    $this->assertTrue($valid_token, 'The server returned a valid state');
   }
 
   /**
