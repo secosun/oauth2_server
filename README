@@ -17,11 +17,10 @@ Features
 - Support for per-client automatic authorization (skipping the authorization form).
 - Services integration (authentication).
 
+Warning: You will need the following Services patch: http://drupal.org/node/1154420#comment-7216714
+in order to use the authentication.
+
 The tests can be used as an example client-side implementation.
 
-Getting started
----------------
-1) Enable the module.
-2) Clone the library from GitHub and place it in your libraries folder
-(for example, sites/all/libraries/oauth2-server-php).
-3) Go to admin/config/services/oauth2-servers and add a server.
+See http://drupal.org/node/1938218 for information on getting started.
+
