@@ -119,16 +119,15 @@ class OAuth2ServerClientUIController extends EntityDefaultUIController {
  * Generates the client editing form.
  */
 function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
-  // Load the parent server.
-  $server = oauth2_server_load(arg(5));
-  if (!$server) {
-    return $form;
+  // Make sure the parent server is present in form state.
+  if (!isset($form_state['server'])) {
+    $server = oauth2_server_load(arg(5));
+    if (!$server) {
+      return $form;
+    }
+    $form_state['server'] = $server;
   }
 
-  $form['server'] = array(
-    '#type' => 'value',
-    '#value' => $server->name,
-  );
   $form['label'] = array(
     '#title' => t('Label'),
     '#type' => 'textfield',
@@ -204,6 +203,7 @@ function oauth2_server_client_form_validate($form, &$form_state) {
  */
 function oauth2_server_client_form_submit(&$form, &$form_state) {
   $client = entity_ui_form_submit_build_entity($form, $form_state);
+  $client->server = $form_state['server']->name;
   // Save and go back.
   $client->save();
 

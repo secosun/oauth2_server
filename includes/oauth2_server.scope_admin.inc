@@ -140,12 +140,14 @@ class OAuth2ServerScopeUIController extends EntityDefaultUIController {
  * Generates the scope editing form.
  */
 function oauth2_server_scope_form($form, &$form_state, $scope, $op = 'edit') {
-  // Load the parent server.
-  $server = oauth2_server_load(arg(5));
-  if (!$server) {
-    return $form;
+  // Make sure the parent server is present in form state.
+  if (!isset($form_state['server'])) {
+    $server = oauth2_server_load(arg(5));
+    if (!$server) {
+      return $form;
+    }
+    $form_state['server'] = $server;
   }
-  $form_state['server'] = $server;
 
   $form['label'] = array(
     '#title' => t('Label'),
