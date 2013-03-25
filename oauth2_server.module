@@ -623,7 +623,7 @@ function oauth2_server_authorize_form($form, &$form_state, $client, $server) {
 /**
  * Submit callback for oauth2_server_authorize_form.
  *
- * Completes authentication and redirects back to the client.
+ * Completes authorization and redirects back to the client.
  */
 function oauth2_server_authorize_form_submit($form, &$form_state) {
   global $user;
@@ -688,7 +688,7 @@ function oauth2_server_verify_token($token) {
 }
 
 /**
- * Verifies access to the passed server.
+ * Verifies access for the passed server and scope.
  *
  * @param $server_name
  *   The name of the server for which access should be verified.
@@ -696,8 +696,9 @@ function oauth2_server_verify_token($token) {
  *   An optional string of space-separated scopes to check.
  *
  * @return
- *   No return value. If the access check fails, execution is aborted and an
- *   error response is sent to the user.
+ *   A valid access token if found.
+ *   If the access check fails, execution is aborted and an error response is
+ *   sent to the user.
  */
 function oauth2_server_verify_access($server_name, $scope = NULL) {
   $server = oauth2_server_load($server_name);
@@ -714,6 +715,8 @@ function oauth2_server_verify_access($server_name, $scope = NULL) {
     $response = new OAuth2_Response_AuthenticationError(401, 'invalid_grant', $error, 'bearer', 'Service', $scope);
     return oauth2_server_send_response($response);
   }
+
+  return $token;
 }
 
 /**

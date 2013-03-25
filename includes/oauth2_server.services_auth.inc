@@ -6,42 +6,30 @@
  */
 
 /**
- * Authenticates a call using OAuth to verify the request.
- *
- * @param array $settings
-  *  The settings for the authentication module.
- * @param array $method
- *  The method that's being called.
- * @param array $args
- *  The arguments used to call the method.
- *
- * @return
- *  Returns nothing, or a error message if authentication fails.
+ * Services authentication "authenticate_call" callback.
  */
 function oauth2_server_services_authenticate_call($settings, $method, $args) {
-  $endpoint = array();
-  if (isset($method['endpoint']['oauth2'])) {
-    $endpoint += array_filter($method['endpoint']['oauth2']);
-  }
-  $endpoint += $settings;
-
   // Authentication is disabled, do nothing.
-  if (empty($endpoint['require_authentication'])) {
+  if (empty($settings['require_authentication'])) {
     return FALSE;
   }
-
   // No server specified, cannot proceed.
   if (empty($settings['server'])) {
     throw new Exception('No server configured for Services OAuth2 authentication.');
   }
 
-  oauth2_server_verify_access($settings['server']);
+  // Verify access. The request will be aborted if verification fails.
+  $token = oauth2_server_verify_access($settings['server'], $settings['scope']);
+  // If the resource owner is known, switch the current user to it.
+  if ($token['user_id']) {
+    global $user;
+    $user = user_load_by_name($token['user_id']);
+  }
 }
 
-function oauth2_server_services_security_settings_authorization($settings) {
-  return isset($settings['authorization']) ? $settings['authorization'] : '';
-}
-
+/**
+ * Services authentication "security_settings" callback.
+ */
 function oauth2_server_services_security_settings($settings, &$form_state) {
   if (isset($form_state['values']['oauth2']['server'])) {
     $settings['server'] = $form_state['values']['oauth2']['server'];
@@ -65,18 +53,30 @@ function oauth2_server_services_security_settings($settings, &$form_state) {
   return $form;
 }
 
+/**
+ * Services authentication "default_security_settings" callback.
+ */
 function oauth2_server_services_default_security_settings() {
   return array(
     'server' => '',
   );
 }
 
+/**
+ * Services authentication "controller_settings" callback.
+ */
 function oauth2_server_services_controller_settings($settings, $controller, $endpoint, $class, $name) {
   $form = array();
   $form['require_authentication'] = array(
-    '#type'          => 'checkbox',
-    '#title'         => t('Require authentication'),
+    '#type' => 'checkbox',
+    '#title' => t('Require authentication'),
     '#default_value' => isset($settings['require_authentication']) ? $settings['require_authentication'] : FALSE,
+  );
+  $form['scope'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Scope'),
+    '#default_value' => isset($settings['scope']) ? $settings['scope'] : '',
+    '#description' => t('A space-separated list of required scopes. Leave empty to ignore the check.'),
   );
 
   return $form;
