@@ -60,13 +60,14 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   }
 
   public function setAccessToken($access_token, $client_key, $username, $expires, $scope = null) {
+    $client = oauth2_server_client_load($client_key);
+    if (!$client) {
+      throw new InvalidArgumentException("The supplied client couldn't be loaded.");
+    }
+
     // If no token was found, start with a new entity.
     $token = oauth2_server_token_load($access_token);
     if (!$token) {
-      $client = oauth2_server_client_load($client_key);
-      if (!$client) {
-        throw new InvalidArgumentException("The supplied client couldn't be loaded.");
-      }
       // The username is not required, the "Client credentials" grant type
       // doesn't provide it, for instance.
       $uid = 0;
@@ -113,13 +114,14 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   }
 
   public function setAuthorizationCode($code, $client_key, $username, $redirect_uri, $expires, $scope = null) {
+    $client = oauth2_server_client_load($client_key);
+    if (!$client) {
+      throw new InvalidArgumentException("The supplied client couldn't be loaded.");
+    }
+
     // If no code was found, start with a new entity.
     $authorization_code = oauth2_server_authorization_code_load($code);
     if (!$authorization_code) {
-      $client = oauth2_server_client_load($client_key);
-      if (!$client) {
-        throw new InvalidArgumentException("The supplied client couldn't be loaded.");
-      }
       $user = user_load_by_name($username);
       if (!$user) {
         throw new InvalidArgumentException("The supplied user couldn't be loaded.");

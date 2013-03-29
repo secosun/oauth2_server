@@ -226,7 +226,6 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'grant_type' => 'client_credentials',
       'client_id' => $this->client_key,
       'client_secret' => $this->client_secret,
-      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
     $options = array(
       'method' => 'POST',
@@ -267,7 +266,6 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'refresh_token' => $refresh_token,
       'client_id' => $this->client_key,
       'client_secret' => $this->client_secret,
-      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
     $options = array(
       'method' => 'POST',
@@ -379,7 +377,6 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'client_secret' => $this->client_secret,
       'username' => $user->name,
       'password' => $user->pass_raw,
-      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
     if ($scope) {
       $data['scope'] = $scope;
