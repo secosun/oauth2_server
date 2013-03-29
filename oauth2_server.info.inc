@@ -19,6 +19,10 @@ class OAuth2ServerScopeMetadataController extends EntityDefaultMetadataControlle
       'required' => TRUE,
       'schema field' => 'server',
     );
+    // Make the description translatable.
+    $properties['description']['translatable'] = TRUE;
+    $properties['description']['i18n string'] = TRUE;
+
     return $info;
   }
 }

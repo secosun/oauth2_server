@@ -15,9 +15,9 @@ class OAuth2ServerClientUIController extends EntityDefaultUIController {
     $this->entityInfo = $entity_info;
     // Stop the UI from mentioning "OAuth2 client" everywhere.
     $this->entityInfo['label'] = 'Client';
-    // Replace the % placeholder with the server name, since the path
+    // Replace the client placeholder with the server name, since the path
     // is used for links and redirects.
-    $this->path = str_replace('%', arg(5), $this->entityInfo['admin ui']['path']);
+    $this->path = str_replace('%oauth2_server_client', arg(4), $this->entityInfo['admin ui']['path']);
   }
 
   /**
@@ -25,7 +25,7 @@ class OAuth2ServerClientUIController extends EntityDefaultUIController {
    */
   public function hook_menu() {
     $items = array();
-    $path = 'admin/config/services/oauth2-servers/manage/%/clients';
+    $path = 'admin/structure/oauth2-servers/manage/%/clients';
     $id_pos = count(explode('/', $path));
 
     $items[$path] = array(
@@ -85,7 +85,7 @@ class OAuth2ServerClientUIController extends EntityDefaultUIController {
    * Overrides EntityDefaultUIController::overviewTable().
    */
   public function overviewTable($conditions = array()) {
-    $conditions['server'] = arg(5);
+    $conditions['server'] = arg(4);
     return parent::overviewTable($conditions);
   }
 
@@ -121,7 +121,7 @@ class OAuth2ServerClientUIController extends EntityDefaultUIController {
 function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
   // Make sure the parent server is present in form state.
   if (!isset($form_state['server'])) {
-    $server = oauth2_server_load(arg(5));
+    $server = oauth2_server_load(arg(4));
     if (!$server) {
       return $form;
     }
@@ -221,15 +221,15 @@ function oauth2_server_client_form_submit(&$form, &$form_state) {
   // Save and go back.
   $client->save();
 
-  $server = arg(5);
-  $form_state['redirect'] = 'admin/config/services/oauth2-servers/manage/' . $server . '/clients';
+  $server = arg(4);
+  $form_state['redirect'] = 'admin/structure/oauth2-servers/manage/' . $server . '/clients';
 }
 
 /**
  * Form API submit callback for the delete button.
  */
 function oauth2_server_client_form_submit_delete(&$form, &$form_state) {
-  $server = arg(5);
-  $form_state['redirect'] = 'admin/config/services/oauth2-servers/manage/' . $server
+  $server = arg(4);
+  $form_state['redirect'] = 'admin/structure/oauth2-servers/manage/' . $server
                              . '/clients/' . $form_state['oauth2_server_client']->client_id . '/delete';
 }

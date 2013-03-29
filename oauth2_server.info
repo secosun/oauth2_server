@@ -4,7 +4,7 @@ package = "OAuth2"
 dependencies[] = entity
 dependencies[] = entityreference
 core = 7.x
-configure = admin/config/services/oauth2-servers
+configure = admin/structure/oauth2-servers
 
 ; Metadata controllers
 files[] = oauth2_server.info.inc
@@ -16,6 +16,7 @@ files[] = includes/oauth2_server.client_admin.inc
 
 ; Entity controllers
 files[] = includes/oauth2_server.server_controller.inc
+files[] = includes/oauth2_server.scope_i18n.inc
 
 ; Entity classes.
 files[] = includes/oauth2_server.server.inc

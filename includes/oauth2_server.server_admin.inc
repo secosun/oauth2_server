@@ -192,16 +192,16 @@ function oauth2_server_form_submit(&$form, &$form_state) {
     $scope = entity_create('oauth2_server_scope', array());
     $scope->server = $server->name;
     $scope->name = 'basic';
-    $scope->label = 'Basic';
+    $scope->description = 'View basic information about your account.';
     $scope->save();
   }
 
-  $form_state['redirect'] = 'admin/config/services/oauth2-servers';
+  $form_state['redirect'] = 'admin/structure/oauth2-servers';
 }
 
 /**
  * Form API submit callback for the delete button.
  */
 function oauth2_server_form_submit_delete(&$form, &$form_state) {
-  $form_state['redirect'] = 'admin/config/services/oauth2-servers/manage/' . $form_state['oauth2_server']->name . '/delete';
+  $form_state['redirect'] = 'admin/structure/oauth2-servers/manage/' . $form_state['oauth2_server']->name . '/delete';
 }

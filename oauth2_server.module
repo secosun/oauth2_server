@@ -12,7 +12,7 @@
  */
 function oauth2_server_init() {
   $item = menu_get_item();
-  if ($item['access'] && strpos($item['path'], 'admin/config/services/oauth2-servers') === 0) {
+  if ($item['access'] && strpos($item['path'], 'admin/structure/oauth2-servers') === 0) {
     $path = oauth2_server_get_library_path();
     // Check for the existence of one file from the library.
     if (!$path || !file_exists($path . '/src/OAuth2/Server.php')) {
@@ -123,7 +123,7 @@ function oauth2_server_entity_info() {
     'metadata controller class' => 'EntityDefaultMetadataController',
     'views controller class' => 'EntityDefaultViewsController',
     'admin ui' => array(
-      'path' => 'admin/config/services/oauth2-servers',
+      'path' => 'admin/structure/oauth2-servers',
       'file' => 'includes/oauth2_server.server_admin.inc',
       'controller class' => 'OAuth2ServerUIController',
     ),
@@ -136,15 +136,16 @@ function oauth2_server_entity_info() {
     'fieldable' => TRUE,
     'entity keys' => array(
       'id' => 'scope_id',
-      'label' => 'label',
+      'label' => 'name',
       'bundle' => 'server',
     ),
     'module' => 'oauth2_server',
     'access callback' => 'oauth2_server_scope_access',
+    'i18n controller class' => 'OAuth2ScopeI18nStringController',
     'metadata controller class' => 'OAuth2ServerScopeMetadataController',
     'views controller class' => 'EntityDefaultViewsController',
     'admin ui' => array(
-      'path' => 'admin/config/services/oauth2-servers/manage/%/scopes',
+      'path' => 'admin/structure/oauth2-servers/manage/%oauth2_server/scopes',
       'file' => 'includes/oauth2_server.scope_admin.inc',
       'controller class' => 'OAuth2ServerScopeUIController',
     ),
@@ -165,7 +166,7 @@ function oauth2_server_entity_info() {
     'metadata controller class' => 'OAuth2ServerClientMetadataController',
     'views controller class' => 'EntityDefaultViewsController',
     'admin ui' => array(
-      'path' => 'admin/config/services/oauth2-servers/manage/%/clients',
+      'path' => 'admin/structure/oauth2-servers/manage/%oauth2_server_client/clients',
       'file' => 'includes/oauth2_server.client_admin.inc',
       'controller class' => 'OAuth2ServerClientUIController',
     ),
@@ -378,6 +379,45 @@ function oauth2_server_scope_load_multiple($server, $names) {
     'name' => $names,
   );
   return entity_load('oauth2_server_scope', FALSE, $conditions);
+}
+
+/**
+ * Implements hook_oauth2_server_scope_insert().
+ *
+ * i18n_string integration for oauth2_server_scope.
+ */
+function oauth2_server_oauth2_server_scope_insert($scope) {
+  if (module_exists('i18n_string')) {
+    i18n_string_object_update('oauth2_server_scope', $scope);
+  }
+}
+
+/**
+ * Implements hook_oauth2_server_scope_update().
+ *
+ * i18n_string integration for oauth2_server_scope.
+ */
+function oauth2_server_oauth2_server_scope_update($scope) {
+  if (module_exists('i18n_string')) {
+    // Account for name changes.
+    if ($scope->original->name != $scope->name) {
+      $old_context = "oauth2_server:oauth2_server_scope:{$scope->original->name}:*";
+      $new_context = "oauth2_server:oauth2_server_scope:{$scope->name}:*";
+      i18n_string_update_context($old_context, $new_context);
+    }
+    i18n_string_object_update('oauth2_server_scope', $scope);
+  }
+}
+
+/**
+ * Implements hook_oauth2_server_scope_delete().
+ *
+ * i18n_string integration for oauth2_server_scope.
+ */
+function oauth2_server_oauth2_server_scope_delete($scope) {
+  if (module_exists('i18n_string')) {
+    i18n_string_object_remove('oauth2_server_scope', $scope);
+  }
 }
 
 /**

@@ -72,7 +72,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       $scope = entity_create('oauth2_server_scope', array());
       $scope->server = $server->name;
       $scope->name = $scope_name;
-      $scope->label = $scope_label;
+      $scope->description = '';
       $scope->save();
     }
   }

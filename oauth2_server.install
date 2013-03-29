@@ -105,11 +105,11 @@ function oauth2_server_schema() {
         'length' => 255,
         'not null' => TRUE,
       ),
-      'label' => array(
+      'description' => array(
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
-        'description' => 'The label of the scope.',
+        'description' => 'The description used to describe the scope on the authorization form.',
         'default' => '',
       ),
     ),

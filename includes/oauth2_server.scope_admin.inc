@@ -15,9 +15,9 @@ class OAuth2ServerScopeUIController extends EntityDefaultUIController {
     $this->entityInfo = $entity_info;
     // Stop the UI from mentioning "OAuth2 scope" everywhere.
     $this->entityInfo['label'] = 'Scope';
-    // Replace the % placeholder with the server name, since the path
+    // Replace the server placeholder with the server name, since the path
     // is used for links and redirects.
-    $this->path = str_replace('%', arg(5), $this->entityInfo['admin ui']['path']);
+    $this->path = str_replace('%oauth2_server', arg(4), $this->entityInfo['admin ui']['path']);
   }
 
   /**
@@ -25,7 +25,7 @@ class OAuth2ServerScopeUIController extends EntityDefaultUIController {
    */
   public function hook_menu() {
     $items = array();
-    $path = 'admin/config/services/oauth2-servers/manage/%/scopes';
+    $path = 'admin/structure/oauth2-servers/manage/%/scopes';
     $id_pos = count(explode('/', $path));
 
     $items[$path] = array(
@@ -85,9 +85,20 @@ class OAuth2ServerScopeUIController extends EntityDefaultUIController {
    * Overrides EntityDefaultUIController::overviewTable().
    */
   public function overviewTable($conditions = array()) {
-    $this->server = oauth2_server_load(arg(5));
-    $conditions['server'] = arg(5);
+    $this->server = oauth2_server_load(arg(4));
+    $conditions['server'] = arg(4);
     return parent::overviewTable($conditions);
+  }
+
+  /**
+   * Overrides EntityDefaultUIController::overviewTableHeaders().
+   */
+  protected function overviewTableHeaders($conditions, $rows, $additional_header = array()) {
+    $header = $additional_header;
+    array_unshift($header, t('Scope'));
+    // Add operations with the right colspan.
+    $header[] = array('data' => t('Operations'), 'colspan' => $this->operationCount());
+    return $header;
   }
 
   /**
@@ -114,6 +125,9 @@ class OAuth2ServerScopeUIController extends EntityDefaultUIController {
 
     // Add the edit and delete links.
     $row[] = l(t('edit'), $this->path . '/' . $id);
+    if (module_exists('i18n_string')) {
+      $row[] = l(t('translate'), $this->path . '/' . $id . '/translate');
+    }
     $row[] = l(t('delete'), $this->path . '/' . $id . '/delete', array('query' => drupal_get_destination()));
 
     return $row;
@@ -125,7 +139,7 @@ class OAuth2ServerScopeUIController extends EntityDefaultUIController {
   public function applyOperation($op, $entity) {
     // If the default scope is about to be deleted, reset the server setting.
     if ($op == 'delete') {
-      $server = oauth2_server_load(arg(5));
+      $server = oauth2_server_load(arg(4));
       if ($server && $server->settings['default_scope'] == $entity->name) {
         $server->settings['default_scope'] = '';
         $server->save();
@@ -142,7 +156,7 @@ class OAuth2ServerScopeUIController extends EntityDefaultUIController {
 function oauth2_server_scope_form($form, &$form_state, $scope, $op = 'edit') {
   // Make sure the parent server is present in form state.
   if (!isset($form_state['server'])) {
-    $server = oauth2_server_load(arg(5));
+    $server = oauth2_server_load(arg(4));
     if (!$server) {
       return $form;
     }
@@ -160,24 +174,22 @@ function oauth2_server_scope_form($form, &$form_state, $scope, $op = 'edit') {
     '#value' => $form_state['server']->name,
   );
 
-  $form['label'] = array(
-    '#title' => t('Label'),
-    '#type' => 'textfield',
-    '#default_value' => $scope->label,
-    '#description' => t('The human-readable name of this scope.'),
-    '#required' => TRUE,
-    '#weight' => -2,
-  );
-  // Machine-readable type name.
   $form['name'] = array(
     '#type' => 'machine_name',
     '#default_value' => $scope->name,
     '#disabled' => entity_has_status('oauth2_server_scope', $scope, ENTITY_IN_CODE),
     '#machine_name' => array(
       'exists' => 'oauth2_server_scope_exists',
-      'source' => array('label'),
     ),
     '#description' => t('A unique machine-readable name for this scope. It must only contain lowercase letters, numbers, and underscores.'),
+    '#weight' => -2,
+  );
+  $form['description'] = array(
+    '#title' => t('Description'),
+    '#type' => 'textfield',
+    '#default_value' => $scope->description,
+    '#description' => t('Used to describe the scope to the user on the authorization form.'),
+    '#required' => TRUE,
     '#weight' => -1,
   );
 
@@ -242,15 +254,15 @@ function oauth2_server_scope_form_submit(&$form, &$form_state) {
   $scope = entity_ui_form_submit_build_entity($form, $form_state);
   $scope->save();
 
-  $form_state['redirect'] = 'admin/config/services/oauth2-servers/manage/' . $server->name . '/scopes';
+  $form_state['redirect'] = 'admin/structure/oauth2-servers/manage/' . $server->name . '/scopes';
 }
 
 /**
  * Form API submit callback for the delete button.
  */
 function oauth2_server_scope_form_submit_delete(&$form, &$form_state) {
-  $server = arg(5);
-  $form_state['redirect'] = 'admin/config/services/oauth2-servers/manage/' . $server
+  $server = arg(4);
+  $form_state['redirect'] = 'admin/structure/oauth2-servers/manage/' . $server
                              . '/scopes/' . $form_state['oauth2_server_scope']->scope_id . '/delete';
 }
 
