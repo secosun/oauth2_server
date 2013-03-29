@@ -148,6 +148,17 @@ function oauth2_server_scope_form($form, &$form_state, $scope, $op = 'edit') {
     }
     $form_state['server'] = $server;
   }
+  // Set the server on new scope entities, since it serves as the bundle.
+  // Needed by field_attach_form().
+  if (empty($scope->server)) {
+    $scope->server = $form_state['server']->name;
+  }
+  // entity_form_field_validate() builds a fake entity from
+  // $form_state['values'], so the bundle needs to be in there.
+  $form['server'] = array(
+    '#type' => 'value',
+    '#value' => $form_state['server']->name,
+  );
 
   $form['label'] = array(
     '#title' => t('Label'),
@@ -155,6 +166,7 @@ function oauth2_server_scope_form($form, &$form_state, $scope, $op = 'edit') {
     '#default_value' => $scope->label,
     '#description' => t('The human-readable name of this scope.'),
     '#required' => TRUE,
+    '#weight' => -2,
   );
   // Machine-readable type name.
   $form['name'] = array(
@@ -166,6 +178,7 @@ function oauth2_server_scope_form($form, &$form_state, $scope, $op = 'edit') {
       'source' => array('label'),
     ),
     '#description' => t('A unique machine-readable name for this scope. It must only contain lowercase letters, numbers, and underscores.'),
+    '#weight' => -1,
   );
 
   field_attach_form('oauth2_server_scope', $scope, $form, $form_state);
@@ -227,7 +240,6 @@ function oauth2_server_scope_form_submit(&$form, &$form_state) {
   unset($form_state['values']['default']);
 
   $scope = entity_ui_form_submit_build_entity($form, $form_state);
-  $scope->server = $server->name;
   $scope->save();
 
   $form_state['redirect'] = 'admin/config/services/oauth2-servers/manage/' . $server->name . '/scopes';

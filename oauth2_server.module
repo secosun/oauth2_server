@@ -137,6 +137,7 @@ function oauth2_server_entity_info() {
     'entity keys' => array(
       'id' => 'scope_id',
       'label' => 'label',
+      'bundle' => 'server',
     ),
     'module' => 'oauth2_server',
     'access callback' => 'oauth2_server_scope_access',
@@ -157,6 +158,7 @@ function oauth2_server_entity_info() {
     'entity keys' => array(
       'id' => 'client_id',
       'label' => 'label',
+      'bundle' => 'server',
     ),
     'module' => 'oauth2_server',
     'access callback' => 'oauth2_server_client_access',
@@ -168,6 +170,21 @@ function oauth2_server_entity_info() {
       'controller class' => 'OAuth2ServerClientUIController',
     ),
   );
+  // The server serves as a bundle for scopes and clients.
+  // Bypass entity_load() as it cannot be used here (recursion).
+  $servers = db_select('oauth2_server', 'os')
+    ->fields('os')
+    ->execute()
+    ->fetchAllAssoc('name');
+  foreach ($servers as $name => $server) {
+    $items['oauth2_server_scope']['bundles'][$name] = array(
+      'label' => $server->label,
+    );
+    $items['oauth2_server_client']['bundles'][$name] = array(
+      'label' => $server->label,
+    );
+  }
+
   $items['oauth2_server_token'] = array(
     'label' => t('OAuth2 Server - Token'),
     'controller class' => 'EntityAPIController',

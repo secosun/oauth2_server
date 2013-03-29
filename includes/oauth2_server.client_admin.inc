@@ -127,6 +127,16 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     }
     $form_state['server'] = $server;
   }
+  // Set the server on new client entities, since it serves as the bundle.
+  if (empty($client->server)) {
+    $client->server = $form_state['server']->name;
+  }
+  // entity_form_field_validate() builds a fake entity from
+  // $form_state['values'], so the bundle needs to be in there.
+  $form['server'] = array(
+    '#type' => 'value',
+    '#value' => $form_state['server']->name,
+  );
 
   $form['label'] = array(
     '#title' => t('Label'),
@@ -134,18 +144,21 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     '#default_value' => $client->label,
     '#description' => t('The human-readable name of this client.'),
     '#required' => TRUE,
+    '#weight' => -4,
   );
   $form['client_key'] = array(
     '#title' => t('Client ID'),
     '#type' => 'textfield',
     '#default_value' => $client->client_key,
     '#required' => TRUE,
+    '#weight' => -3,
   );
   $form['client_secret'] = array(
     '#title' => t('Client secret'),
     '#type' => 'textarea',
     '#default_value' => $client->client_secret,
     '#required' => TRUE,
+    '#weight' => -2,
   );
   $form['redirect_uri'] = array(
     '#title' => t('Redirect URI'),
@@ -153,16 +166,18 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     '#default_value' => $client->redirect_uri,
     '#description' => t('The absolute URI to redirect to after authorization'),
     '#required' => TRUE,
+    '#weight' => -1,
   );
+
+  field_attach_form('oauth2_server_client', $client, $form, $form_state);
+
   $form['automatic_authorization'] = array(
     '#title' => t('Automatically authorize this client'),
     '#type' => 'checkbox',
     '#default_value' => $client->automatic_authorization,
     '#description' => t('This will cause the authorization form to be skipped. <b>Warning:</b> Give to trusted clients only!'),
+    '#weight' => 39,
   );
-
-  field_attach_form('oauth2_server_client', $client, $form, $form_state);
-
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
@@ -203,7 +218,6 @@ function oauth2_server_client_form_validate($form, &$form_state) {
  */
 function oauth2_server_client_form_submit(&$form, &$form_state) {
   $client = entity_ui_form_submit_build_entity($form, $form_state);
-  $client->server = $form_state['server']->name;
   // Save and go back.
   $client->save();
 

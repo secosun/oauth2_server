@@ -8,6 +8,27 @@
 class OAuth2ServerEntityController extends EntityAPIControllerExportable {
 
   /**
+   * Overrides EntityAPIControllerExportable::invoke().
+   */
+  public function invoke($hook, $entity) {
+    // The server serves as a bundle for scopes and clients.
+    if ($hook == 'insert') {
+      field_attach_create_bundle('oauth2_server_scope', $entity->name);
+      field_attach_create_bundle('oauth2_server_client', $entity->name);
+    }
+    elseif ($hook == 'delete' && !$is_revert) {
+      field_attach_delete_bundle('oauth2_server_scope', $entity->name);
+      field_attach_delete_bundle('oauth2_server_client', $entity->name);
+    }
+    elseif ($hook == 'update' && $entity->original->name != $entity->name) {
+      field_attach_rename_bundle('oauth2_server_scope', $entity->original->name, $entity->name);
+      field_attach_rename_bundle('oauth2_server_client', $entity->original->name, $entity->name);
+    }
+
+    parent::invoke($hook, $entity);
+  }
+
+  /**
    * Overrides EntityAPIControllerExportable::export().
    */
   public function export($entity, $prefix = '') {
