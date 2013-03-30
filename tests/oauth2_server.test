@@ -97,10 +97,6 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       // The "authorized" url doesn't actually exist, but we don't need it.
       'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
-    // The token response type (implicit flow) doesn't need the client_secret.
-    if ($response_type == 'code') {
-      $query['client_secret'] = $this->client_secret;
-    }
 
     $authorize_url = url('oauth2/authorize', array('absolute' => TRUE, 'query' => $query));
     $options = array();
