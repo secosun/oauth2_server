@@ -153,6 +153,27 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     }
   }
 
+  $form['settings']['advanced_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Advanced settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['settings']['advanced_settings']['access_lifetime'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Access token lifetime'),
+    '#description' => t('The number of seconds the access token will be valid for.'),
+    '#default_value' => $server->settings['access_lifetime'],
+    '#size' => 11,
+  );
+  $form['settings']['advanced_settings']['refresh_token_lifetime'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Refresh token lifetime'),
+    '#description' => t('The number of seconds the refresh token will be valid for.'),
+    '#default_value' => $server->settings['refresh_token_lifetime'],
+    '#size' => 11,
+  );
+
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
@@ -184,7 +205,10 @@ function oauth2_server_form_validate($form, &$form_state) {
  * Form API submit callback for the type form.
  */
 function oauth2_server_form_submit(&$form, &$form_state) {
-  // Save the server.
+  // Advanced settings are a part of the main settings array.
+  $form_state['values']['settings'] += $form_state['values']['settings']['advanced_settings'];
+  unset($form_state['values']['settings']['advanced_settings']);
+  // Create the server from form values and save it.
   $server = entity_ui_form_submit_build_entity($form, $form_state);
   $server->save();
   // If this was a new server, create a default scope as well.

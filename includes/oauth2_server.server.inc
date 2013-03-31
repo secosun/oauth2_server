@@ -32,6 +32,8 @@ class OAuth2Server extends Entity {
       'authorization_code' => 'authorization_code',
       'refresh_token' => 'refresh_token',
     ),
+    'access_lifetime' => 3600,
+    'refresh_token_lifetime' => 1209600,
   );
 
   public function __construct($values = array()) {
