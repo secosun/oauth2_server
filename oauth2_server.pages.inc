@@ -158,33 +158,56 @@ function oauth2_server_token() {
 }
 
 /**
- * Page callback: verifies the provided token for the provided client_id.
+ * Page callback: verifies the provided token.
+ *
+ * Requires authorization.
+ *
+ * @param $token
+ *   The token to verify.
+ *   If the request token authorized the client (client_credentials grant type),
+ *   then this can be any token belonging to the client.
+ *   Otherwise, it must match the request token.
+ *
+ * @return
+ *   404 if the token was not found, has expired, or is not accessible.
+ *   Otherwise, if a valid token was found, a json encoded array with the keys:
+ *     - user_id: The username of the resource owner (if any).
+ *     - access_token: The access token.
+ *     - expires: The unix timestamp of token expiration.
+ *     - scope: Scopes in a space-separated string.
  */
 function oauth2_server_verify_token($token) {
-  $data = array(
-    'verified' => FALSE,
-    'scope' => '',
-  );
-  // If one of the parameters is missing, we can stop here.
-  if (empty($token) || empty($_GET['client_id'])) {
-    return drupal_json_output($data);
+  // Do basic request token validation through an empty oauth2 server.
+  // oauth2_server_verify_access() isn't used here because it requires an
+  // actual server, which can't be known in this context without a loaded token.
+  $oauth2_server = oauth2_server_start();
+  $request_token = $oauth2_server->getAccessTokenData(OAuth2_Request::createFromGlobals());
+  if (!$request_token) {
+    return oauth2_server_send_response($oauth2_server->getResponse());
   }
 
-  $token = oauth2_server_token_load($token);
-  $client = oauth2_server_client_load($_GET['client_id']);
-  // The token exists, hasn't expired, and belongs to the provided client.
-  if ($token && $client && $token->expires > time() && $token->client_id == $client->client_id) {
-    $token_wrapper = entity_metadata_wrapper('oauth2_server_token', $token);
-    $scopes = array();
-    foreach ($token_wrapper->scopes as $scope_wrapper) {
-      $scopes[] = $scope_wrapper->name->value();
-    }
-
-    $data = array(
-      'verified' => TRUE,
-      'scope' => implode(' ', $scopes),
-    );
+  // Initialize the storage and try to load the requested token.
+  $storage = new OAuth2_Storage_Drupal();
+  $token = $storage->getAccessToken($token);
+  // No token found. Stop here.
+  if (!$token) {
+    $response = new OAuth2_Response(array(), 404);
+    return oauth2_server_send_response($response);
   }
 
-  return drupal_json_output($data);
+  // Validate the loaded token.
+  $check_expiration = ($token['expires'] > time());
+  $match_server = ($request_token['server'] == $token['server']);
+  $match_client = ($request_token['client_id'] == $token['client_id']);
+  $match_tokens = (!$request_token['user_id'] || $request_token['access_token'] == $token['access_token']);
+  // Return a 404 if validation failed.
+  if (!$check_expiration || !$match_server || !$match_client || !$match_tokens) {
+    $response = new OAuth2_Response(array(), 404);
+    return oauth2_server_send_response($response);
+  }
+
+  // Return the token, without the server and client_id keys.
+  unset($token['server']);
+  unset($token['client_id']);
+  return drupal_json_output($token);
 }
