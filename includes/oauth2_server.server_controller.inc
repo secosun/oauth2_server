@@ -11,6 +11,16 @@ class OAuth2ServerEntityController extends EntityAPIControllerExportable {
    * Overrides EntityAPIControllerExportable::invoke().
    */
   public function invoke($hook, $entity) {
+    if ($hook == 'delete') {
+      // To ease figuring out whether this is a revert, make sure that the
+      // entity status is updated in case the providing module has been
+      // disabled.
+      if (entity_has_status('oauth2_server_scope', $entity, ENTITY_IN_CODE) && !module_exists($entity->module)) {
+        $entity->status = ENTITY_CUSTOM;
+      }
+      $is_revert = entity_has_status('oauth2_server_scope', $entity, ENTITY_IN_CODE);
+    }
+
     // The server serves as a bundle for scopes and clients.
     if ($hook == 'insert') {
       field_attach_create_bundle('oauth2_server_scope', $entity->name);
