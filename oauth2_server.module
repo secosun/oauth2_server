@@ -619,6 +619,10 @@ function oauth2_server_start($server = NULL) {
  *   sent to the user.
  */
 function oauth2_server_verify_access($server_name, $scope = NULL) {
+  // Disable the page cache to ensure access to the resource is not granted
+  // longer than allowed.
+  drupal_page_is_cacheable(FALSE);
+
   $server = oauth2_server_load($server_name);
   $oauth2_server = oauth2_server_start($server);
   $token = $oauth2_server->getAccessTokenData(OAuth2_Request::createFromGlobals(), $scope);

@@ -180,6 +180,7 @@ function oauth2_server_verify_token($token) {
   // Do basic request token validation through an empty oauth2 server.
   // oauth2_server_verify_access() isn't used here because it requires an
   // actual server, which can't be known in this context without a loaded token.
+  drupal_page_is_cacheable(FALSE);
   $oauth2_server = oauth2_server_start();
   $request_token = $oauth2_server->getAccessTokenData(OAuth2_Request::createFromGlobals());
   if (!$request_token) {
