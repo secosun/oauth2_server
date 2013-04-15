@@ -51,7 +51,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
         'client_id' => $token_wrapper->client->client_key->value(),
         'user_id' => $token->uid ? $token_wrapper->user->name->value() : '',
         'access_token' => $token_wrapper->token->value(),
-        'expires' => $token_wrapper->expires->value(),
+        'expires' => (int) $token_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
       );
     }
@@ -105,7 +105,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
         'user_id' => $code_wrapper->user->name->value(),
         'authorization_code' => $code_wrapper->code->value(),
         'redirect_uri' => $code_wrapper->redirect_uri->value(),
-        'expires' => $code_wrapper->expires->value(),
+        'expires' => (int) $code_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
       );
     }
@@ -176,7 +176,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
         'client_id' => $token_wrapper->client->client_key->value(),
         'user_id' => $token_wrapper->user->name->value(),
         'refresh_token' => $token_wrapper->token->value(),
-        'expires' => $token_wrapper->expires->value(),
+        'expires' => (int) $token_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
       );
     }
