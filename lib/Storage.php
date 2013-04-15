@@ -78,7 +78,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
 
       $token = entity_create('oauth2_server_token', array('type' => 'access'));
       $token->client_id = $client->client_id;
-      $token->uid = $user->uid;
+      $token->uid = $uid;
       $token->token = $access_token;
     }
 
