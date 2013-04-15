@@ -64,7 +64,7 @@ function oauth2_server_menu() {
     'access arguments' => array('access content'),
     'file' => 'oauth2_server.pages.inc',
   );
-  $items['oauth2/verify_token'] = array(
+  $items['oauth2/verify-token'] = array(
     'page callback' => 'oauth2_server_verify_token',
     'access arguments' => array('access content'),
     'file' => 'oauth2_server.pages.inc',
