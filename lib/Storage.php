@@ -49,7 +49,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
       $token = array(
         'server' => $token_wrapper->client->server->raw(),
         'client_id' => $token_wrapper->client->client_key->value(),
-        'user_id' => $token->uid ? $token_wrapper->user->name->value() : '',
+        'user_id' => $token->uid ? $token_wrapper->user->name->value() : NULL,
         'access_token' => $token_wrapper->token->value(),
         'expires' => (int) $token_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),

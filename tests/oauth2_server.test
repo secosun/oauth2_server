@@ -165,13 +165,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     // We have received an access token. Verify it.
     // See http://drupal.org/node/1958718.
     if (!empty($response['access_token'])) {
-      $options = array(
-        'absolute' => TRUE,
-        'query' => array(
-          'access_token' => $response['access_token'],
-        ),
-      );
-      $verification_url = url('oauth2/verify_token/' . $response['access_token'], $options);
+      $verification_url = url('oauth2/tokens/' . $response['access_token'], array('absolute' => TRUE));
       $result = drupal_http_request($verification_url);
       $verification_response = json_decode($result->data);
 
