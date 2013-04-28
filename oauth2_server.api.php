@@ -13,7 +13,8 @@
  * then the one from $server->settings['default_scope'] is used.
  *
  * This hook runs on "authorize" and "token" requests and has access to the
- * client_id in $_GET (for "authorize") or $_POST (for "token").
+ * client_id in $_GET (for "authorize") or via
+ * oauth2_server_get_client_credentials() (for "token").
  * Note that client_id in this case corresponds to $client->client_key.
  *
  * @return

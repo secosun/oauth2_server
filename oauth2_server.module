@@ -606,6 +606,40 @@ function oauth2_server_start($server = NULL) {
 }
 
 /**
+ * Get the client credentials from the authorization header or the request body.
+ *
+ * Used during token requests.
+ *
+ * @param $request
+ *   An instance of OAuth2_Request.
+ *
+ * @return
+ *   An array with the following keys:
+ *   - client_id: The client key.
+ *   - client_secret: The client secret.
+ *   or NULL if no client credentials were found.
+ */
+function oauth2_server_get_client_credentials(OAuth2_Request $request) {
+  // Get the client credentials from the Authorization header.
+  if (!is_null($request->headers('PHP_AUTH_USER')) && !is_null($request->headers('PHP_AUTH_PW'))) {
+    return array(
+      'client_id' => $request->headers('PHP_AUTH_USER'),
+      'client_secret' => $request->headers('PHP_AUTH_PW')
+    );
+  }
+
+  // Get the client credentials from the request body (POST).
+  // Per spec, this method is not recommended and should be limited to clients
+  // unable to utilize HTTP authentication.
+  if (!is_null($request->request('client_id')) && !is_null($request->request('client_secret'))) {
+    return array(
+      'client_id' => $request->request('client_id'),
+      'client_secret' => $request->request('client_secret')
+    );
+  }
+}
+
+/**
  * Verifies access for the passed server and scope.
  *
  * @param $server_name

@@ -195,8 +195,6 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $token_url = url('oauth2/token', array('absolute' => TRUE));
     $data = array(
       'grant_type' => 'authorization_code',
-      'client_id' => $this->client_key,
-      'client_secret' => $this->client_secret,
       'code' => $authorization_code,
       'redirect_uri' => url('authorized', array('absolute' => TRUE)),
     );
@@ -205,6 +203,12 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'data' => http_build_query($data),
       'headers' => array(
         'Content-Type' => 'application/x-www-form-urlencoded',
+        // Instead of the Authorization header, the server also supports
+        // passing the client key and client secret inside the request body
+        // ($data['client_id'] and $data['client_secret']) for all grant types,
+        // but it is not recommended and should be limited to clients unable
+        // to directly utilize the HTTP Basic authentication scheme.
+        'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
       ),
     );
     $result = drupal_http_request($token_url, $options);
@@ -221,14 +225,13 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $token_url = url('oauth2/token', array('absolute' => TRUE));
     $data = array(
       'grant_type' => 'client_credentials',
-      'client_id' => $this->client_key,
-      'client_secret' => $this->client_secret,
     );
     $options = array(
       'method' => 'POST',
       'data' => http_build_query($data),
       'headers' => array(
         'Content-Type' => 'application/x-www-form-urlencoded',
+        'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
       ),
     );
     $result = drupal_http_request($token_url, $options);
@@ -261,14 +264,13 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $data = array(
       'grant_type' => 'refresh_token',
       'refresh_token' => $refresh_token,
-      'client_id' => $this->client_key,
-      'client_secret' => $this->client_secret,
     );
     $options = array(
       'method' => 'POST',
       'data' => http_build_query($data),
       'headers' => array(
         'Content-Type' => 'application/x-www-form-urlencoded',
+        'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
       ),
     );
     $result = drupal_http_request($token_url, $options);
@@ -370,8 +372,6 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $token_url = url('oauth2/token', array('absolute' => TRUE));
     $data = array(
       'grant_type' => 'password',
-      'client_id' => $this->client_key,
-      'client_secret' => $this->client_secret,
       'username' => $user->name,
       'password' => $user->pass_raw,
     );
@@ -384,6 +384,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'data' => http_build_query($data),
       'headers' => array(
         'Content-Type' => 'application/x-www-form-urlencoded',
+        'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
       ),
     );
     return drupal_http_request($token_url, $options);

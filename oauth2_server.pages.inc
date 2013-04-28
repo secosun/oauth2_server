@@ -141,11 +141,14 @@ function oauth2_server_authorize_form_submit($form, &$form_state) {
  * Page callback: exchanges an authorization code for an access token.
  */
 function oauth2_server_token() {
-  $client_id = isset($_POST['client_id']) ? $_POST['client_id'] : 0;
+  oauth2_server_register_autoloader();
+  $request = OAuth2_Request::createFromGlobals();
+
+  $client_credentials = oauth2_server_get_client_credentials($request);
   $server = NULL;
   // Get the client and use it to load the server and initialize the server.
-  if ($client_id) {
-    $client = oauth2_server_client_load($client_id);
+  if ($client_credentials) {
+    $client = oauth2_server_client_load($client_credentials['client_id']);
     if ($client) {
       $server = oauth2_server_load($client->server);
     }
@@ -153,7 +156,7 @@ function oauth2_server_token() {
 
   // Initialize the server.
   $oauth2_server = oauth2_server_start($server);
-  $response = $oauth2_server->handleTokenRequest(OAuth2_Request::createFromGlobals());
+  $response = $oauth2_server->handleTokenRequest($request);
   return oauth2_server_send_response($response);
 }
 
