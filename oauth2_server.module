@@ -594,6 +594,11 @@ function oauth2_server_start($server = NULL) {
         $grant_type = new $grant_types[$grant_type_name]['class']($storage, $server->settings);
         $oauth2_server->addGrantType($grant_type);
       }
+      // Implicit flow requires its own instance of OAuth2_GrantType_AuthorizationCode.
+      if ($server->settings['allow_implicit']) {
+        $grant_type = new OAuth2_GrantType_AuthorizationCode($storage, $server->settings);
+        $oauth2_server->addGrantType($grant_type, 'implicit');
+      }
       // Store the server in the static cache.
       $oauth2_servers[$server->name] = $oauth2_server;
     }
@@ -675,7 +680,7 @@ function oauth2_server_verify_access($server_name, $scope = NULL) {
   }
 
   // Check scope, if provided
-  // If token doesn't have a scope, it's null/empty, or it's insufficient, then throw an error
+  // If token doesn't have a scope, it's null/empty, or it's insufficient, throw an error.
   $scope_util = new OAuth2_Scope_Drupal($server);
   if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$scope_util->checkScope($scope, $token["scope"]))) {
     $response->setError(401, 'insufficient_scope', 'The request requires higher privileges than provided by the access token');

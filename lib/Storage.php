@@ -33,7 +33,14 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
     // not on the client level.
     $client = oauth2_server_client_load($client_key);
     $server = oauth2_server_load($client->server);
-    return in_array($grant_type, $server->settings['grant_types']);
+    $grant_types = array_filter($server->settings['grant_types']);
+    // Implicit flow is enabled by a different setting, so it needs to be
+    // added to the check separately.
+    if ($server->settings['allow_implicit']) {
+      $grant_types['implicit'] = 'implicit';
+    }
+
+    return in_array($grant_type, $grant_types);
   }
 
   /* AccessTokenInterface */
