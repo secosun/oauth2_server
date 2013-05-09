@@ -51,6 +51,8 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
         'password' => 'password',
       ),
       'always_issue_new_refresh_token' => TRUE,
+      'access_lifetime' => 3600,
+      'refresh_token_lifetime' => 1209600,
     );
     $server->save();
 
@@ -299,8 +301,6 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $this->assertTrue($error, 'Inaccessible scope correctly detected.');
 
     // A specific requested scope.
-    // @todo This will fail for the password grant type until
-    // https://github.com/bshaffer/oauth2-server-php/issues/88 gets fixed.
     $result = $this->passwordGrantRequest('admin');
     $response = json_decode($result->data);
     $this->assertEqual($response->scope, 'admin', 'The correct scope was returned.');

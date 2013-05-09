@@ -660,16 +660,26 @@ function oauth2_server_verify_access($server_name, $scope = NULL) {
 
   $server = oauth2_server_load($server_name);
   $oauth2_server = oauth2_server_start($server);
-  $token = $oauth2_server->getAccessTokenData(OAuth2_Request::createFromGlobals(), $scope);
+  $response = new OAuth2_Response();
+  $token = $oauth2_server->getAccessTokenData(OAuth2_Request::createFromGlobals(), $response, $scope);
   // If there's no token, that means validation failed. Stop here.
   if (!$token) {
-    return oauth2_server_send_response($oauth2_server->getResponse());
+    return oauth2_server_send_response($response);
   }
 
   // Make sure that the token we have matches our server.
   if ($token['server'] != $server->name) {
-    $error = 'The access token provided is invalid';
-    $response = new OAuth2_Response_AuthenticationError(401, 'invalid_grant', $error, 'bearer', 'Service', $scope);
+    $response->setError(401, 'invalid_grant', 'The access token provided is invalid');
+    $response->addHttpHeaders(array('WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope)));
+    return oauth2_server_send_response($response);
+  }
+
+  // Check scope, if provided
+  // If token doesn't have a scope, it's null/empty, or it's insufficient, then throw an error
+  $scope_util = new OAuth2_Scope_Drupal($server);
+  if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$scope_util->checkScope($scope, $token["scope"]))) {
+    $response->setError(401, 'insufficient_scope', 'The request requires higher privileges than provided by the access token');
+    $response->addHttpHeaders(array('WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope)));
     return oauth2_server_send_response($response);
   }
 

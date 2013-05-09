@@ -51,15 +51,16 @@ function oauth2_server_authorize() {
 
   // Automatic authorization is enabled for this client. Finish authorization.
   // handleAuthorizeRequest() will call validateAuthorizeRequest().
+  $response = new OAuth2_Response();
   if ($client && $client->automatic_authorization) {
     unset($_SESSION['oauth2_server_authorize']);
-    $response = $oauth2_server->handleAuthorizeRequest($request, TRUE, $user->name);
+    $oauth2_server->handleAuthorizeRequest($request, $response, TRUE, $user->name);
     return oauth2_server_send_response($response);
   }
   else {
     // Validate the request.
-    if (!$oauth2_server->validateAuthorizeRequest($request)) {
-      return oauth2_server_send_response($oauth2_server->getResponse());
+    if (!$oauth2_server->validateAuthorizeRequest($request, $response)) {
+      return oauth2_server_send_response($response);
     }
 
     // Determine the scope for this request.
@@ -132,8 +133,9 @@ function oauth2_server_authorize_form_submit($form, &$form_state) {
 
   $server = $form_state['build_info']['args'][1];
   // Finish the authorization request.
+  $response = new OAuth2_Response();
   $oauth2_server = oauth2_server_start($server);
-  $response = $oauth2_server->handleAuthorizeRequest($request, TRUE, $user->name);
+  $oauth2_server->handleAuthorizeRequest($request, $response, TRUE, $user->name);
   return oauth2_server_send_response($response);
 }
 
@@ -155,8 +157,9 @@ function oauth2_server_token() {
   }
 
   // Initialize the server.
+  $response = new OAuth2_Response();
   $oauth2_server = oauth2_server_start($server);
-  $response = $oauth2_server->handleTokenRequest($request);
+  $oauth2_server->handleTokenRequest($request, $response);
   return oauth2_server_send_response($response);
 }
 
