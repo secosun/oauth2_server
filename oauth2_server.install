@@ -8,6 +8,7 @@
  * Implements hook_requirements().
  */
 function oauth2_server_requirements($phase = 'runtime') {
+  $requirements = array();
   if ($phase == 'runtime') {
     $found = FALSE;
     $path = oauth2_server_get_library_path();
@@ -19,15 +20,15 @@ function oauth2_server_requirements($phase = 'runtime') {
     $description = t('The OAuth2 server library is required for the OAuth2 module to function.
       Download the library from <a href="https://github.com/bshaffer/oauth2-server-php" target="_blank">GitHub</a> and place it in <em>!path</em>.', array('!path' => $path));
 
-    return array(
-      'oauth2_server' => array(
-        'title' => t('OAuth2 server library'),
-        'value' => $found ? t('Available') : t('Unavailable'),
-        'description' => !$found ? $description : NULL,
-        'severity' => $found ? REQUIREMENT_OK : REQUIREMENT_ERROR,
-      ),
+    $requirements['oauth2_server'] = array(
+      'title' => t('OAuth2 server library'),
+      'value' => $found ? t('Available') : t('Unavailable'),
+      'description' => !$found ? $description : NULL,
+      'severity' => $found ? REQUIREMENT_OK : REQUIREMENT_ERROR,
     );
   }
+
+  return $requirements;
 }
 
 /**
