@@ -57,17 +57,20 @@ function oauth2_server_menu() {
   $items['oauth2/authorize'] = array(
     'page callback' => 'oauth2_server_authorize',
     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
   $items['oauth2/token'] = array(
     'page callback' => 'oauth2_server_token',
     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
   $items['oauth2/tokens/%'] = array(
     'page callback' => 'oauth2_server_tokens',
     'page arguments' => array(2),
     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
 
