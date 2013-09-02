@@ -8,8 +8,12 @@
 /**
  * Services authentication "authenticate_call" callback.
  */
-function oauth2_server_services_authenticate_call($settings, $method, $args) {
-  // Authentication is disabled, do nothing.
+function oauth2_server_services_authenticate_call($auth_settings, $controller, $args) {
+  $settings = $controller['endpoint']['oauth2_server'];
+  if (is_array($auth_settings)) {
+    $settings += $auth_settings;
+  }
+
   if (empty($settings['require_authentication'])) {
     return FALSE;
   }
