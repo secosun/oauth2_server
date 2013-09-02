@@ -1,9 +1,14 @@
 <?php
 
+namespace Drupal\oauth2_server;
+
+use OAuth2\ScopeInterface;
+use Oauth2\RequestInterface;
+
 /**
  * Provides a scope-checking utility to the library.
  */
-class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
+class Scope implements ScopeInterface
 {
   private $server;
 
@@ -46,7 +51,7 @@ class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
     $scope = explode(' ', trim($scope));
     // Get all scope entities that match the provided scope.
     // Compare the difference.
-    $query = new EntityFieldQuery();
+    $query = new \EntityFieldQuery();
     $query->entityCondition('entity_type', 'oauth2_server_scope');
     $query->propertyCondition('server', $this->server->name);
     $query->propertyCondition('name', $scope);
@@ -65,12 +70,12 @@ class OAuth2_Scope_Drupal implements OAuth2_ScopeInterface
     }
   }
 
-  public function getScopeFromRequest(OAuth2_RequestInterface $request) {
+  public function getScopeFromRequest(RequestInterface $request) {
     // "scope" is valid if passed in either POST or QUERY
     return $request->request('scope', $request->query('scope'));
   }
 
-  public function getDefaultScope() {
+  public function getDefaultScope($client_id = NULL) {
     // Allow any hook_oauth2_server_default_scope() implementations to supply
     // the default scope. The first one to return a scope wins.
     foreach (module_implements('oauth2_server_default_scope') as $module) {

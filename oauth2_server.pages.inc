@@ -24,15 +24,12 @@ function oauth2_server_authorize() {
     drupal_goto('user/login', array('query' => $query));
   }
 
-  // Iniitialize the autoloader in order to create the request object.
-  oauth2_server_register_autoloader();
-
   // A login happened. Create the request with parameters from the session.
   if (!empty($_SESSION['oauth2_server_authorize'])) {
-    $request = new OAuth2_Request($_SESSION['oauth2_server_authorize']);
+    $request = new OAuth2\Request($_SESSION['oauth2_server_authorize']);
   }
   else {
-    $request = OAuth2_Request::createFromGlobals();
+    $request = OAuth2\Request::createFromGlobals();
   }
 
   $client_id = $request->query('client_id');
@@ -51,7 +48,7 @@ function oauth2_server_authorize() {
 
   // Automatic authorization is enabled for this client. Finish authorization.
   // handleAuthorizeRequest() will call validateAuthorizeRequest().
-  $response = new OAuth2_Response();
+  $response = new OAuth2\Response();
   if ($client && $client->automatic_authorization) {
     unset($_SESSION['oauth2_server_authorize']);
     $oauth2_server->handleAuthorizeRequest($request, $response, TRUE, $user->name);
@@ -64,7 +61,7 @@ function oauth2_server_authorize() {
     }
 
     // Determine the scope for this request.
-    $scope_util = new OAuth2_Scope_Drupal($server);
+    $scope_util = new Drupal\oauth2_server\Scope($server);
     if (!$scope = $scope_util->getScopeFromRequest($request)) {
       $scope = $scope_util->getDefaultScope();
     }
@@ -119,21 +116,18 @@ function oauth2_server_authorize_form($form, &$form_state, $client, $server, $sc
 function oauth2_server_authorize_form_submit($form, &$form_state) {
   global $user;
 
-  // Iniitialize the autoloader in order to create the request object.
-  oauth2_server_register_autoloader();
-
   // A login happened. Create the request with parameters from the session.
   if (!empty($_SESSION['oauth2_server_authorize'])) {
-    $request = new OAuth2_Request($_SESSION['oauth2_server_authorize']);
+    $request = new OAuth2\Request($_SESSION['oauth2_server_authorize']);
     unset($_SESSION['oauth2_server_authorize']);
   }
   else {
-    $request = OAuth2_Request::createFromGlobals();
+    $request = OAuth2\Request::createFromGlobals();
   }
 
   $server = $form_state['build_info']['args'][1];
   // Finish the authorization request.
-  $response = new OAuth2_Response();
+  $response = new OAuth2\Response();
   $oauth2_server = oauth2_server_start($server);
   $oauth2_server->handleAuthorizeRequest($request, $response, TRUE, $user->name);
   return oauth2_server_send_response($response);
@@ -143,8 +137,7 @@ function oauth2_server_authorize_form_submit($form, &$form_state) {
  * Page callback: exchanges an authorization code for an access token.
  */
 function oauth2_server_token() {
-  oauth2_server_register_autoloader();
-  $request = OAuth2_Request::createFromGlobals();
+  $request = OAuth2\Request::createFromGlobals();
 
   $client_credentials = oauth2_server_get_client_credentials($request);
   $server = NULL;
@@ -157,7 +150,7 @@ function oauth2_server_token() {
   }
 
   // Initialize the server.
-  $response = new OAuth2_Response();
+  $response = new OAuth2\Response();
   $oauth2_server = oauth2_server_start($server);
   $oauth2_server->handleTokenRequest($request, $response);
   return oauth2_server_send_response($response);
@@ -182,12 +175,11 @@ function oauth2_server_tokens($token) {
   drupal_page_is_cacheable(FALSE);
 
   // Initialize the storage and try to load the requested token.
-  oauth2_server_register_autoloader();
-  $storage = new OAuth2_Storage_Drupal();
+  $storage = new Drupal\oauth2_server\Storage();
   $token = $storage->getAccessToken($token);
   // No token found. Stop here.
   if (!$token || $token['expires'] <= time()) {
-    $response = new OAuth2_Response(array(), 404);
+    $response = new OAuth2\Response(array(), 404);
     return oauth2_server_send_response($response);
   }
 
