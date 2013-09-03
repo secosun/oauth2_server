@@ -41,8 +41,8 @@ class OAuth2ServerScopeUIController extends EntityDefaultUIController {
     );
     $items[$path . '/add'] = array(
       'title' => 'Add scope',
-      'page callback' => 'entity_ui_get_form',
-      'page arguments' => array('oauth2_server_scope', NULL, 'add'),
+      'page callback' => 'entity_ui_get_bundle_add_form',
+      'page arguments' => array('oauth2_server_scope', 4),
       'access callback' => 'entity_access',
       'access arguments' => array('create', 'oauth2_server_scope'),
       'type' => MENU_LOCAL_ACTION,

@@ -41,8 +41,8 @@ class OAuth2ServerClientUIController extends EntityDefaultUIController {
     );
     $items[$path . '/add'] = array(
       'title' => 'Add client',
-      'page callback' => 'entity_ui_get_form',
-      'page arguments' => array('oauth2_server_client', NULL, 'add'),
+      'page callback' => 'entity_ui_get_bundle_add_form',
+      'page arguments' => array('oauth2_server_client', 4),
       'access callback' => 'entity_access',
       'access arguments' => array('create', 'oauth2_server_client'),
       'type' => MENU_LOCAL_ACTION,
