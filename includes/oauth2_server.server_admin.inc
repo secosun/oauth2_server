@@ -126,6 +126,12 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     '#description' => t('Allows clients to receive an access token without the need for an authorization request token.'),
     '#default_value' => $server->settings['allow_implicit'],
   );
+  $form['settings']['require_exact_redirect_uri'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Require exact redirect uri'),
+    '#description' => t('The uri will be validated against the registered uri using exact match.'),
+    '#default_value' => $server->settings['require_exact_redirect_uri'],
+  );
   $grant_types = oauth2_server_grant_types();
   // Prepare a list of available grant types.
   $grant_type_options = array();

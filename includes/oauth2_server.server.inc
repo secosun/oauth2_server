@@ -28,6 +28,7 @@ class OAuth2Server extends Entity {
     'default_scope' => 'basic',
     'enforce_state' => TRUE,
     'allow_implicit' => FALSE,
+    'require_exact_redirect_uri' => FALSE,
     'grant_types' => array(
       'authorization_code' => 'authorization_code',
       'refresh_token' => 'refresh_token',
