@@ -180,17 +180,21 @@ function oauth2_server_entity_info() {
   );
   // The server serves as a bundle for scopes and clients.
   // Bypass entity_load() as it cannot be used here (recursion).
-  $servers = db_select('oauth2_server', 'os')
-    ->fields('os')
-    ->execute()
-    ->fetchAllAssoc('name');
-  foreach ($servers as $name => $server) {
-    $items['oauth2_server_scope']['bundles'][$name] = array(
-      'label' => $server->label,
-    );
-    $items['oauth2_server_client']['bundles'][$name] = array(
-      'label' => $server->label,
-    );
+  // Check if oauth2_server exists first as it's possible for this hook to fire
+  // during the installation before the table has been created.
+  if (db_table_exists('oauth2_server')) {
+    $servers = db_select('oauth2_server', 'os')
+      ->fields('os')
+      ->execute()
+      ->fetchAllAssoc('name');
+    foreach ($servers as $name => $server) {
+      $items['oauth2_server_scope']['bundles'][$name] = array(
+        'label' => $server->label,
+      );
+      $items['oauth2_server_client']['bundles'][$name] = array(
+        'label' => $server->label,
+      );
+    }
   }
 
   $items['oauth2_server_token'] = array(
