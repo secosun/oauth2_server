@@ -56,20 +56,20 @@ function oauth2_server_menu() {
   $items = array();
   $items['oauth2/authorize'] = array(
     'page callback' => 'oauth2_server_authorize',
-    'access arguments' => array('access content'),
+    'access arguments' => array('use oauth2 server'),
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
   $items['oauth2/token'] = array(
     'page callback' => 'oauth2_server_token',
-    'access arguments' => array('access content'),
+    'access arguments' => array('use oauth2 server'),
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
   $items['oauth2/tokens/%'] = array(
     'page callback' => 'oauth2_server_tokens',
     'page arguments' => array(2),
-    'access arguments' => array('access content'),
+    'access arguments' => array('use oauth2 server'),
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
@@ -86,6 +86,10 @@ function oauth2_server_permission() {
       'title' => t('Administer OAuth2 Server'),
       'description' => t('Manage servers, scopes, and clients.'),
       'restrict access' => TRUE,
+    ),
+    'use oauth2 server' => array(
+      'title' => t('Use OAuth2 Server'),
+      'description' => t('Use OAuth2 Server for authorization.'),
     ),
   );
 }

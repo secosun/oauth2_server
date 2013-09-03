@@ -11,7 +11,7 @@
 function oauth2_server_test_menu() {
   $items['oauth2_test/resource'] = array(
     'page callback' => 'oauth2_server_test_resource',
-    'access arguments' => array('access content'),
+    'access arguments' => array('use oauth2 server'),
   );
 
   return $items;

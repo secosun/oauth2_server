@@ -123,17 +123,8 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
    * Tests the authorization part of the flow.
    */
   public function testAuthorization() {
-    // Attempt authorization with no user logged in.
-    $result = $this->authorizationCodeRequest('code', FALSE);
-    // Test the login redirect.
-    $login_redirect = FALSE;
-    if ($result->redirect_code == 302 && strpos($result->redirect_url, 'user/login?destination=oauth2/authorize')) {
-      $login_redirect = TRUE;
-    }
-    $this->assertTrue($login_redirect, 'User was properly redirected to login.');
-
     // Create a user, log him in, and retry the request.
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
     $this->drupalLogin($user);
     $result = $this->authorizationCodeRequest('code');
 
@@ -156,7 +147,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
    * Tests the implicit flow.
    */
   function testImplicitFlow() {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
     $this->drupalLogin($user);
     $result = $this->authorizationCodeRequest('token');
 
@@ -169,9 +160,19 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     // See http://drupal.org/node/1958718.
     if (!empty($response['access_token'])) {
       $verification_url = url('oauth2/tokens/' . $response['access_token'], array('absolute' => TRUE));
-      $result = drupal_http_request($verification_url);
-      $verification_response = json_decode($result->data);
+      $cookie_string = '';
+      foreach ($this->cookies as $name => $data) {
+        $cookie_string .= $name . '=' . $data['value'] . ';';
+      }
 
+      $options = array(
+        'max_redirects' => 0,
+        'headers' => array(
+          'Cookie' => $cookie_string,
+        ),
+      );
+      $result = drupal_http_request($verification_url, $options);
+      $verification_response = json_decode($result->data);
       $this->assertEqual($result->code, 200, 'The provided access token was successfully verified.');
       $this->assertEqual($verification_response->scope, urldecode($response['scope']), 'The provided scope matches the scope of the verified access token.');
     }
@@ -181,7 +182,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
    * Tests the "Authorization code" grant type.
    */
   public function testAuthorizationCodeGrantType() {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
     $this->drupalLogin($user);
     // Perform authorization and get the code.
     $result = $this->authorizationCodeRequest('code');
@@ -208,6 +209,13 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
         'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
       ),
     );
+
+    $cookie_string = '';
+    foreach ($this->cookies as $name => $data) {
+      $cookie_string .= $name . '=' . $data['value'] . ';';
+    }
+    $options['headers']['Cookie'] = $cookie_string;
+
     $result = drupal_http_request($token_url, $options);
 
     $this->assertEqual($result->code, 200, 'The token request completed successfully');
@@ -219,6 +227,8 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
    * Tests the "Client credentials" grant type.
    */
   public function testClientCredentialsGrantType() {
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
+    $this->drupalLogin($user);
     $token_url = url('oauth2/token', array('absolute' => TRUE));
     $data = array(
       'grant_type' => 'client_credentials',
@@ -231,6 +241,13 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
         'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
       ),
     );
+
+    $cookie_string = '';
+    foreach ($this->cookies as $name => $data) {
+      $cookie_string .= $name . '=' . $data['value'] . ';';
+    }
+    $options['headers']['Cookie'] = $cookie_string;
+
     $result = drupal_http_request($token_url, $options);
 
     $this->assertEqual($result->code, 200, 'The token request completed successfully');
@@ -270,6 +287,15 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
         'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
       ),
     );
+
+    $cookie_string = '';
+    foreach ($this->cookies as $name => $data) {
+      $cookie_string .= $name . '=' . $data['value'] . ';';
+    }
+    $options['headers'] += array(
+      'Cookie' => $cookie_string,
+    );
+
     $result = drupal_http_request($token_url, $options);
 
     $this->assertEqual($result->code, 200, 'The token request completed successfully');
@@ -315,9 +341,21 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $response = json_decode($result->data);
     $access_token = $response->access_token;
 
+    $cookie_string = '';
+    foreach ($this->cookies as $name => $data) {
+      $cookie_string .= $name . '=' . $data['value'] . ';';
+    }
+
+    $options = array(
+      'max_redirects' => 0,
+      'headers' => array(
+        'Cookie' => $cookie_string,
+      ),
+    );
+
     // Check resource access with no access token.
     $resource_url = url('oauth2_test/resource/admin', array('absolute' => TRUE));
-    $result = drupal_http_request($resource_url);
+    $result = drupal_http_request($resource_url, $options);
     $this->assertEqual($result->code, 401, 'Missing access token correctly detected.');
 
     // Check resource access with an insufficient scope.
@@ -325,7 +363,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'access_token' => $access_token,
     );
     $resource_url = url('oauth2_test/resource/forbidden', array('absolute' => TRUE, 'query' => $query));
-    $result = drupal_http_request($resource_url);
+    $result = drupal_http_request($resource_url, $options);
     $response = json_decode($result->data);
     $error = isset($response->error) && $response->error == 'insufficient_scope';
     $this->assertTrue($error, 'Insufficient scope correctly detected.');
@@ -335,15 +373,15 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'access_token' => $access_token,
     );
     $resource_url = url('oauth2_test/resource/admin', array('absolute' => TRUE, 'query' => $query));
-    $result = drupal_http_request($resource_url);
+    $result = drupal_http_request($resource_url, $options);
     $this->assertEqual($result->code, 200, 'Access token in the URL correctly detected.');
 
     // Check resource access with the access token in the header.
     $resource_url = url('oauth2_test/resource/admin', array('absolute' => TRUE));
-    $headers = array(
+    $options['headers'] += array(
       'Authorization' => 'Bearer ' . $access_token,
     );
-    $result = drupal_http_request($resource_url, array('headers' => $headers));
+    $result = drupal_http_request($resource_url, $options);
     $this->assertEqual($result->code, 200, 'Access token in the header correctly detected.');
   }
 
@@ -360,7 +398,8 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
    *   The return value of drupal_http_request().
    */
   protected function passwordGrantRequest($scope = NULL) {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
+    $this->drupalLogin($user);
 
     $token_url = url('oauth2/token', array('absolute' => TRUE));
     $data = array(
@@ -375,11 +414,21 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $options = array(
       'method' => 'POST',
       'data' => http_build_query($data),
+      'max_redirects' => 0,
       'headers' => array(
         'Content-Type' => 'application/x-www-form-urlencoded',
         'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
       ),
     );
+
+    $cookie_string = '';
+    foreach ($this->cookies as $name => $data) {
+      $cookie_string .= $name . '=' . $data['value'] . ';';
+    }
+    $options['headers'] += array(
+      'Cookie' => $cookie_string,
+    );
+
     return drupal_http_request($token_url, $options);
   }
 
@@ -503,7 +552,7 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
   }
 
   public function testAccessToken() {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
 
     $token = $this->storage->getAccessToken('newtoken');
     $this->assertFalse($token, 'Trying to load a nonexistent token is unsuccessful.');
@@ -535,7 +584,7 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
   }
 
   public function testSetRefreshToken() {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
 
     $token = $this->storage->getRefreshToken('refreshtoken');
     $this->assertFalse($token, 'Trying to load a nonexistent token is unsuccessful.');
@@ -558,7 +607,7 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
   }
 
   public function testAuthorizationCode() {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
 
     $code = $this->storage->getAuthorizationCode('newcode');
     $this->assertFalse($code, 'Trying to load a nonexistent authorization code is unsuccessful.');
@@ -592,7 +641,7 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
   }
 
   public function testCheckUserCredentials() {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
 
     // Correct credentials
     $result = $this->storage->checkUserCredentials($user->name, $user->pass_raw);
