@@ -31,9 +31,6 @@ function oauth2_server_libraries_info() {
   $libraries['oauth2-server-php'] = array(
     'name' => 'OAuth2 Server',
     'vendor url' => 'https://github.com/bshaffer/oauth2-server-php',
-    'xautoload' => function($api) {
-      $api->namespaceRoot('OAuth2', 'src');
-    },
   );
   return $libraries;
 }
@@ -50,20 +47,6 @@ function oauth2_server_get_library_path() {
   }
 
   return $path;
-}
-
-/**
- * Implements hook_xautoload().
- *
- * Register oauth2-server-php library classes if libraries module is not
- * enabled.
- */
-function oauth2_server_xautoload($api) {
-  if (module_exists('libraries')) {
-    return;
-  }
-  $api->setExtensionDir(oauth2_server_get_library_path());
-  $api->namespaceRoot('OAuth2', 'src');
 }
 
 /**
@@ -574,6 +557,20 @@ function oauth2_server_set_properties($entity, $name, $value) {
 }
 
 /**
+ * Registers the OAuth2 autoloader to allow the library classes to be used.
+ */
+function oauth2_server_register_autoloader() {
+  static $done = FALSE;
+
+  if (!$done) {
+    $path = oauth2_server_get_library_path();
+    require_once $path . '/src/OAuth2/Autoloader.php';
+    OAuth2_Autoloader::register();
+    $done = TRUE;
+  }
+}
+
+/**
  * Initializes and returns an OAuth2 server.
  *
  * @param $server
@@ -585,13 +582,14 @@ function oauth2_server_set_properties($entity, $name, $value) {
  *   An instance of OAuth2_Server.
  */
 function oauth2_server_start($server = NULL) {
+  oauth2_server_register_autoloader();
   if ($server) {
     $oauth2_servers = &drupal_static(__FUNCTION__);
     if (!isset($oauth2_servers[$server->name])) {
-      $storage = new Drupal\oauth2_server\Storage();
-      $oauth2_server = new OAuth2\Server($storage, $server->settings);
+      $storage = new OAuth2_Storage_Drupal();
+      $oauth2_server = new OAuth2_Server($storage, $server->settings);
       // Initialize the scope util.
-      $scope_util = new Drupal\oauth2_server\Scope($server);
+      $scope_util = new OAuth2_Scope_Drupal($server);
       $oauth2_server->setScopeUtil($scope_util);
       // Initialize the grant types.
       $grant_types = oauth2_server_grant_types();
@@ -601,7 +599,7 @@ function oauth2_server_start($server = NULL) {
       }
       // Implicit flow requires its own instance of OAuth2_GrantType_AuthorizationCode.
       if ($server->settings['allow_implicit']) {
-        $grant_type = new OAuth2\GrantType\AuthorizationCode($storage, $server->settings);
+        $grant_type = new OAuth2_GrantType_AuthorizationCode($storage, $server->settings);
         $oauth2_server->addGrantType($grant_type, 'implicit');
       }
       // Store the server in the static cache.
@@ -611,8 +609,8 @@ function oauth2_server_start($server = NULL) {
     return $oauth2_servers[$server->name];
   }
   else {
-    $storage = new Drupal\oauth2_server\Storage();
-    return new OAuth2\Server($storage);
+    $storage = new OAuth2_Storage_Drupal();
+    return new OAuth2_Server($storage);
   }
 }
 
@@ -630,7 +628,7 @@ function oauth2_server_start($server = NULL) {
  *   - client_secret: The client secret.
  *   or NULL if no client credentials were found.
  */
-function oauth2_server_get_client_credentials(Oauth2\Request $request) {
+function oauth2_server_get_client_credentials(OAuth2_Request $request) {
   // Get the client credentials from the Authorization header.
   if (!is_null($request->headers('PHP_AUTH_USER')) && !is_null($request->headers('PHP_AUTH_PW'))) {
     return array(
@@ -670,8 +668,8 @@ function oauth2_server_verify_access($server_name, $scope = NULL) {
 
   $server = oauth2_server_load($server_name);
   $oauth2_server = oauth2_server_start($server);
-  $response = new OAuth2\Response();
-  $token = $oauth2_server->getAccessTokenData(OAuth2\Request::createFromGlobals(), $response, $scope);
+  $response = new OAuth2_Response();
+  $token = $oauth2_server->getAccessTokenData(OAuth2_Request::createFromGlobals(), $response, $scope);
   // If there's no token, that means validation failed. Stop here.
   if (!$token) {
     return oauth2_server_send_response($response);
@@ -686,7 +684,7 @@ function oauth2_server_verify_access($server_name, $scope = NULL) {
 
   // Check scope, if provided
   // If token doesn't have a scope, it's null/empty, or it's insufficient, throw an error.
-  $scope_util = new Drupal\oauth2_server\Scope($server);
+  $scope_util = new OAuth2_Scope_Drupal($server);
   if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$scope_util->checkScope($scope, $token["scope"]))) {
     $response->setError(401, 'insufficient_scope', 'The request requires higher privileges than provided by the access token');
     $response->addHttpHeaders(array('WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope)));
@@ -699,7 +697,7 @@ function oauth2_server_verify_access($server_name, $scope = NULL) {
 /**
  * Sets the appropriate headers and outputs the response.
  */
-function oauth2_server_send_response(OAuth2\Response $response) {
+function oauth2_server_send_response(OAuth2_Response $response) {
   $status = $response->getStatusCode() . ' ' . $response->getStatusText();
   drupal_add_http_header('Status', $status);
   drupal_add_http_header('Content-Type', 'application/json');
@@ -718,11 +716,11 @@ function oauth2_server_grant_types() {
   $grant_types = array(
     'authorization_code' => array(
       'name' => t('Authorization code'),
-      'class' => 'OAuth2\GrantType\AuthorizationCode',
+      'class' => 'OAuth2_GrantType_AuthorizationCode',
     ),
     'client_credentials' => array(
       'name' => t('Client credentials'),
-      'class' => 'OAuth2\GrantType\ClientCredentials',
+      'class' => 'OAuth2_GrantType_ClientCredentials',
     ),
     //'urn:ietf:params:oauth:grant-type:jwt-bearer' => array(
     //  'name' => t('JWT bearer'),
@@ -730,7 +728,7 @@ function oauth2_server_grant_types() {
     //),
     'refresh_token' => array(
       'name' => t('Refresh token'),
-      'class' => 'OAuth2\GrantType\RefreshToken',
+      'class' => 'OAuth2_GrantType_RefreshToken',
       'settings callback' => 'oauth2_server_refresh_token_settings',
       'default settings' => array(
         'always_issue_new_refresh_token' => FALSE,
@@ -738,7 +736,7 @@ function oauth2_server_grant_types() {
     ),
     'password' => array(
       'name' => t('User credentials'),
-      'class' => 'OAuth2\GrantType\UserCredentials',
+      'class' => 'OAuth2_GrantType_UserCredentials',
     ),
   );
 

@@ -160,7 +160,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $result = $this->authorizationCodeRequest('token');
 
     $this->assertEqual($result->code, 302, 'The implicit flow request completed successfully');
-    $redirect_url_parts = explode('#', $result->redirect_url);
+    $redirect_url_parts = explode('?#', $result->redirect_url);
     $response = drupal_get_query_array($redirect_url_parts[1]);
     $this->assertTokenResponse($response, FALSE);
 
@@ -444,6 +444,7 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
 
   public function setUp() {
     parent::setUp('oauth2_server');
+    oauth2_server_register_autoloader();
 
     // Create the server and client.
     $server = entity_create('oauth2_server', array());
@@ -471,7 +472,7 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
     $client->automatic_authorization = TRUE;
     $client->save();
 
-    $this->storage = new Drupal\oauth2_server\Storage();
+    $this->storage = new OAuth2_Storage_Drupal();
   }
 
   public function testCheckClientCredentials() {

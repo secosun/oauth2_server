@@ -3,7 +3,6 @@ description = Provides OAuth2 server functionality
 package = "OAuth2"
 dependencies[] = entity
 dependencies[] = entityreference
-dependencies[] = xautoload
 core = 7.x
 configure = admin/structure/oauth2-servers
 
@@ -25,6 +24,10 @@ files[] = includes/oauth2_server.scope.inc
 files[] = includes/oauth2_server.client.inc
 files[] = includes/oauth2_server.authorization_code.inc
 files[] = includes/oauth2_server.token.inc
+
+; Storage and Scope classes for the OAuth2 library
+files[] = lib/Storage.php
+files[] = lib/Scope.php
 
 ; Tests
 files[] = tests/oauth2_server.test
