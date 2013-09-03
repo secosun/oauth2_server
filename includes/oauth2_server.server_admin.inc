@@ -126,12 +126,6 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     '#description' => t('Allows clients to receive an access token without the need for an authorization request token.'),
     '#default_value' => $server->settings['allow_implicit'],
   );
-  $form['settings']['require_exact_redirect_uri'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Require exact redirect uri'),
-    '#description' => t('The uri will be validated against the registered uri using exact match.'),
-    '#default_value' => $server->settings['require_exact_redirect_uri'],
-  );
   $grant_types = oauth2_server_grant_types();
   // Prepare a list of available grant types.
   $grant_type_options = array();
@@ -178,6 +172,13 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     '#description' => t('The number of seconds the refresh token will be valid for.'),
     '#default_value' => $server->settings['refresh_token_lifetime'],
     '#size' => 11,
+  );
+  $form['settings']['advanced_settings']['require_exact_redirect_uri'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Require exact redirect uri'),
+    '#description' => t("Require the redirect url to be an exact match of the client's redirect url
+    If not enabled, the redirect url in the request can contain additional segments, such as a query string."),
+    '#default_value' => isset($server->settings['require_exact_redirect_uri']) ? $server->settings['require_exact_redirect_uri'] : TRUE,
   );
 
   $form['actions'] = array('#type' => 'actions');

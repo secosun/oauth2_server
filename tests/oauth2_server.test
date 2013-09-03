@@ -44,7 +44,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'default_scope' => 'basic',
       'enforce_state' => TRUE,
       'allow_implicit' => TRUE,
-      'require_exact_redirect_uri' => FALSE,
+      'require_exact_redirect_uri' => TRUE,
       'grant_types' => array(
         'authorization_code' => 'authorization_code',
         'client_credentials' => 'client_credentials',
@@ -452,7 +452,7 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
     $server->settings = array(
       'default_scope' => '',
       'allow_implicit' => TRUE,
-      'require_exact_redirect_uri' => FALSE,
+      'require_exact_redirect_uri' => TRUE,
       'grant_types' => array(
         'authorization_code' => 'authorization_code',
         'client_credentials' => 'client_credentials',
