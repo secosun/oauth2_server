@@ -1,11 +1,19 @@
 <?php
 
+namespace Drupal\oauth2_server;
+
+use OAuth2\Storage\AuthorizationCodeInterface;
+use OAuth2\Storage\AccessTokenInterface;
+use OAuth2\Storage\ClientCredentialsInterface;
+use OAuth2\Storage\UserCredentialsInterface;
+use OAuth2\Storage\RefreshTokenInterface;
+
 /**
  * Provides Drupal storage (through the underlying Entity API) for the library.
  */
-class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface,
-    OAuth2_Storage_AccessTokenInterface, OAuth2_Storage_ClientCredentialsInterface,
-    OAuth2_Storage_UserCredentialsInterface, OAuth2_Storage_RefreshTokenInterface
+class Storage implements AuthorizationCodeInterface,
+  AccessTokenInterface, ClientCredentialsInterface,
+  UserCredentialsInterface, RefreshTokenInterface
 {
 
   /* ClientCredentialsInterface */
@@ -69,7 +77,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   public function setAccessToken($access_token, $client_key, $username, $expires, $scope = null) {
     $client = oauth2_server_client_load($client_key);
     if (!$client) {
-      throw new InvalidArgumentException("The supplied client couldn't be loaded.");
+      throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
     }
 
     // If no token was found, start with a new entity.
@@ -123,7 +131,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
   public function setAuthorizationCode($code, $client_key, $username, $redirect_uri, $expires, $scope = null) {
     $client = oauth2_server_client_load($client_key);
     if (!$client) {
-      throw new InvalidArgumentException("The supplied client couldn't be loaded.");
+      throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
     }
 
     // If no code was found, start with a new entity.
@@ -131,7 +139,7 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
     if (!$authorization_code) {
       $user = user_load_by_name($username);
       if (!$user) {
-        throw new InvalidArgumentException("The supplied user couldn't be loaded.");
+        throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
       }
 
       $authorization_code = entity_create('oauth2_server_authorization_code', array());
@@ -197,11 +205,11 @@ class OAuth2_Storage_Drupal implements OAuth2_Storage_AuthorizationCodeInterface
     if (!$token) {
       $client = oauth2_server_client_load($client_key);
       if (!$client) {
-        throw new InvalidArgumentException("The supplied client couldn't be loaded.");
+        throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
       }
       $user = user_load_by_name($username);
       if (!$user) {
-        throw new InvalidArgumentException("The supplied user couldn't be loaded.");
+        throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
       }
 
       $token = entity_create('oauth2_server_token', array('type' => 'refresh'));

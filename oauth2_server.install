@@ -9,6 +9,8 @@
  */
 function oauth2_server_requirements($phase = 'runtime') {
   $requirements = array();
+  $t = get_t();
+
   if ($phase == 'runtime') {
     $found = FALSE;
     $path = oauth2_server_get_library_path();
@@ -17,15 +19,29 @@ function oauth2_server_requirements($phase = 'runtime') {
       $found = TRUE;
     }
     // Prepare the download instructions.
-    $description = t('The OAuth2 server library is required for the OAuth2 module to function.
+    $description = $t('The OAuth2 server library is required for the OAuth2 module to function.
       Download the library from <a href="https://github.com/bshaffer/oauth2-server-php" target="_blank">GitHub</a> and place it in <em>!path</em>.', array('!path' => $path));
 
     $requirements['oauth2_server'] = array(
-      'title' => t('OAuth2 server library'),
-      'value' => $found ? t('Available') : t('Unavailable'),
+      'title' => $t('OAuth2 server library'),
+      'value' => $found ? $t('Available') : $t('Unavailable'),
       'description' => !$found ? $description : NULL,
       'severity' => $found ? REQUIREMENT_OK : REQUIREMENT_ERROR,
     );
+
+    if (!module_exists('xautoload')) {
+      $requirements['xautoload'] = array(
+        'title' => $t('OAuth2 server'),
+        'value' => $t('X Autoload is required by OAuth2 server'),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+    if (!version_compare(PHP_VERSION, '5.3.0', '>=')) {
+      $requirements['php'] = array(
+        'description' => $t('@name requires at least PHP @version.', array('@name' => 'OAuth2 server', '@version' => '5.3')),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
   }
 
   return $requirements;
