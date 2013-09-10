@@ -59,6 +59,9 @@ function oauth2_server_authorize() {
   else {
     // Validate the request.
     if (!$oauth2_server->validateAuthorizeRequest($request, $response)) {
+      // Clear the parameters saved in the session to avoid reusing them when
+      // doing an other request while logged in.
+      unset($_SESSION['oauth2_server_authorize']);
       return oauth2_server_send_response($response);
     }
 
