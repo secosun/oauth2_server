@@ -12,6 +12,8 @@
 function oauth2_server_authorize() {
   global $user;
 
+  module_invoke_all('oauth2_server_pre_authorize');
+
   // The user is not logged in. Redirect to login.
   if (!user_is_logged_in()) {
     // Save the parameters in session so that they can be fetched later.
