@@ -69,6 +69,9 @@ class Storage implements AuthorizationCodeInterface,
         'expires' => (int) $token_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
       );
+      if (!empty($token['user_id']) && module_exists('uuid')) {
+        $token['user_uuid'] = $token_wrapper->user->uuid->value();
+      }
     }
 
     return $token;
@@ -123,6 +126,9 @@ class Storage implements AuthorizationCodeInterface,
         'expires' => (int) $code_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
       );
+      if (module_exists('uuid')) {
+        $code['user_uuid'] = $code_wrapper->user->uuid->value();
+      }
     }
 
     return $code;
@@ -194,6 +200,9 @@ class Storage implements AuthorizationCodeInterface,
         'expires' => (int) $token_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
       );
+      if (module_exists('uuid')) {
+        $token['user_uuid'] = $token_wrapper->user->uuid->value();
+      }
     }
 
     return $token;
