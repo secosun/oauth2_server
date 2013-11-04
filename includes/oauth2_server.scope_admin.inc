@@ -180,6 +180,7 @@ function oauth2_server_scope_form($form, &$form_state, $scope, $op = 'edit') {
     '#disabled' => entity_has_status('oauth2_server_scope', $scope, ENTITY_IN_CODE),
     '#machine_name' => array(
       'exists' => 'oauth2_server_scope_exists',
+      'replace_pattern' => '[^a-z0-9_\.]+',
     ),
     '#description' => t('A unique machine-readable name for this scope. It must only contain lowercase letters, numbers, and underscores.'),
     '#weight' => -2,
