@@ -444,6 +444,13 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
    */
   protected $storage;
 
+  /**
+   * The test client.
+   *
+   * @var OAuth2ServerClient
+   */
+  protected $client;
+
   public static function getInfo() {
     return array(
       'name' => 'OAuth2 Server Storage',
@@ -473,14 +480,14 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
     );
     $server->save();
 
-    $client = entity_create('oauth2_server_client', array());
-    $client->server = $server->name;
-    $client->label = 'Test client';
-    $client->client_key = $this->client_key;
-    $client->client_secret = $this->client_secret;
-    $client->redirect_uri = url('authorized', array('absolute' => TRUE));
-    $client->automatic_authorization = TRUE;
-    $client->save();
+    $this->client = entity_create('oauth2_server_client', array());
+    $this->client->server = $server->name;
+    $this->client->label = 'Test client';
+    $this->client->client_key = $this->client_key;
+    $this->client->client_secret = $this->client_secret;
+    $this->client->redirect_uri = url('authorized', array('absolute' => TRUE));
+    $this->client->automatic_authorization = TRUE;
+    $this->client->save();
 
     $this->storage = new Drupal\oauth2_server\Storage();
   }
@@ -497,6 +504,16 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
     // Valid credentials.
     $result = $this->storage->checkClientCredentials($this->client_key, $this->client_secret);
     $this->assertTrue($result, 'Valid client credentials correctly detected.');
+
+    // No client secret.
+    $result = $this->storage->checkClientCredentials($this->client_key, '');
+    $this->assertFalse($result, 'Empty client secret not accepted.');
+
+    // Allow empty client secret, try again.
+    $this->client->client_secret = '';
+    $this->client->save();
+    $result = $this->storage->checkClientCredentials($this->client_key, '');
+    $this->assertTrue($result, 'Empty client secret accepted if none required.');
   }
 
   public function testGetClientDetails() {

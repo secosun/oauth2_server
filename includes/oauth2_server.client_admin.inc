@@ -157,7 +157,6 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     '#title' => t('Client secret'),
     '#type' => 'textarea',
     '#default_value' => $client->client_secret,
-    '#required' => TRUE,
     '#weight' => -2,
   );
   $form['redirect_uri'] = array(
