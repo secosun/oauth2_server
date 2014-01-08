@@ -41,6 +41,11 @@ class Storage implements AuthorizationCodeInterface,
     return $client;
   }
 
+  public function getClientScope($client_id) {
+    // The module doesn't currently support per-client scopes.
+    return NULL;
+  }
+
   public function checkRestrictedGrantType($client_key, $grant_type) {
     // The oauth2 module implements grant types on the server level,
     // not on the client level.
