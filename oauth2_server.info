@@ -6,7 +6,7 @@ dependencies[] = entityreference
 dependencies[] = xautoload
 core = 7.x
 configure = admin/structure/oauth2-servers
-php = 5.3
+php = 5.3.9
 
 ; Metadata controllers
 files[] = oauth2_server.info.inc
