@@ -189,7 +189,7 @@ class Storage implements AuthorizationCodeInterface,
   }
 
   public function getJti($client_key, $subject, $audience, $expires, $jti) {
-    $client = $this->getClientDetails($client_key);
+    $client = oauth2_server_client_load($client_key);
     if (!$client) {
       // The client_key should be validated prior to this method being called,
       // but the library doesn't do that currently.
@@ -197,7 +197,7 @@ class Storage implements AuthorizationCodeInterface,
     }
 
     $data = array(
-      ':client_id' => $client['client_id'],
+      ':client_id' => $client->client_id,
       ':subject' => $subject,
       ':jti' => $jti,
       ':expires' => $expires,
