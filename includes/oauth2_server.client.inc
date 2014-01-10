@@ -34,6 +34,15 @@ class OAuth2ServerClient extends Entity {
   public $client_secret;
 
   /**
+   * The public key.
+   *
+   * Used to decode the JWT when the "JWT bearer" grant type is used.
+   *
+   * @var string
+   */
+  public $public_key;
+
+  /**
    * The absolute URI to redirect to after authorization.
    *
    * @var string

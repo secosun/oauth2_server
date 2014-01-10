@@ -159,6 +159,26 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     '#default_value' => $client->client_secret,
     '#weight' => -2,
   );
+  $grant_types = array_filter($server->settings['grant_types']);
+  $jwt_bearer_enabled = isset($grant_types['urn:ietf:params:oauth:grant-type:jwt-bearer']);
+  $form['client_secret'] = array(
+    '#title' => t('Client secret'),
+    '#type' => 'textarea',
+    '#default_value' => $client->client_secret,
+    '#weight' => -2,
+    // Hide this field if only JWT bearer is enabled, since it doesn't use it.
+    '#access' => (count($grant_types) != 1 || !$jwt_bearer_enabled),
+  );
+  $form['public_key'] = array(
+    '#title' => t('Public key'),
+    '#type' => 'textarea',
+    '#default_value' => $client->public_key,
+    '#description' => 'Used to decode the JWT when the <em>JWT bearer</em> grant type is used.',
+    '#weight' => -2,
+    // Show the field if JWT bearer is enabled, other grant types don't use it.
+    '#access' => $jwt_bearer_enabled,
+  );
+
   $form['redirect_uri'] = array(
     '#title' => t('Redirect URI'),
     '#type' => 'textfield',

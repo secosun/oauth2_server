@@ -500,6 +500,18 @@ function oauth2_server_client_load_multiple($client_keys) {
 }
 
 /**
+ * Implements hook_oauth2_server_client_delete().
+ *
+ * Clean up related data when the client has been deleted.
+ */
+function oauth2_server_oauth2_server_client_delete($client) {
+  db_delete('oauth2_server_jti')
+    ->condition('client_id', $client->client_id)
+    ->execute();
+  // @todo Figure out how to clean up tokens and codes without timeouts.
+}
+
+/**
  * Loads a single token entity.
  *
  * @param $token
@@ -663,6 +675,20 @@ function oauth2_server_get_client_credentials(Oauth2\Request $request) {
       'client_secret' => $request->request('client_secret')
     );
   }
+
+  // This request contains a JWT, extract the client_id from there.
+  if (!is_null($request->request('assertion'))) {
+    $undecodedJWT = $request->request('assertion');
+    $jwt_util = new OAuth2\Encryption\Jwt();
+    $jwt = $jwt_util->decode($request->request('assertion'), NULL, FALSE);
+    if (!empty($jwt['iss'])) {
+      return array(
+        'client_id' => $jwt['iss'],
+        // The JWT bearer grant type doesn't use the client_secret.
+        'client_secret' => '',
+      );
+    }
+  }
 }
 
 /**
@@ -739,10 +765,10 @@ function oauth2_server_grant_types() {
       'name' => t('Client credentials'),
       'class' => 'OAuth2\GrantType\ClientCredentials',
     ),
-    //'urn:ietf:params:oauth:grant-type:jwt-bearer' => array(
-    //  'name' => t('JWT bearer'),
-    //  'class' => 'OAuth2_GrantType_JWTBearer',
-    //),
+    'urn:ietf:params:oauth:grant-type:jwt-bearer' => array(
+      'name' => t('JWT bearer'),
+      'class' => 'OAuth2\GrantType\JwtBearer',
+    ),
     'refresh_token' => array(
       'name' => t('Refresh token'),
       'class' => 'OAuth2\GrantType\RefreshToken',

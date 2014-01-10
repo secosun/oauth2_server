@@ -25,6 +25,54 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
    */
   protected $client_secret = 'test_secret';
 
+  /**
+   * The public key used for all tests with encryption.
+   *
+   * @var string
+   */
+  protected $public_key = '-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2xW0B3ywzOHtlJaqA1my
+dmExOPw3Z5hK0r9McHcXu0/o9a8UrGc3XVwWp4sR6WpOP221u4uabUbOm68mHb1d
+fVxwjlRyIn2NYxpvu+6ylAaCKV+7FfrWXxWTL2y5Wnx3pFtV+ufnKlFSKP8KICs9
+uWTIftPtn2LCWlZXAsgO+FTnBADRbxsmGeHG90JFVYhIhvbwjSo4oWHR0yg+e5lb
+1A/OEvldEaDJigybD1P7OAV3o9quzwy/vAWhPn6SCL4k60RNAbia2YOohQqFOV85
+a2xS9Ak9k3xdpCyGiiPuQoGHhVt0KGrutpgEW512SsEJ3Wk2JpDdZyGGbsrm5xng
+IwIDAQAB
+-----END PUBLIC KEY-----';
+
+  /**
+   * The private key used for all tests with encryption.
+   *
+   * @var string
+   */
+  protected $private_key = '-----BEGIN RSA PRIVATE KEY-----
+MIIEpQIBAAKCAQEA2xW0B3ywzOHtlJaqA1mydmExOPw3Z5hK0r9McHcXu0/o9a8U
+rGc3XVwWp4sR6WpOP221u4uabUbOm68mHb1dfVxwjlRyIn2NYxpvu+6ylAaCKV+7
+FfrWXxWTL2y5Wnx3pFtV+ufnKlFSKP8KICs9uWTIftPtn2LCWlZXAsgO+FTnBADR
+bxsmGeHG90JFVYhIhvbwjSo4oWHR0yg+e5lb1A/OEvldEaDJigybD1P7OAV3o9qu
+zwy/vAWhPn6SCL4k60RNAbia2YOohQqFOV85a2xS9Ak9k3xdpCyGiiPuQoGHhVt0
+KGrutpgEW512SsEJ3Wk2JpDdZyGGbsrm5xngIwIDAQABAoIBAQCQIGUBD+yXvIG5
+YKyT66xV6HajUHl6c1u17RdyXUaFeXp+NiHZkUWA65YTvo+YCNFVNO17Zcm/3fcJ
+wF3I7szULb32RGOZgRNEgR3EerGMZAO5CDthqFTi1KSxbEs71eo3e8bCe1E+K6Vr
+Ruz4YLoIft7PYMhQNH47Q9WWBNqkTq4tOrk97OpFbudDAVatuyMP9shHJij+59t3
+8RIZ03NFCG/770MizQRgNODhSiVknDa8lrkO9vYWiFfBJ8Hhh1CPRef2jDOS15/c
+23GW6AebQ3rYX9iQ6SXhgkkwitpBOHbnIUuxtLjeeWp7ESSmMgCxO0My7y5UGGAJ
+c/h907ERAoGBAPz1eIdIyOes0CALTs9WUTzAEZHfe8FIjfYhY/c/aO65Bu0etV0r
+79Lv5oLQX8O3ZPclp+YLegs/dTdlKh4uCZxYYHcY0UUktJLQZpAkstROZQDgoJm3
+GWmPUJX6qDUWH+YpCR8mhVi3urx5IsL5jpWSTyhb0/cD9W2zdSU0/zEPAoGBAN23
++ntJYHUoeyNOXx04pWBiHxhdMt1+X3DExrNbLMwzoWzed3k3hj16zUuSH7NoJ2ZH
+a4DxXWbM0/iwuwDPDFosOTyeQ+RD7+eK8Bamk/bLVKQsBcVhgzPcYNiXP+bYmHJl
+PSo/64g5ihxt7G8JeiQvkxwvElk3QKPy/tEELLetAoGBAJ21/bt66adn2yrfYfdq
+/aM+rLWh/Gp5bejy0HyqkCWmPmdAKhs49YEyCSmt+MbxZIWieJe4uBKjMdWjwSqn
+0V4ky5/1XSQaympufEOKXeR4LAjsA7VSrwldTQT1DkJq1OCO3R0Ky0CQ7F/ttnqR
+VRBz895ZwkHTugT3SiY0cJaJAoGBALFyhErVgBhkDKFGIQN/CYRpI1/Zf1MbyAC1
+zB1RlDnd/IzoQ5BFKu/bb6DS0wJAEoBeGqD5C3qx5dg8gX31N3qXuDtWoxl2cfPL
+E7ndGcDEHPrDrN6620nPT8cozeDQarnrYpeEztmYy3tTUo3PdOyvErrUxYeXm+lb
+Gitofu2FAoGAT6v1iG9nwdH9wnqeHiTEydXaCNqmvMaLzxCAz7QrtH+yYlg+fWEl
+OXm1YT4ylDJWmWKr7w/77yfKRXbqCDuBwRyPhwlccH23YTa+1GU0oiSPUiunxkmd
+6odr/QxW2Qcsts4CwsaF7g/Qi+iBefWXWo9rrvAz7a/4cR9xYLY5Ehw=
+-----END RSA PRIVATE KEY-----';
+
   public static function getInfo() {
     return array(
       'name' => 'OAuth2 Server',
@@ -48,6 +96,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'grant_types' => array(
         'authorization_code' => 'authorization_code',
         'client_credentials' => 'client_credentials',
+        'urn:ietf:params:oauth:grant-type:jwt-bearer' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
         'refresh_token' => 'refresh_token',
         'password' => 'password',
       ),
@@ -62,6 +111,7 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
     $client->label = 'Test client';
     $client->client_key = $this->client_key;
     $client->client_secret = $this->client_secret;
+    $client->public_key = $this->public_key;
     $client->redirect_uri = url('authorized', array('absolute' => TRUE));
     $client->automatic_authorization = TRUE;
     $client->save();
@@ -204,6 +254,41 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
       'headers' => array(
         'Content-Type' => 'application/x-www-form-urlencoded',
         'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
+      ),
+    );
+    $result = $this->httpRequest($token_url, $options);
+
+    $this->assertEqual($result->code, 200, 'The token request completed successfully');
+    $response = json_decode($result->data);
+    $this->assertTokenResponse($response, FALSE);
+  }
+
+  /**
+   * Tests the "JWT bearer" grant type.
+   */
+  public function testJwtBearerGrantType() {
+    $jwt_util = new OAuth2\Encryption\Jwt();
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
+    $this->drupalLogin($user);
+
+    $token_url = url('oauth2/token', array('absolute' => TRUE));
+    $jwt_data = array(
+      'iss' => $this->client_key,
+      'exp' => time() + 1000,
+      'iat' => time(),
+      'sub' => $user->name,
+      'aud' => $token_url,
+      'jti' => '123456',
+    );
+    $data = array(
+      'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      'assertion' => $jwt_util->encode($jwt_data, $this->private_key, 'RS256'),
+    );
+    $options = array(
+      'method' => 'POST',
+      'data' => http_build_query($data),
+      'headers' => array(
+        'Content-Type' => 'application/x-www-form-urlencoded',
       ),
     );
     $result = $this->httpRequest($token_url, $options);

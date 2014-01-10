@@ -172,6 +172,11 @@ function oauth2_server_schema() {
         'type' => 'text',
         'not null' => TRUE,
       ),
+      'public_key' => array(
+        'description' => 'The public key.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
       'redirect_uri' => array(
         'description' => 'The absolute URI to redirect to after authorization',
         'type' => 'varchar',
@@ -285,6 +290,42 @@ function oauth2_server_schema() {
       'token' => array('token'),
     ),
   );
+  $schema['oauth2_server_jti'] = array(
+    'description' => 'Stores JSON Token Identifiers, used to prevent JWT replay attacks.',
+    'fields' => array(
+      'jti_id' => array(
+        'description' => 'Primary key: numeric JTI id.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'client_id' => array(
+        'description' => 'The {oauth2_server_client}.client_id of the client.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'subject' => array(
+        'description' => 'The JWT subject, usually a username or email.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'jti' => array(
+        'description' => 'The JSON Token Identifier.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'expires' => array(
+        'description' => 'The Unix timestamp when the JTI expires.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('jti_id'),
+  );
 
   return $schema;
 }
@@ -297,4 +338,19 @@ function oauth2_server_uninstall() {
   field_attach_delete_bundle('oauth2_server_authorization_code', 'oauth2_server_authorization_code');
   field_attach_delete_bundle('oauth2_server_token', 'access');
   field_attach_delete_bundle('oauth2_server_token', 'refresh');
+}
+
+/**
+ * Adds the {oauth2_server_jti} table, {oauth2_server_client}.public_key field. .
+ */
+function oauth2_server_update_7100() {
+  $schema = oauth2_server_schema();
+  db_create_table('oauth2_server_jti', $schema['oauth2_server_jti']);
+
+  $spec = array(
+    'description' => 'The public key.',
+    'type' => 'text',
+    'not null' => TRUE,
+  );
+  db_add_field('oauth2_server_client', 'public_key', $spec);
 }

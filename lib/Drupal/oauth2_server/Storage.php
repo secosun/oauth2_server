@@ -5,15 +5,17 @@ namespace Drupal\oauth2_server;
 use OAuth2\Storage\AuthorizationCodeInterface;
 use OAuth2\Storage\AccessTokenInterface;
 use OAuth2\Storage\ClientCredentialsInterface;
-use OAuth2\Storage\UserCredentialsInterface;
+use OAuth2\Storage\JwtBearerInterface;
 use OAuth2\Storage\RefreshTokenInterface;
+use OAuth2\Storage\UserCredentialsInterface;
 
 /**
  * Provides Drupal storage (through the underlying Entity API) for the library.
  */
 class Storage implements AuthorizationCodeInterface,
   AccessTokenInterface, ClientCredentialsInterface,
-  UserCredentialsInterface, RefreshTokenInterface
+  JwtBearerInterface, RefreshTokenInterface,
+  UserCredentialsInterface
 {
 
   /* ClientCredentialsInterface */
@@ -34,6 +36,7 @@ class Storage implements AuthorizationCodeInterface,
       $client = array(
         'client_id' => $client->client_key,
         'client_secret' => $client->client_secret,
+        'public_key' => $client->public_key,
         'redirect_uri' => $client->redirect_uri,
       );
     }
@@ -177,15 +180,71 @@ class Storage implements AuthorizationCodeInterface,
     $code->delete();
   }
 
+  /* JwtBearerInterface */
+  public function getClientKey($client_key, $subject) {
+    // While the API supports a key per user (subject), the module only supports
+    // one key per client, since it's the simpler and more frequent use case.
+    $client = $this->getClientDetails($client_key);
+    return $client ? $client['public_key'] : FALSE;
+  }
+
+  public function getJti($client_key, $subject, $audience, $expires, $jti) {
+    $client = $this->getClientDetails($client_key);
+    if (!$client) {
+      // The client_key should be validated prior to this method being called,
+      // but the library doesn't do that currently.
+      return;
+    }
+
+    $data = array(
+      ':client_id' => $client['client_id'],
+      ':subject' => $subject,
+      ':jti' => $jti,
+      ':expires' => $expires,
+    );
+    $found = db_query('SELECT 1 FROM {oauth2_server_jti}
+                        WHERE client_id = :client_id AND subject = :subject
+                          AND jti = :jti AND expires = :expires', $data)->fetchField();
+    if ($found) {
+      // JTI found, return the data back in the expected format.
+      return array(
+        'issuer' => $client_key,
+        'subject' => $subject,
+        'jti' => $jti,
+        'expires' => $expires,
+      );
+    }
+  }
+
+  public function setJti($client_key, $subject, $audience, $expires, $jti) {
+    $client = oauth2_server_client_load($client_key);
+    if (!$client) {
+      // The client_key should be validated prior to this method being called,
+      // but the library doesn't do that currently.
+      return;
+    }
+
+    // The audience is not stored because it's always previously validated
+    // to match the server's token endpoint url. Therefore, it is redundant.
+    db_insert('oauth2_server_jti')
+      ->fields(array(
+        'client_id' => $client->client_id,
+        'subject' => $subject,
+        'jti' => $jti,
+        'expires' => $expires,
+      ))
+      ->execute();
+  }
+
   /* UserCredentialsInterface */
   public function checkUserCredentials($username, $password) {
     return user_authenticate($username, $password);
   }
 
   public function getUserDetails($username) {
-    // @todo Revisit this, it is super-weird.
     $user = user_load_by_name($username);
     if ($user) {
+      // The default library behavior is to use the username as the user_id.
       return array('user_id' => $user->name);
     }
 
