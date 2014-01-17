@@ -9,21 +9,16 @@
  * Services authentication "authenticate_call" callback.
  */
 function oauth2_server_services_authenticate_call($auth_settings, $controller, $args) {
-  $settings = $controller['endpoint']['oauth2_server'];
-  if (is_array($auth_settings)) {
-    $settings += $auth_settings;
-  }
-
-  if (empty($settings['require_authentication'])) {
+  if (empty($auth_settings['require_authentication'])) {
     return FALSE;
   }
   // No server specified, cannot proceed.
-  if (empty($settings['server'])) {
+  if (empty($auth_settings['server'])) {
     throw new Exception('No server configured for Services OAuth2 authentication.');
   }
 
   // Verify access. The request will be aborted if verification fails.
-  $token = oauth2_server_verify_access($settings['server'], $settings['scope']);
+  $token = oauth2_server_verify_access($auth_settings['server'], $auth_settings['scope']);
   // If the resource owner is known, switch the current user to it.
   if ($token['user_id']) {
     global $user;
