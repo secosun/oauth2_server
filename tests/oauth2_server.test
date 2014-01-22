@@ -26,19 +26,30 @@ class OAuth2ServerTestCase extends DrupalWebTestCase {
   protected $client_secret = 'test_secret';
 
   /**
-   * The public key used for all tests with encryption.
+   * The public key X.509 certificate used for all tests with encryption.
    *
    * @var string
    */
-  protected $public_key = '-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2xW0B3ywzOHtlJaqA1my
-dmExOPw3Z5hK0r9McHcXu0/o9a8UrGc3XVwWp4sR6WpOP221u4uabUbOm68mHb1d
-fVxwjlRyIn2NYxpvu+6ylAaCKV+7FfrWXxWTL2y5Wnx3pFtV+ufnKlFSKP8KICs9
-uWTIftPtn2LCWlZXAsgO+FTnBADRbxsmGeHG90JFVYhIhvbwjSo4oWHR0yg+e5lb
-1A/OEvldEaDJigybD1P7OAV3o9quzwy/vAWhPn6SCL4k60RNAbia2YOohQqFOV85
-a2xS9Ak9k3xdpCyGiiPuQoGHhVt0KGrutpgEW512SsEJ3Wk2JpDdZyGGbsrm5xng
-IwIDAQAB
------END PUBLIC KEY-----';
+  protected $public_key = '-----BEGIN CERTIFICATE-----
+MIIDMDCCApmgAwIBAgIBADANBgkqhkiG9w0BAQQFADB0MS0wKwYDVQQDEyRodHRw
+czovL21hcmtldHBsYWNlLmludGVybmFsLmMtZy5pby8xCzAJBgNVBAYTAkFVMRMw
+EQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBXaWRnaXRzIFB0
+eSBMdGQwHhcNMTQwMTIxMTYyMzAyWhcNMTQwMTIzMTYyMzAyWjB0MS0wKwYDVQQD
+EyRodHRwczovL21hcmtldHBsYWNlLmludGVybmFsLmMtZy5pby8xCzAJBgNVBAYT
+AkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBXaWRn
+aXRzIFB0eSBMdGQwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBANVMpjmyWlaD
+6N1x1O4cf5PB6fXjq4dx1zKh/znG/zMJhkaT0TNJDD+3zfpJYFFxZGrbde+dYinL
+jDK+ROvq7+h+93r0eWrld+R/kNWgILJtWwXQACPDd0pVtdOiSSd90QSEfRZyyYCl
+n8RvVIPdPbGiPtDQGDwV5Dc5WcupdJNBAgMBAAGjgdEwgc4wHQYDVR0OBBYEFO4C
+ZtCI7/REm9UO+PFpbAAsHHOUMIGeBgNVHSMEgZYwgZOAFO4CZtCI7/REm9UO+PFp
+bAAsHHOUoXikdjB0MS0wKwYDVQQDEyRodHRwczovL21hcmtldHBsYWNlLmludGVy
+bmFsLmMtZy5pby8xCzAJBgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEw
+HwYDVQQKExhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGSCAQAwDAYDVR0TBAUwAwEB
+/zANBgkqhkiG9w0BAQQFAAOBgQCSCeFzNdUeFh0yNVatOdQpm2du1v7A4NXpdWL5
+tXJQpv3Vgohc9f2GrVr1np270aJ3rzmSrWugZRHx0A3zhuYTNsapacvIOqmffPHd
+0IZVnRgXnHPqwnWqMWuNtb8DglEEjKarjnOos/RbGvbirWsAJObxnt9kfI5wUOoA
+0mYehA==
+-----END CERTIFICATE-----';
 
   /**
    * The private key used for all tests with encryption.
@@ -46,31 +57,19 @@ IwIDAQAB
    * @var string
    */
   protected $private_key = '-----BEGIN RSA PRIVATE KEY-----
-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
+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
 -----END RSA PRIVATE KEY-----';
 
   public static function getInfo() {
@@ -83,6 +82,14 @@ OXm1YT4ylDJWmWKr7w/77yfKRXbqCDuBwRyPhwlccH23YTa+1GU0oiSPUiunxkmd
 
   public function setUp() {
     parent::setUp('oauth2_server', 'oauth2_server_test');
+
+    // Set the keys so that the module can see them.
+    $keys = array(
+      'public_key' => $this->public_key,
+      'private_key' => $this->private_key,
+    );
+    variable_set('oauth2_server_keys', $keys);
+    variable_set('oauth2_server_keys_last_generated', REQUEST_TIME);
 
     // Create the server and client.
     $server = entity_create('oauth2_server', array());

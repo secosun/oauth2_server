@@ -8,6 +8,7 @@ use OAuth2\Storage\ClientCredentialsInterface;
 use OAuth2\Storage\JwtBearerInterface;
 use OAuth2\Storage\RefreshTokenInterface;
 use OAuth2\Storage\UserCredentialsInterface;
+use OAuth2\Storage\PublicKeyInterface;
 
 /**
  * Provides Drupal storage (through the underlying Entity API) for the library.
@@ -15,7 +16,7 @@ use OAuth2\Storage\UserCredentialsInterface;
 class Storage implements AuthorizationCodeInterface,
   AccessTokenInterface, ClientCredentialsInterface,
   JwtBearerInterface, RefreshTokenInterface,
-  UserCredentialsInterface
+  UserCredentialsInterface, PublicKeyInterface
 {
 
   /* ClientCredentialsInterface */
@@ -329,5 +330,24 @@ class Storage implements AuthorizationCodeInterface,
         );
       }
     }
+  }
+
+  /* PublicKeyInterface */
+  public function getPublicKey($client_key = null) {
+    // The library allows for per-client keys. The module uses global keys
+    // that are regenerated every day, following Google's example.
+    $keys = oauth2_server_get_keys();
+    return $keys['public_key'];
+  }
+
+  public function getPrivateKey($client_key = null) {
+    // The library allows for per-client keys. The module uses global keys
+    // that are regenerated every day, following Google's example.
+    $keys = oauth2_server_get_keys();
+    return $keys['private_key'];
+  }
+
+  public function getEncryptionAlgorithm($client_key = null) {
+    return 'RS256';
   }
 }

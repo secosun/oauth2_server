@@ -90,6 +90,12 @@ function oauth2_server_menu() {
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
+  $items['oauth2/certificates'] = array(
+    'page callback' => 'oauth2_server_certificates',
+    'access callback' => 'oauth2_server_site_needs_keys',
+    'type' => MENU_CALLBACK,
+    'file' => 'oauth2_server.pages.inc',
+  );
 
   return $items;
 }
@@ -594,6 +600,105 @@ function oauth2_server_set_properties($entity, $name, $value) {
 }
 
 /**
+ * Implements hook_cron().
+ *
+ * Regenerates the keys once a day. Follows Google's practice described in
+ * https://developers.google.com/accounts/docs/OAuth2Login#validatinganidtoken
+ */
+function oauth2_server_cron() {
+  $needs_keys = oauth2_server_site_needs_keys();
+  // No need to do anything if hook_cron() is invoked from simpletest.
+  $simpletest = variable_get('simpletest_parent_profile', '');
+
+  if ($needs_keys && !$simpletest) {
+    $last_generated = variable_get('oauth2_server_keys_last_generated', 0);
+    // Check if the keys were last generated more than 23h30min ago.
+    if (REQUEST_TIME - $last_generated > 84600) {
+      $keys = oauth2_server_generate_keys();
+      variable_set('oauth2_server_keys', $keys);
+      variable_set('oauth2_server_keys_last_generated', REQUEST_TIME);
+    }
+  }
+}
+
+/**
+ * Returns whether the current site needs to have keys generated.
+ *
+ * @return
+ *   TRUE if at least one server uses crypto tokens or OpenID Connect,
+ *   FALSE otherwise.
+ */
+function oauth2_server_site_needs_keys() {
+  $servers = entity_load('oauth2_server');
+  foreach ($servers as $server) {
+    if (!empty($server->settings['use_crypto_tokens'])) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Generates a pair of private and public keys using OpenSSL.
+ *
+ * The public key is stored in a PEM encoded X.509 certificate, following
+ * Google's example. The certificate can be passed to openssl_verify() directly.
+ *
+ * @return
+ *   An array with the following keys:
+ *   - private_key: The generated private key.
+ *   - public_key: The generated public key certificate (PEM encoded X.509).
+ */
+function oauth2_server_generate_keys() {
+  $module_path = drupal_get_path('module', 'oauth2_server');
+  $config = array(
+    'config' => $module_path . '/oauth2_server.openssl.cnf',
+  );
+
+  // Generate a private key.
+  $resource = openssl_pkey_new($config);
+  openssl_pkey_export($resource, $private_key);
+
+  // Generate a public key certificate valid for 2 days.
+  $serial = variable_get('oauth2_server_next_certificate_id', 0);
+  $dn = array(
+    'CN' => url(NULL, array('absolute' => TRUE)),
+  );
+  $csr = openssl_csr_new($dn, $resource, $config);
+  $x509 = openssl_csr_sign($csr, NULL, $resource, 2, $config, $serial);
+  openssl_x509_export($x509, $public_key_certificate);
+  // Increment the id for next time. db_next_id() is not used since it can't
+  // guarantee sequential numbers.
+  variable_set('oauth2_server_next_certificate_id', $serial++);
+
+  return array(
+    'private_key' => $private_key,
+    'public_key' => $public_key_certificate,
+  );
+}
+
+/**
+ * Returns the pair of private and public keys used to sign tokens.
+ *
+ * @return
+ *   An array with the following keys:
+ *   - private_key: The private key.
+ *   - public_key: The public key certificate (PEM encoded X.509).
+ *
+ * @see oauth2_server_generate_keys()
+ */
+function oauth2_server_get_keys() {
+  $keys = variable_get('oauth2_server_keys', FALSE);
+  if (!$keys) {
+    $keys = oauth2_server_generate_keys();
+    variable_set('oauth2_server_keys', $keys);
+  }
+
+  return $keys;
+}
+
+/**
  * Initializes and returns an OAuth2 server.
  *
  * @param $server
@@ -608,8 +713,8 @@ function oauth2_server_start($server = NULL) {
   $storage = new Drupal\oauth2_server\Storage();
   $grant_types = oauth2_server_grant_types();
   if ($server) {
+    // Initialize the server and add the scope util.
     $oauth2_server = new OAuth2\Server($storage, $server->settings);
-    // Initialize the scope util.
     $scope_util = new Drupal\oauth2_server\Scope($server);
     $oauth2_server->setScopeUtil($scope_util);
     // Determine the available grant types based on server settings.

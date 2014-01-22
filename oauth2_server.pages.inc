@@ -162,7 +162,7 @@ function oauth2_server_token() {
 }
 
 /**
- * Page callback: Return information about the provided token.
+ * Page callback: Returns information about the provided token.
  *
  * @param $token
  *   The token to verify.
@@ -191,4 +191,22 @@ function oauth2_server_tokens($token) {
   // Return the token, without the server and client_id keys.
   unset($token['server']);
   return drupal_json_output($token);
+}
+
+/**
+ * Page callback: Returns the server's certificates.
+ *
+ * Clients use this callback to get the public key certificates used to verify
+ * encrypted tokens (crypto token, OpenID Connect) sent by the server.
+ *
+ * @return
+ *   An array of X.509 certificates.
+ */
+function oauth2_server_certificates() {
+  drupal_page_is_cacheable(FALSE);
+
+  $keys = oauth2_server_get_keys();
+  $certificates = array();
+  $certificates[] = $keys['public_key'];
+  return drupal_json_output($certificates);
 }
