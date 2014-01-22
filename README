@@ -1,26 +1,4 @@
 Provides OAuth2 server functionality based on the
 oauth2-server-php (https://github.com/bshaffer/oauth2-server-php) library.
 
-Dependencies: Entity API, Entity reference.
-
-Features
---------
-- Entity-based architecture.
-- Supports creating multiple servers with own scopes and clients.
-- Designed for an unbounded number of scopes.
-- Supported grant types:
-  - Authorization code
-  - Client credentials
-  - Refresh token
-  - Password
-- Support for the implicit flow.
-- Support for per-client automatic authorization (skipping the authorization form).
-- Services integration (authentication).
-
-Warning: You will need the following Services patch: http://drupal.org/node/1154420#comment-7216714
-in order to use the authentication.
-
-The tests can be used as an example client-side implementation.
-
 See http://drupal.org/node/1938218 for information on getting started.
-
