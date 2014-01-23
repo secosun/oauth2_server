@@ -99,6 +99,8 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
       'default_scope' => 'basic',
       'enforce_state' => TRUE,
       'allow_implicit' => TRUE,
+      'use_crypto_tokens' => FALSE,
+      'store_encrypted_token_string' => FALSE,
       'require_exact_redirect_uri' => TRUE,
       'grant_types' => array(
         'authorization_code' => 'authorization_code',
@@ -372,6 +374,34 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
     $result = $this->passwordGrantRequest('admin');
     $response = json_decode($result->data);
     $this->assertEqual($response->scope, 'admin', 'The correct scope was returned.');
+  }
+
+  /**
+   * Tests crypto tokens.
+   */
+  public function testCryptoTokens() {
+    // Enable crypto tokens.
+    $server = oauth2_server_load('test');
+    $server->settings['use_crypto_tokens'] = TRUE;
+    $server->save();
+
+    $result = $this->passwordGrantRequest();
+    $this->assertEqual($result->code, 200, 'The token request completed successfully');
+    $response = json_decode($result->data);
+    // The refresh token is contained inside the crypto token.
+    $this->assertTokenResponse($response, FALSE);
+
+    $verified = FALSE;
+    if (substr_count($response->access_token, '.') == 2) {
+      // Verify the crypto token following the instructions from
+      // http://bshaffer.github.io/oauth2-server-php-docs/overview/crypto-tokens
+      list($header, $payload, $signature) = explode('.', $response->access_token);
+      // The signature is "url safe base64 encoded".
+      $signature = base64_decode(strtr($signature, '-_,', '+/'));
+      $payload_to_verify = utf8_decode($header . '.' . $payload);
+      $verified = openssl_verify($payload_to_verify, $signature, $this->public_key, 'sha256');
+    }
+    $this->assertTrue($verified, 'The crypto token is valid.');
   }
 
   /**

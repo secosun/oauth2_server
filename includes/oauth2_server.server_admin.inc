@@ -124,7 +124,15 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     '#type' => 'checkbox',
     '#title' => t('Allow the implicit flow'),
     '#description' => t('Allows clients to receive an access token without the need for an authorization request token.'),
-    '#default_value' => $server->settings['allow_implicit'],
+    '#default_value' => !empty($server->settings['allow_implicit']),
+  );
+  $documentation_link = l('documentation', 'http://bshaffer.github.io/oauth2-server-php-docs/overview/crypto-tokens');
+  $form['settings']['use_crypto_tokens'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use crypto tokens'),
+    '#description' => t("Sends encrypted access tokens that aren't stored in the database. See the !documentation for more details.", array('!documentation' => $documentation_link)),
+    '#default_value' => !empty($server->settings['use_crypto_tokens']),
+    '#access' => extension_loaded('openssl'),
   );
   $grant_types = oauth2_server_grant_types();
   // Prepare a list of available grant types.
