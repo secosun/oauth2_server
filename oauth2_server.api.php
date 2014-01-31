@@ -6,6 +6,23 @@
  */
 
 /**
+ * Execute operations before oauth2_server_authorize() main logic.
+ *
+ * Allow modules to perform additional operations at the very beginning of
+ * the OAuth2 authorize callback.
+ */
+function hook_oauth2_server_pre_authorize() {
+  // Make sure we're not in the middle of a running operation.
+  if (empty($_SESSION['oauth2_server_authorize'])) {
+    global $user;
+    // Ensure that the current session is killed before authorize.
+    module_invoke_all('user_logout', $user);
+    // Destroy the current session, and reset $user to the anonymous user.
+    session_destroy();
+  }
+}
+
+/**
  * Returns the default scope for the provided server.
  *
  * Invoked by OAuth2_Scope_Drupal.
@@ -40,24 +57,6 @@ function hook_oauth2_server_default_scope($server) {
 
       return $default_scopes;
     }
-  }
-}
-
-
-/**
- * Execute operations before oauth2_server_authorize() main logic.
- *
- * Allow modules to perform additional operations at the very beginning of
- * the OAuth2 authorize callback.
- */
-function hook_oauth2_server_pre_authorize() {
-  // Make sure we're not in the middle of a running operation.
-  if (empty($_SESSION['oauth2_server_authorize'])) {
-    global $user;
-    // Ensure that the current session is killed before authorize.
-    module_invoke_all('user_logout', $user);
-    // Destroy the current session, and reset $user to the anonymous user.
-    session_destroy();
   }
 }
 
