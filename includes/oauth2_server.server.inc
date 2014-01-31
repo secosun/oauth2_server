@@ -25,7 +25,7 @@ class OAuth2Server extends Entity {
    * @var array
    */
   public $settings = array(
-    'default_scope' => 'basic',
+    'default_scope' => '',
     'enforce_state' => TRUE,
     'allow_implicit' => FALSE,
     'use_crypto_tokens' => FALSE,

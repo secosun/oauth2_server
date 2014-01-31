@@ -226,15 +226,6 @@ function oauth2_server_form_submit(&$form, &$form_state) {
   // Create the server from form values and save it.
   $server = entity_ui_form_submit_build_entity($form, $form_state);
   $server->save();
-  // If this was a new server, create a default scope as well.
-  if ($form_state['op'] == 'add') {
-    $scope = entity_create('oauth2_server_scope', array());
-    $scope->server = $server->name;
-    $scope->name = 'basic';
-    $scope->description = 'View basic information about your account.';
-    $scope->save();
-  }
-
   $form_state['redirect'] = 'admin/structure/oauth2-servers';
 }
 
