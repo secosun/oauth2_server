@@ -107,7 +107,12 @@ function oauth2_server_authorize_form($form, &$form_state, $client, $server, $sc
   $form['authorize'] = array(
     '#type' => 'submit',
     '#value' => t('Yes, I authorize this request.'),
-    '#suffix' => l(t('Cancel'), '<front>'),
+    '#authorized' => TRUE,
+  );
+  $form['cancel'] = array(
+    '#type' => 'submit',
+    '#value' => t('Cancel'),
+    '#authorized' => FALSE,
   );
 
   return $form;
@@ -130,11 +135,12 @@ function oauth2_server_authorize_form_submit($form, &$form_state) {
     $request = OAuth2\Request::createFromGlobals();
   }
 
+  $authorized = $form_state['triggering_element']['#authorized'];
   $server = $form_state['build_info']['args'][1];
   // Finish the authorization request.
   $response = new OAuth2\Response();
   $oauth2_server = oauth2_server_start($server);
-  $oauth2_server->handleAuthorizeRequest($request, $response, TRUE, $user->name);
+  $oauth2_server->handleAuthorizeRequest($request, $response, $authorized, $user->name);
   return oauth2_server_send_response($response);
 }
 
