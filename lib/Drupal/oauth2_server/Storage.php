@@ -239,14 +239,30 @@ class Storage implements AuthorizationCodeInterface,
 
   /* UserCredentialsInterface */
   public function checkUserCredentials($username, $password) {
-    return user_authenticate($username, $password);
+    $account = user_load_by_name($username);
+    if (!$account) {
+      // An email address might have been supplied instead of the username.
+      $account = user_load_by_mail($username);
+    }
+
+    if ($account) {
+      require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
+      return user_check_password($password, $account);
+    }
+
+    return FALSE;
   }
 
   public function getUserDetails($username) {
-    $user = user_load_by_name($username);
-    if ($user) {
+    $account = user_load_by_name($username);
+    if (!$account) {
+      // An email address might have been supplied instead of the username.
+      $account = user_load_by_mail($username);
+    }
+
+    if ($account) {
       // The default library behavior is to use the username as the user_id.
-      return array('user_id' => $user->name);
+      return array('user_id' => $account->name);
     }
 
     return FALSE;
