@@ -190,6 +190,13 @@ function oauth2_server_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'settings' => array(
+        'description' => 'Client specific settings.',
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'serialize' => TRUE,
+      ),
     ),
     'primary key' => array('client_id'),
     'unique keys' => array(
@@ -345,7 +352,7 @@ function oauth2_server_uninstall() {
 }
 
 /**
- * Adds the {oauth2_server_jti} table, {oauth2_server_client}.public_key field. .
+ * Adds the {oauth2_server_jti} table, {oauth2_server_client}.public_key field.
  */
 function oauth2_server_update_7100() {
   $schema = oauth2_server_schema();
@@ -357,4 +364,18 @@ function oauth2_server_update_7100() {
     'not null' => TRUE,
   );
   db_add_field('oauth2_server_client', 'public_key', $spec);
+}
+
+/**
+ * Adds the {oauth2_server_client}.settings field.
+ */
+function oauth2_server_update_7101() {
+  $spec = array(
+    'description' => 'Client specific settings.',
+    'type' => 'text',
+    'size' => 'big',
+    'not null' => TRUE,
+    'serialize' => TRUE,
+  );
+  db_add_field('oauth2_server_client', 'settings', $spec);
 }

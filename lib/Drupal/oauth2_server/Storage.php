@@ -45,17 +45,24 @@ class Storage implements AuthorizationCodeInterface,
     return $client;
   }
 
-  public function getClientScope($client_id) {
+  public function getClientScope($client_key) {
     // The module doesn't currently support per-client scopes.
     return NULL;
   }
 
   public function checkRestrictedGrantType($client_key, $grant_type) {
-    // The oauth2 module implements grant types on the server level,
-    // not on the client level.
     $client = oauth2_server_client_load($client_key);
     $server = oauth2_server_load($client->server);
-    $grant_types = array_filter($server->settings['grant_types']);
+    if (!empty($client->settings['override_grant_types'])) {
+      $grant_types = array_filter($client->settings['grant_types']);
+      $allow_implicit = $client->settings['allow_implicit'];
+    }
+    else {
+      // Fallback to the global server settings.
+      $grant_types = array_filter($server->settings['grant_types']);
+      $allow_implicit = $server->settings['allow_implicit'];
+    }
+
     // Implicit flow is enabled by a different setting, so it needs to be
     // added to the check separately.
     if ($server->settings['allow_implicit']) {

@@ -119,6 +119,11 @@ class OAuth2ServerClientUIController extends EntityDefaultUIController {
  * Generates the client editing form.
  */
 function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
+  // Update old clients that didn't have a settings property.
+  if (!isset($client->settings)) {
+    $new_client = entity_create('oauth2_server_client', array());
+    $client->settings = $new_client->settings;
+  }
   // Make sure the parent server is present in form state.
   if (!isset($form_state['server'])) {
     $server = oauth2_server_load(arg(4));
@@ -138,6 +143,7 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     '#value' => $form_state['server']->name,
   );
 
+  $form['#tree'] = TRUE;
   $form['label'] = array(
     '#title' => t('Label'),
     '#type' => 'textfield',
@@ -197,6 +203,61 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     '#description' => t('This will cause the authorization form to be skipped. <b>Warning:</b> Give to trusted clients only!'),
     '#weight' => 39,
   );
+
+  $form['settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Advanced settings'),
+    '#collapsible' => TRUE,
+    '#weight' => 40,
+  );
+  $form['settings']['override_grant_types'] = array(
+    '#title' => t('Override available grant types'),
+    '#type' => 'checkbox',
+    '#default_value' => !empty($client->settings['override_grant_types']),
+  );
+  $form['settings']['allow_implicit'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Allow the implicit flow'),
+    '#description' => t('Allows clients to receive an access token without the need for an authorization request token.'),
+    '#default_value' => !empty($client->settings['allow_implicit']),
+    '#states' => array(
+      'visible' => array(
+        '#edit-settings-override-grant-types' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $grant_types = oauth2_server_grant_types();
+  // Prepare a list of available grant types.
+  $grant_type_options = array();
+  foreach ($grant_types as $type => $grant_type) {
+    $grant_type_options[$type] = $grant_type['name'];
+  }
+  $form['settings']['grant_types'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Enabled grant types'),
+    '#options' => $grant_type_options,
+    '#default_value' => $client->settings['grant_types'],
+    '#states' => array(
+      'visible' => array(
+        '#edit-settings-override-grant-types' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  // Add any grant type specific settings.
+  foreach ($grant_types as $type => $grant_type) {
+    // Merge-in any provided defaults.
+    if (isset($grant_type['default settings'])) {
+      $client->settings += $grant_type['default settings'];
+    }
+    // Add the form elements.
+    if (isset($grant_type['settings callback'])) {
+      $dom_ids = array();
+      $dom_ids[] = 'edit-settings-override-grant-types';
+      $dom_ids[] = 'edit-settings-grant-types-' . str_replace('_', '-', $type);
+      $form['settings'] += $grant_type['settings callback']($client->settings, $dom_ids);
+    }
+  }
+
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',

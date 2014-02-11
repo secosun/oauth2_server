@@ -154,10 +154,9 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     }
     // Add the form elements.
     if (isset($grant_type['settings callback'])) {
-      // Pass along the id of the grant type checkbox, so that the settings
-      // callback can use it in #states if desired.
-      $dom_id = 'edit-settings-grant-types-' . str_replace('_', '-', $type);
-      $form['settings'] += $grant_type['settings callback']($server->settings, $dom_id);
+      $dom_ids = array();
+      $dom_ids[] = 'edit-settings-grant-types-' . str_replace('_', '-', $type);
+      $form['settings'] += $grant_type['settings callback']($server->settings, $dom_ids);
     }
   }
 

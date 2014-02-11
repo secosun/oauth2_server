@@ -56,6 +56,22 @@ class OAuth2ServerClient extends Entity {
    */
   public $automatic_authorization = FALSE;
 
+  /**
+   * An array of settings.
+   *
+   * Used to override server-level settings.
+   *
+   * @var array
+   */
+  public $settings = array(
+    'override_grant_types' => FALSE,
+    'allow_implicit' => FALSE,
+    'grant_types' => array(
+      'authorization_code' => 'authorization_code',
+      'refresh_token' => 'refresh_token',
+    ),
+  );
+
   public function __construct($values = array()) {
     parent::__construct($values, 'oauth2_server_client');
   }

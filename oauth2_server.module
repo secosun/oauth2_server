@@ -894,17 +894,18 @@ function oauth2_server_grant_types() {
 /**
  * Provides a settings form for the refresh_token grant type.
  */
-function oauth2_server_refresh_token_settings($config, $dom_id) {
+function oauth2_server_refresh_token_settings($config, $dom_ids = array()) {
   $form = array();
   $form['always_issue_new_refresh_token'] = array(
     '#type' => 'checkbox',
     '#title' => t('Always issue a new refresh token after the existing one has been used'),
     '#default_value' => $config['always_issue_new_refresh_token'],
-    '#states' => array(
-      'visible' => array(
-        '#' . $dom_id => array('checked' => TRUE),
-      ),
-    ),
+    '#states' => array(),
   );
+  foreach ($dom_ids as $dom_id) {
+    $states = &$form['always_issue_new_refresh_token']['#states'];
+    $states['visible']['#' . $dom_id] = array('checked' => TRUE);
+  }
+
   return $form;
 }
