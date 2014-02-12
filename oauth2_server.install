@@ -362,6 +362,7 @@ function oauth2_server_update_7100() {
     'description' => 'The public key.',
     'type' => 'text',
     'not null' => TRUE,
+    'initial' => TRUE,
   );
   db_add_field('oauth2_server_client', 'public_key', $spec);
 }
@@ -376,6 +377,7 @@ function oauth2_server_update_7101() {
     'size' => 'big',
     'not null' => TRUE,
     'serialize' => TRUE,
+    'initial' => '',
   );
   db_add_field('oauth2_server_client', 'settings', $spec);
 }

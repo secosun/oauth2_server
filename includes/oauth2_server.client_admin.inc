@@ -120,7 +120,7 @@ class OAuth2ServerClientUIController extends EntityDefaultUIController {
  */
 function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
   // Update old clients that didn't have a settings property.
-  if (!isset($client->settings)) {
+  if (!is_array($client->settings)) {
     $new_client = entity_create('oauth2_server_client', array());
     $client->settings = $new_client->settings;
   }
