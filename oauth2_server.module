@@ -601,15 +601,23 @@ function oauth2_server_set_properties($entity, $name, $value) {
 
 /**
  * Implements hook_cron().
- *
- * Regenerates the keys once a day. Follows Google's practice described in
- * https://developers.google.com/accounts/docs/OAuth2Login#validatinganidtoken
  */
 function oauth2_server_cron() {
+  // Delete expired tokens.
+  $query = new EntityFieldQuery;
+  $query
+    ->entityCondition('entity_type', 'oauth2_server_token')
+    ->propertyCondition('expires', REQUEST_TIME, '<=');
+  $result = $query->execute();
+  if ($result) {
+    entity_delete_multiple('oauth2_server_token', array_keys($result['oauth2_server_token']));
+  }
+
+  // Regenerate the keys once a day. Follows Google's practice described in
+  // https://developers.google.com/accounts/docs/OAuth2Login#validatinganidtoken
   $needs_keys = oauth2_server_site_needs_keys();
   // No need to do anything if hook_cron() is invoked from simpletest.
   $simpletest = variable_get('simpletest_parent_profile', '');
-
   if ($needs_keys && !$simpletest) {
     $last_generated = variable_get('oauth2_server_keys_last_generated', 0);
     // Check if the keys were last generated more than 23h30min ago.
