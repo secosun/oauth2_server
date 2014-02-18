@@ -9,7 +9,7 @@
  * Page callback: Authenticates the user and redirect back to the client
  * with an authorization code.
  */
-function oauth2_server_authorize() {
+function oauth2_server_authorize_page() {
   global $user;
 
   module_invoke_all('oauth2_server_pre_authorize');
@@ -147,7 +147,7 @@ function oauth2_server_authorize_form_submit($form, &$form_state) {
 /**
  * Page callback: exchanges an authorization code for an access token.
  */
-function oauth2_server_token() {
+function oauth2_server_token_page() {
   $request = OAuth2\Request::createFromGlobals();
 
   $client_credentials = oauth2_server_get_client_credentials($request);
@@ -182,7 +182,7 @@ function oauth2_server_token() {
  *     - expires: The unix timestamp of token expiration.
  *     - scope: Scopes in a space-separated string.
  */
-function oauth2_server_tokens($token) {
+function oauth2_server_tokens_page($token) {
   drupal_page_is_cacheable(FALSE);
 
   // Initialize the storage and try to load the requested token.
@@ -208,7 +208,7 @@ function oauth2_server_tokens($token) {
  * @return
  *   An array of X.509 certificates.
  */
-function oauth2_server_certificates() {
+function oauth2_server_certificates_page() {
   drupal_page_is_cacheable(FALSE);
 
   $keys = oauth2_server_get_keys();

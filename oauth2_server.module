@@ -72,26 +72,26 @@ function oauth2_server_xautoload($api) {
 function oauth2_server_menu() {
   $items = array();
   $items['oauth2/authorize'] = array(
-    'page callback' => 'oauth2_server_authorize',
+    'page callback' => 'oauth2_server_authorize_page',
     'access arguments' => array('use oauth2 server'),
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
   $items['oauth2/token'] = array(
-    'page callback' => 'oauth2_server_token',
+    'page callback' => 'oauth2_server_token_page',
     'access arguments' => array('use oauth2 server'),
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
   $items['oauth2/tokens/%'] = array(
-    'page callback' => 'oauth2_server_tokens',
+    'page callback' => 'oauth2_server_tokens_page',
     'page arguments' => array(2),
     'access arguments' => array('use oauth2 server'),
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
   $items['oauth2/certificates'] = array(
-    'page callback' => 'oauth2_server_certificates',
+    'page callback' => 'oauth2_server_certificates_page',
     'access callback' => 'oauth2_server_site_needs_keys',
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
