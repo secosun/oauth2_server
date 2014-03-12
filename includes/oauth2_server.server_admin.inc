@@ -176,7 +176,7 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
   $form['settings']['advanced_settings']['refresh_token_lifetime'] = array(
     '#type' => 'textfield',
     '#title' => t('Refresh token lifetime'),
-    '#description' => t('The number of seconds the refresh token will be valid for.'),
+    '#description' => t('The number of seconds the refresh token will be valid for. 0 for forever.'),
     '#default_value' => $server->settings['refresh_token_lifetime'],
     '#size' => 11,
   );
