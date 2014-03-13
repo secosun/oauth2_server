@@ -65,7 +65,7 @@ class Storage implements AuthorizationCodeInterface,
 
     // Implicit flow is enabled by a different setting, so it needs to be
     // added to the check separately.
-    if ($server->settings['allow_implicit']) {
+    if ($allow_implicit) {
       $grant_types['implicit'] = 'implicit';
     }
 
