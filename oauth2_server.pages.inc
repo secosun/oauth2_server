@@ -200,6 +200,29 @@ function oauth2_server_tokens_page($token) {
 }
 
 /**
+ * Page callback: returns claims about the authenticated end-user.
+ */
+function oauth2_server_userinfo() {
+  $request = OAuth2\Request::createFromGlobals();
+
+  $client_credentials = oauth2_server_get_client_credentials($request);
+  $server = NULL;
+  // Get the client and use it to load the server and initialize the server.
+  if ($client_credentials) {
+    $client = oauth2_server_client_load($client_credentials['client_id']);
+    if ($client) {
+      $server = oauth2_server_load($client->server);
+    }
+  }
+
+  // Initialize the server.
+  $response = new OAuth2\Response();
+  $oauth2_server = oauth2_server_start($server);
+  $oauth2_server->handleUserInfoRequest($request, $response);
+  return oauth2_server_send_response($response);
+}
+
+/**
  * Page callback: Returns the server's certificates.
  *
  * Clients use this callback to get the public key certificates used to verify

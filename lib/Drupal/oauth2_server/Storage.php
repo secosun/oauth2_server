@@ -2,7 +2,8 @@
 
 namespace Drupal\oauth2_server;
 
-use OAuth2\Storage\AuthorizationCodeInterface;
+use OAuth2\OpenID\Storage\AuthorizationCodeInterface;
+use OAuth2\OpenID\Storage\UserClaimsInterface;
 use OAuth2\Storage\AccessTokenInterface;
 use OAuth2\Storage\ClientCredentialsInterface;
 use OAuth2\Storage\JwtBearerInterface;
@@ -16,7 +17,8 @@ use OAuth2\Storage\PublicKeyInterface;
 class Storage implements AuthorizationCodeInterface,
   AccessTokenInterface, ClientCredentialsInterface,
   JwtBearerInterface, RefreshTokenInterface,
-  UserCredentialsInterface, PublicKeyInterface
+  UserCredentialsInterface, UserClaimsInterface,
+  PublicKeyInterface
 {
 
   /* ClientCredentialsInterface */
@@ -146,6 +148,7 @@ class Storage implements AuthorizationCodeInterface,
         'redirect_uri' => $code_wrapper->redirect_uri->value(),
         'expires' => (int) $code_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
+        'id_token' => $code_wrapper->id_token->value(),
       );
       if (module_exists('uuid')) {
         $code['user_uuid'] = $code_wrapper->user->uuid->value();
@@ -155,7 +158,7 @@ class Storage implements AuthorizationCodeInterface,
     return $code;
   }
 
-  public function setAuthorizationCode($code, $client_key, $username, $redirect_uri, $expires, $scope = null) {
+  public function setAuthorizationCode($code, $client_key, $username, $redirect_uri, $expires, $scope = null, $id_token = null) {
     $client = oauth2_server_client_load($client_key);
     if (!$client) {
       throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
@@ -173,6 +176,7 @@ class Storage implements AuthorizationCodeInterface,
       $authorization_code->client_id = $client->client_id;
       $authorization_code->uid = $user->uid;
       $authorization_code->code = $code;
+      $authorization_code->id_token = $id_token;
     }
 
     $authorization_code->redirect_uri = $redirect_uri;
@@ -273,6 +277,24 @@ class Storage implements AuthorizationCodeInterface,
     }
 
     return FALSE;
+  }
+
+  /* UserClaimsInterface */
+  public function getUserClaims($username, $scope) {
+    $user = user_load_by_name($username);
+    $scope = explode(' ', trim($scope));
+    // Prepare the default claims.
+    $claims = array(
+      'sub' => $username,
+    );
+    if (in_array('email', $scope)) {
+      $claims['email'] = $user->mail;
+      $claims['email_verified'] = variable_get('user_email_verification', TRUE);
+    }
+    // Allow modules to supply additional claims.
+    $claims += module_invoke_all('oauth2_server_user_claims', $user, $scope);
+
+    return $claims;
   }
 
   /* RefreshTokenInterface */

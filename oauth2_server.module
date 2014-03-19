@@ -90,6 +90,12 @@ function oauth2_server_menu() {
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
+  $items['oauth2/UserInfo'] = array(
+    'page callback' => 'oauth2_server_userinfo',
+    'access arguments' => array('use oauth2 server'),
+    'type' => MENU_CALLBACK,
+    'file' => 'oauth2_server.pages.inc',
+  );
   $items['oauth2/certificates'] = array(
     'page callback' => 'oauth2_server_certificates_page',
     'access callback' => 'oauth2_server_site_needs_keys',
@@ -642,6 +648,9 @@ function oauth2_server_site_needs_keys() {
     if (!empty($server->settings['use_crypto_tokens'])) {
       return TRUE;
     }
+    if (!empty($server->settings['use_openid_connect'])) {
+      return TRUE;
+    }
   }
 
   return FALSE;
@@ -707,6 +716,20 @@ function oauth2_server_get_keys() {
 }
 
 /**
+ * Decodes base64url encoded data.
+ *
+ * @param $data
+ *   A string containing the base64url encoded data.
+ *
+ * @return
+ *   The decoded data.
+ */
+function oauth2_server_base64url_decode($data) {
+  $data = str_replace(array('-', '_'), array('+', '/'), $data);
+  return base64_decode($data);
+}
+
+/**
  * Initializes and returns an OAuth2 server.
  *
  * @param $server
@@ -721,13 +744,15 @@ function oauth2_server_start($server = NULL) {
   $storage = new Drupal\oauth2_server\Storage();
   $grant_types = oauth2_server_grant_types();
   if ($server) {
+    $settings = $server->settings + array(
+      'issuer' => url(NULL, array('absolute' => TRUE, 'https' => TRUE)),
+    );
     // Initialize the server and add the scope util.
-    $oauth2_server = new OAuth2\Server($storage, $server->settings);
+    $oauth2_server = new OAuth2\Server($storage, $settings);
     $scope_util = new Drupal\oauth2_server\Scope($server);
     $oauth2_server->setScopeUtil($scope_util);
     // Determine the available grant types based on server settings.
-    $enabled_grant_types = array_filter($server->settings['grant_types']);
-    $settings = $server->settings;
+    $enabled_grant_types = array_filter($settings['grant_types']);
   }
   else {
     $oauth2_server = new OAuth2\Server($storage);
@@ -749,7 +774,7 @@ function oauth2_server_start($server = NULL) {
   }
   // Implicit flow requires its own instance of OAuth2_GrantType_AuthorizationCode.
   if (!empty($settings['allow_implicit'])) {
-    $grant_type = new OAuth2\GrantType\AuthorizationCode($storage, $settings);
+    $grant_type = new OAuth2\OpenID\GrantType\AuthorizationCode($storage, $settings);
     $oauth2_server->addGrantType($grant_type, 'implicit');
   }
 
@@ -872,7 +897,7 @@ function oauth2_server_grant_types() {
   $grant_types = array(
     'authorization_code' => array(
       'name' => t('Authorization code'),
-      'class' => 'OAuth2\GrantType\AuthorizationCode',
+      'class' => 'OAuth2\OpenID\GrantType\AuthorizationCode',
     ),
     'client_credentials' => array(
       'name' => t('Client credentials'),

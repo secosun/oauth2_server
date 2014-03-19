@@ -40,6 +40,13 @@ class OAuth2ServerAuthorizationCode extends Entity {
    */
   public $expires;
 
+  /**
+   * The id_token, if OpenID Connect was used.
+   *
+   * @var string
+   */
+  public $id_token;
+
   public function __construct($values = array()) {
     parent::__construct($values, 'oauth2_server_authorization_code');
   }

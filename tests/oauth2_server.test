@@ -99,6 +99,7 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
       'default_scope' => 'basic',
       'enforce_state' => TRUE,
       'allow_implicit' => TRUE,
+      'use_openid_connect' => TRUE,
       'use_crypto_tokens' => FALSE,
       'store_encrypted_token_string' => FALSE,
       'require_exact_redirect_uri' => TRUE,
@@ -111,6 +112,7 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
       ),
       'always_issue_new_refresh_token' => TRUE,
       'access_lifetime' => 3600,
+      'id_lifetime' => 3600,
       'refresh_token_lifetime' => 1209600,
     );
     $server->save();
@@ -129,6 +131,10 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
       'basic' => 'Basic',
       'admin' => 'Admin',
       'forbidden' => 'Forbidden',
+      'openid' => 'OpenID Connect',
+      'email' => 'email',
+      'phone' => 'phone',
+      'offline_access' => 'Offline Access',
     );
     foreach ($scopes as $scope_name => $scope_label) {
       $scope = entity_create('oauth2_server_scope', array());
@@ -148,14 +154,19 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
    * @return
    *   The return value of $this->httpRequest().
    */
-  protected function authorizationCodeRequest($response_type) {
+  protected function authorizationCodeRequest($response_type, $scope = NULL) {
     $query = array(
       'response_type' => $response_type,
       'client_id' => $this->client_key,
       'state' => drupal_get_token($this->client_key),
       // The "authorized" url doesn't actually exist, but we don't need it.
       'redirect_uri' => url('authorized', array('absolute' => TRUE)),
+      // OpenID Connect requests require a nonce. Others ignore it.
+      'nonce' => 'test',
     );
+    if ($scope) {
+      $query['scope'] = $scope;
+    }
 
     $authorize_url = url('oauth2/authorize', array('absolute' => TRUE, 'query' => $query));
     return $this->httpRequest($authorize_url);
@@ -377,6 +388,122 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
   }
 
   /**
+   * Tests the OpenID Connect authorization code flow.
+   */
+  function testOpenIdConnectAuthorizationCodeFlow() {
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
+    $this->drupalLogin($user);
+
+    // Perform authorization without the offline_access scope.
+    // No refresh_token should be returned from the /token endpoint.
+    $result = $this->authorizationCodeRequest('code', 'openid');
+    $redirect_url_parts = explode('?', $result->redirect_url);
+    $redirect_url_params = drupal_get_query_array($redirect_url_parts[1]);
+    $authorization_code = $redirect_url_params['code'];
+
+    $token_url = url('oauth2/token', array('absolute' => TRUE));
+    $data = array(
+      'grant_type' => 'authorization_code',
+      'code' => $authorization_code,
+      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
+    );
+    $options = array(
+      'method' => 'POST',
+      'data' => http_build_query($data),
+      'headers' => array(
+        'Content-Type' => 'application/x-www-form-urlencoded',
+        'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
+      ),
+    );
+    $result = $this->httpRequest($token_url, $options);
+
+    $this->assertEqual($result->code, 200, 'The token request completed successfully');
+    $response = json_decode($result->data);
+    $this->assertTokenResponse($response, FALSE);
+    if (!empty($response->id_token)) {
+      $this->assertIdToken($response->id_token);
+    }
+    else {
+      $this->assertTrue(FALSE, 'The token request returned an id_token.');
+    }
+
+    // Perform authorization witho the offline_access scope.
+    // A refresh_token should be returned from the /token endpoint.
+    $result = $this->authorizationCodeRequest('code', 'openid offline_access');
+    $redirect_url_parts = explode('?', $result->redirect_url);
+    $redirect_url_params = drupal_get_query_array($redirect_url_parts[1]);
+    $authorization_code = $redirect_url_params['code'];
+
+    $token_url = url('oauth2/token', array('absolute' => TRUE));
+    $data = array(
+      'grant_type' => 'authorization_code',
+      'code' => $authorization_code,
+      'redirect_uri' => url('authorized', array('absolute' => TRUE)),
+    );
+    $options = array(
+      'method' => 'POST',
+      'data' => http_build_query($data),
+      'headers' => array(
+        'Content-Type' => 'application/x-www-form-urlencoded',
+        'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
+      ),
+    );
+    $result = $this->httpRequest($token_url, $options);
+
+    $this->assertEqual($result->code, 200, 'The token request completed successfully');
+    $response = json_decode($result->data);
+    $this->assertTokenResponse($response);
+    if (!empty($response->id_token)) {
+      $this->assertIdToken($response->id_token);
+    }
+    else {
+      $this->assertTrue(FALSE, 'The token request returned an id_token.');
+    }
+  }
+
+  /**
+   * Tests the OpenID Connect implicit flow.
+   */
+  function testOpenIdConnectImplicitFlow() {
+    $user = $this->drupalCreateUser(array('use oauth2 server'));
+    $this->drupalLogin($user);
+    $result = $this->authorizationCodeRequest('id_token', 'openid email');
+    $this->assertEqual($result->code, 302, 'The "id_token" implicit flow request completed successfully');
+    $redirect_url_parts = explode('#', $result->redirect_url);
+    $response = drupal_get_query_array($redirect_url_parts[1]);
+    if (!empty($response['id_token'])) {
+      $this->assertIdToken($response['id_token'], FALSE, $user);
+    }
+    else {
+      $this->assertTrue(FALSE, 'The token request returned an id_token.');
+    }
+
+    $result = $this->authorizationCodeRequest('token id_token', 'openid email phone');
+    $this->assertEqual($result->code, 302, 'The "token id_token" implicit flow request completed successfully');
+    $redirect_url_parts = explode('#', $result->redirect_url);
+    $response = drupal_get_query_array($redirect_url_parts[1]);
+    $this->assertTokenResponse($response, FALSE);
+    if (!empty($response['id_token'])) {
+      $this->assertIdToken($response['id_token'], TRUE);
+    }
+    else {
+      $this->assertTrue(FALSE, 'The token request returned an id_token.');
+    }
+
+    $query = array(
+      'access_token' => $response['access_token'],
+    );
+    $info_url = url('oauth2/UserInfo', array('absolute' => TRUE, 'query' => $query));
+    $result = $this->httpRequest($info_url);
+    $response = json_decode($result->data);
+    $this->assertEqual($response->sub, $user->name, 'The UserInfo endpoint returned a valid "sub" claim');
+    $this->assertEqual($response->email, $user->mail, 'The UserInfo endpoint returned a valid "email" claim');
+    $this->assertEqual($response->email_verified, TRUE, 'The UserInfo endpoint returned a valid "email_verified" claim');
+    $this->assertEqual($response->phone_number, '123456', 'The UserInfo endpoint returned a valid "phone_number" claim');
+    $this->assertEqual($response->phone_number_verified, FALSE, 'The UserInfo endpoint returned a valid "phone_number_verified" claim');
+  }
+
+  /**
    * Tests crypto tokens.
    */
   public function testCryptoTokens() {
@@ -514,6 +641,50 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
     );
 
     return drupal_http_request($url, $options);
+  }
+
+  /**
+   * Assert that the given id_token response has the expected values.
+   *
+   * @param $id_token
+   *   The id_token.
+   * @param $has_at_hash
+   *   Whether the token is supposed to contain the at_hash claim.
+   * @param $account
+   *   The account of the authenticated user, if the id_token is supposed
+   *   to contain user claims.
+   */
+  protected function assertIdToken($id_token, $has_at_hash = FALSE, $account = NULL) {
+    $parts = explode('.', $id_token);
+    list($headerb64, $claims64, $signatureb64) = $parts;
+    $header = json_decode(oauth2_server_base64url_decode($headerb64), TRUE);
+    $claims = json_decode(oauth2_server_base64url_decode($claims64), TRUE);
+    $signature = oauth2_server_base64url_decode($signatureb64);
+
+    $payload = utf8_decode($headerb64 . '.' . $claims64);
+    $verified = openssl_verify($payload, $signature, $this->public_key, 'sha256');
+    $this->assertTrue($verified, 'The id_token has a valid signature.');
+
+    $this->assertTrue(array_key_exists('iss', $claims), 'The id_token contains an "iss" claim.');
+    $this->assertTrue(array_key_exists('sub', $claims), 'The id_token contains a "sub" claim.');
+    $this->assertTrue(array_key_exists('aud', $claims), 'The id_token contains an "aud" claim.');
+    $this->assertTrue(array_key_exists('iat', $claims), 'The id_token contains an "iat" claim.');
+    $this->assertTrue(array_key_exists('exp', $claims), 'The id_token contains an "exp" claim.');
+    $this->assertTrue(array_key_exists('auth_time', $claims), 'The id_token contains an "auth_time" claim.');
+    $this->assertTrue(array_key_exists('nonce', $claims), 'The id_token contains a "nonce" claim');
+    if ($has_at_hash) {
+      $this->assertTrue(array_key_exists('at_hash', $claims), 'The id_token contains an "at_hash" claim.');
+    }
+    if ($account) {
+      $this->assertTrue(array_key_exists('email', $claims), 'The id_token contains an "email" claim.');
+      $this->assertTrue(array_key_exists('email_verified', $claims), 'The id_token contains an "email_verified" claim.');
+    }
+
+    $this->assertEqual($claims['aud'], $this->client_key, 'The id_token "aud" claim contains the expected client_id.');
+    $this->assertEqual($claims['nonce'], 'test', 'The id_token "nonce" claim contains the expected nonce.');
+    if ($account) {
+      $this->assertEqual($claims['email'], $account->mail);
+    }
   }
 
   /**

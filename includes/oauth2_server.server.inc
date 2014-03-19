@@ -28,6 +28,7 @@ class OAuth2Server extends Entity {
     'default_scope' => '',
     'enforce_state' => TRUE,
     'allow_implicit' => FALSE,
+    'use_openid_connect' => FALSE,
     'use_crypto_tokens' => FALSE,
     'store_encrypted_token_string' => FALSE,
     'require_exact_redirect_uri' => TRUE,
@@ -36,6 +37,7 @@ class OAuth2Server extends Entity {
       'refresh_token' => 'refresh_token',
     ),
     'access_lifetime' => 3600,
+    'id_lifetime' => 3600,
     'refresh_token_lifetime' => 1209600,
   );
 

@@ -81,6 +81,10 @@ class OAuth2ServerUIController extends EntityDefaultUIController {
  * Generates the server editing form.
  */
 function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
+  // Make sure all needed settings keys are set, to prevent notices.
+  $new_server = entity_create('oauth2_server', array());
+  $server->settings += $new_server->settings;
+
   if ($op == 'clone') {
     $server->label .= ' (cloned)';
   }
@@ -125,6 +129,13 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     '#title' => t('Allow the implicit flow'),
     '#description' => t('Allows clients to receive an access token without the need for an authorization request token.'),
     '#default_value' => !empty($server->settings['allow_implicit']),
+  );
+  $form['settings']['use_openid_connect'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use OpenID Connect'),
+    '#description' => t("Strongly recommended for login providers."),
+    '#default_value' => !empty($server->settings['use_openid_connect']),
+    '#access' => extension_loaded('openssl'),
   );
   $documentation_link = l('documentation', 'http://bshaffer.github.io/oauth2-server-php-docs/overview/crypto-tokens');
   $form['settings']['use_crypto_tokens'] = array(
@@ -173,6 +184,18 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     '#default_value' => $server->settings['access_lifetime'],
     '#size' => 11,
   );
+  $form['settings']['advanced_settings']['id_lifetime'] = array(
+    '#type' => 'textfield',
+    '#title' => t('ID token lifetime'),
+    '#description' => t('The number of seconds the ID token will be valid for.'),
+    '#default_value' => $server->settings['id_lifetime'],
+    '#size' => 11,
+    '#states' => array(
+      'visible' => array(
+        '#edit-settings-use-openid-connect' => array('checked' => TRUE),
+      ),
+    ),
+  );
   $form['settings']['advanced_settings']['refresh_token_lifetime'] = array(
     '#type' => 'textfield',
     '#title' => t('Refresh token lifetime'),
@@ -219,12 +242,46 @@ function oauth2_server_form_validate($form, &$form_state) {
  * Form API submit callback for the type form.
  */
 function oauth2_server_form_submit(&$form, &$form_state) {
+  // Save the previous / initial server settings for later comparison.
+  $previous_settings = $form_state['build_info']['args'][0]->settings;
   // Advanced settings are a part of the main settings array.
   $form_state['values']['settings'] += $form_state['values']['settings']['advanced_settings'];
   unset($form_state['values']['settings']['advanced_settings']);
   // Create the server from form values and save it.
   $server = entity_ui_form_submit_build_entity($form, $form_state);
   $server->save();
+  // If OpenID Connect was just enabled, create its scopes.
+  $previous_value = !empty($previous_settings['use_openid_connect']);
+  $current_value = !empty($server->settings['use_openid_connect']);
+  if (!$previous_value && $current_value) {
+    $site_name = variable_get('site_name', 'Drupal');
+    $openid_scopes = array(
+      'openid' => format_string('Know who you are on @site', array('@site' => $site_name)),
+      'offline_access' => "Access the API when you're not present.",
+      'email' => 'View your email address.',
+    );
+    foreach ($openid_scopes as $name => $description) {
+      $scope = entity_create('oauth2_server_scope', array());
+      $scope->server = $server->name;
+      $scope->name = $name;
+      $scope->description = $description;
+      $scope->save();
+    }
+  }
+  // If OpenID Connect was just disabled, delete its scopes.
+  if ($previous_value && !$current_value) {
+    $scope_names = array('openid', 'offline_access', 'email');
+    $scopes = oauth2_server_scope_load_multiple($server->name, $scope_names);
+    foreach ($scopes as $scope) {
+      $scope->delete();
+    }
+    // If we just deleted a default scope, update the server.
+    if (in_array($server->settings['default_scope'], $scope_names)) {
+      $server->settings['default_scope'] = '';
+      $server->save();
+    }
+  }
+
   $form_state['redirect'] = 'admin/structure/oauth2-servers';
 }
 

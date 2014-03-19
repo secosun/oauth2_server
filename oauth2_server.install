@@ -245,6 +245,10 @@ function oauth2_server_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'id_token' => array(
+        'description' => 'The id token, if OpenID Connect was used.',
+        'type' => 'text',
+      ),
     ),
     'primary key' => array('code_id'),
     'unique keys' => array(
@@ -380,4 +384,16 @@ function oauth2_server_update_7101() {
     'initial' => '',
   );
   db_add_field('oauth2_server_client', 'settings', $spec);
+}
+
+/**
+ *
+ * Adds the {oauth2_server_authorization_code}.id_token field.
+ */
+function oauth2_server_update_7102() {
+  $spec = array(
+    'description' => 'The id token, if OpenID Connect was used.',
+    'type' => 'text',
+  );
+  db_add_field('oauth2_server_authorization_code', 'id_token', $spec);
 }

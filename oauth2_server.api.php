@@ -23,6 +23,68 @@ function hook_oauth2_server_pre_authorize() {
 }
 
 /**
+ * Returns claims about the provided account for OpenID Connect purposes.
+ *
+ * The provided claims can be included in the id_token and / or returned from
+ * the /oauth2/UserInfo endpoint.
+ *
+ * Groups of claims are returned based on the requested scopes. No group
+ * is required, and no claim is required.
+ *
+ * Note: OAuth2 Server already provides claims for the email scope, so they
+ * don't need to be returned by this hook unless they need to be overriden.
+ *
+ * @param $account
+ *   The user account for which claims should be returned.
+ * @param array $requested_scopes
+ *   The requested scopes.
+ *   Scopes with matching claims: profile, email, address, phone.
+ *
+ * @return
+ *   An array in the claim => value format.
+ *
+ * @see http://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
+ */
+function hook_oauth2_server_user_claims($account, $requested_scopes) {
+  $claims = array();
+  if (in_array('profile', $requested_scopes)) {
+    $claims += array(
+      'name' => '',
+      'family_name' => '',
+      'given_name' => '',
+      'middle_name' => '',
+      'nickname' => '',
+      'preferred_username' => $account->name,
+      'profile' => '',
+      'picture' => '',
+      'website' => '',
+      'gender' => '',
+      'birthdate' => '',
+      'zoneinfo' => $account->timezone,
+      'updated_at' => $account->created,
+    );
+  }
+  if (in_array('address', $requested_scopes)) {
+    $claims += array(
+      'formatted' => '',
+      'street_address' => '',
+      'locality' => '',
+      'region' => '',
+      'postal_code' => '',
+      'country' => '',
+    );
+  }
+  if (in_array('phone', $requested_scopes)) {
+    $claims += array(
+      'phone_number' => '',
+      'phone_number_verified' => '',
+    );
+  }
+
+  return $claims;
+}
+
+/**
  * Returns the default scope for the provided server.
  *
  * Invoked by OAuth2_Scope_Drupal.
