@@ -613,6 +613,7 @@ function oauth2_server_cron() {
   $query = new EntityFieldQuery;
   $query
     ->entityCondition('entity_type', 'oauth2_server_token')
+    ->propertyCondition('expires', 0, '<>')
     ->propertyCondition('expires', REQUEST_TIME, '<=');
   $result = $query->execute();
   if ($result) {
