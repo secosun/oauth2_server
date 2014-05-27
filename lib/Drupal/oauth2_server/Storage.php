@@ -287,6 +287,11 @@ class Storage implements AuthorizationCodeInterface,
     $claims = array(
       'sub' => $username,
     );
+    if (in_array('profile', $scope)) {
+      if (!empty($user->timezone)) {
+        $claims['zoneinfo'] = $user->timezone;
+      }
+    }
     if (in_array('email', $scope)) {
       $claims['email'] = $user->mail;
       $claims['email_verified'] = variable_get('user_email_verification', TRUE);
