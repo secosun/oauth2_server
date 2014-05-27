@@ -574,7 +574,7 @@ function oauth2_server_authorization_code_load($code) {
  *   An array of authorization code entities indexed by their ids.
  */
 function oauth2_server_authorization_code_load_multiple($codes) {
-  return entity_load('oauth2_server_authorization_code', FALSE, array('codes' => $codes));
+  return entity_load('oauth2_server_authorization_code', FALSE, array('code' => $codes));
 }
 
 /**
