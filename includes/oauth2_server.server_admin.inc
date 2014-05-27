@@ -259,6 +259,7 @@ function oauth2_server_form_submit(&$form, &$form_state) {
       'openid' => format_string('Know who you are on @site', array('@site' => $site_name)),
       'offline_access' => "Access the API when you're not present.",
       'email' => 'View your email address.',
+      'profile' => 'View basic information about your account.',
     );
     foreach ($openid_scopes as $name => $description) {
       $scope = entity_create('oauth2_server_scope', array());
@@ -270,7 +271,7 @@ function oauth2_server_form_submit(&$form, &$form_state) {
   }
   // If OpenID Connect was just disabled, delete its scopes.
   if ($previous_value && !$current_value) {
-    $scope_names = array('openid', 'offline_access', 'email');
+    $scope_names = array('openid', 'offline_access', 'email', 'profile');
     $scopes = oauth2_server_scope_load_multiple($server->name, $scope_names);
     foreach ($scopes as $scope) {
       $scope->delete();
