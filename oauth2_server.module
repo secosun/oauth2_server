@@ -398,11 +398,11 @@ function oauth2_server_scope_access($op, $entity, $account, $entity_type) {
  *   The scope entity, or FALSE.
  */
 function oauth2_server_scope_load($server, $name) {
-  $conditions = array(
+  $values = array(
     'server' => $server,
     'name' => $name,
   );
-  $scopes = entity_load('oauth2_server_scope', FALSE, $conditions);
+  $scopes = oauth2_server_entity_load_by_properties('oauth2_server_scope', $values);
   return reset($scopes);
 }
 
@@ -418,11 +418,11 @@ function oauth2_server_scope_load($server, $name) {
  *   An array of scope entities indexed by their ids.
  */
 function oauth2_server_scope_load_multiple($server, $names) {
-  $conditions = array(
+  $values = array(
     'server' => $server,
     'name' => $names,
   );
-  return entity_load('oauth2_server_scope', FALSE, $conditions);
+  return oauth2_server_entity_load_by_properties('oauth2_server_scope', $values);
 }
 
 /**
@@ -494,7 +494,7 @@ function oauth2_server_client_access($op, $entity, $account, $entity_type) {
  *   The client entity, or FALSE.
  */
 function oauth2_server_client_load($client_key) {
-  $clients = entity_load('oauth2_server_client', FALSE, array('client_key' => $client_key));
+  $clients = oauth2_server_entity_load_by_properties('oauth2_server_client', array('client_key' => $client_key));
   return reset($clients);
 }
 
@@ -508,7 +508,7 @@ function oauth2_server_client_load($client_key) {
  *   An array of client entities indexed by their ids.
  */
 function oauth2_server_client_load_multiple($client_keys) {
-  return entity_load('oauth2_server_client', FALSE, array('client_key' => $client_keys));
+  return oauth2_server_entity_load_by_properties('oauth2_server_client', array('client_key' => $client_keys));
 }
 
 /**
@@ -533,7 +533,7 @@ function oauth2_server_oauth2_server_client_delete($client) {
  *   The token entity, or FALSE.
  */
 function oauth2_server_token_load($token) {
-  $tokens = entity_load('oauth2_server_token', FALSE, array('token' => $token));
+  $tokens = oauth2_server_entity_load_by_properties('oauth2_server_token', array('token' => $token));
   return reset($tokens);
 }
 
@@ -547,7 +547,7 @@ function oauth2_server_token_load($token) {
  *   An array of token entities indexed by their ids.
  */
 function oauth2_server_token_load_multiple($tokens) {
-  return entity_load('oauth2_server_token', FALSE, array('token' => $tokens));
+  return oauth2_server_entity_load_by_properties('oauth2_server_token', array('token' => $tokens));
 }
 
 /**
@@ -560,7 +560,7 @@ function oauth2_server_token_load_multiple($tokens) {
  *   The authorization code entity, or FALSE.
  */
 function oauth2_server_authorization_code_load($code) {
-  $codes = entity_load('oauth2_server_authorization_code', FALSE, array('code' => $code));
+  $codes = oauth2_server_entity_load_by_properties('oauth2_server_authorization_code', array('code' => $code));
   return reset($codes);
 }
 
@@ -574,7 +574,39 @@ function oauth2_server_authorization_code_load($code) {
  *   An array of authorization code entities indexed by their ids.
  */
 function oauth2_server_authorization_code_load_multiple($codes) {
-  return entity_load('oauth2_server_authorization_code', FALSE, array('code' => $codes));
+  return oauth2_server_entity_load_by_properties('oauth2_server_authorization_code', array('code' => $codes));
+}
+
+/**
+ * Loads oauth2_server entities by their property values.
+ *
+ * Modeled after Drupal 8's entity_load_by_properties().
+ * Uses EntityFieldQuery because entity_load($entity_type, $ids, $conditions)
+ * doesn't allow a condition to be an array.
+ *
+ * @param string $entity_type
+ *   The entity type to load, e.g. node or user.
+ * @param array $values
+ *   An associative array where the keys are the property names and the
+ *   values are the values those properties must have.
+ *
+ * @return array
+ *   An array of entity objects indexed by their ids.
+ */
+function oauth2_server_entity_load_by_properties($entity_type, array $values) {
+  $entities = array();
+  $query = new EntityFieldQuery;
+  $query->entityCondition('entity_type', $entity_type);
+  foreach ($values as $key => $value) {
+    $query->propertyCondition($key, $value);
+  }
+  $result = $query->execute();
+  if ($result) {
+    $entity_ids = array_keys($result[$entity_type]);
+    $entities = entity_load($entity_type, $entity_ids);
+  }
+
+  return $entities;
 }
 
 /**
