@@ -179,8 +179,7 @@ function oauth2_server_schema() {
       ),
       'redirect_uri' => array(
         'description' => 'The absolute URI to redirect to after authorization',
-        'type' => 'varchar',
-        'length' => 255,
+        'type' => 'text',
         'not null' => TRUE,
       ),
       'automatic_authorization' => array(
@@ -387,7 +386,6 @@ function oauth2_server_update_7101() {
 }
 
 /**
- *
  * Adds the {oauth2_server_authorization_code}.id_token field.
  */
 function oauth2_server_update_7102() {
@@ -396,4 +394,16 @@ function oauth2_server_update_7102() {
     'type' => 'text',
   );
   db_add_field('oauth2_server_authorization_code', 'id_token', $spec);
+}
+
+/**
+ * Convert the {oauth2_server_client}.redirect_uri field from varchar to text.
+ */
+function oauth2_server_update_7103() {
+  $spec = array(
+    'description' => 'The absolute URI to redirect to after authorization',
+    'type' => 'text',
+    'not null' => TRUE,
+  );
+  db_change_field('oauth2_server_client', 'redirect_uri', 'redirect_uri', $spec);
 }

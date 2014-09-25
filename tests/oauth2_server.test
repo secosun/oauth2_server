@@ -9,6 +9,7 @@
  * Test basic API.
  */
 class OAuth2ServerTestCase extends DrupalWebTestCase {
+
   protected $profile = 'testing';
 
   /**
@@ -123,7 +124,10 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
     $client->client_key = $this->client_key;
     $client->client_secret = $this->client_secret;
     $client->public_key = $this->public_key;
-    $client->redirect_uri = url('authorized', array('absolute' => TRUE));
+    // The module supports entering multiple redirect uris separated by a
+    // newline. Both a dummy and the real uri are specified to confirm that
+    // validation passes.
+    $client->redirect_uri = 'https://google.com' . "\n" . url('authorized', array('absolute' => TRUE));
     $client->automatic_authorization = TRUE;
     $client->save();
 

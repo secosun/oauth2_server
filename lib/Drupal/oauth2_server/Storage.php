@@ -40,7 +40,10 @@ class Storage implements AuthorizationCodeInterface,
         'client_id' => $client->client_key,
         'client_secret' => $client->client_secret,
         'public_key' => $client->public_key,
-        'redirect_uri' => $client->redirect_uri,
+        // The library expects multiple redirect uris to be separated by
+        // a space, but the module separates them by a newline, matching
+        // Drupal behavior in other areas.
+        'redirect_uri' => str_replace(array("\r\n", "\r", "\n"), ' ', $client->redirect_uri),
       );
     }
 

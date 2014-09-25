@@ -186,10 +186,10 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
   );
 
   $form['redirect_uri'] = array(
-    '#title' => t('Redirect URI'),
-    '#type' => 'textfield',
+    '#title' => t('Redirect URIs'),
+    '#type' => 'textarea',
     '#default_value' => $client->redirect_uri,
-    '#description' => t('The absolute URI to redirect to after authorization'),
+    '#description' => t('The absolute URIs to validate against. Enter one value per line.'),
     '#required' => TRUE,
     '#weight' => -1,
   );
