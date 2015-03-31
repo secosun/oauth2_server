@@ -40,6 +40,13 @@ class OAuth2ServerToken extends Entity {
    */
   public $expires;
 
+  /**
+   * The Unix timestamp when the token was last used.
+   *
+   * @var integer
+   */
+  public $last_access;
+
   public function __construct($values = array()) {
     parent::__construct($values, 'oauth2_server_token');
   }

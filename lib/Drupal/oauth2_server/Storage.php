@@ -80,32 +80,51 @@ class Storage implements AuthorizationCodeInterface,
   /* AccessTokenInterface */
   public function getAccessToken($access_token) {
     $token = oauth2_server_token_load($access_token);
-    if ($token) {
-      $token_wrapper = entity_metadata_wrapper('oauth2_server_token', $token);
-      $scopes = array();
-      foreach ($token_wrapper->scopes as $scope_wrapper) {
-        $scopes[] = $scope_wrapper->name->value();
-      }
-      // Return a token array in the format expected by the library.
-      $token = array(
-        'server' => $token_wrapper->client->server->raw(),
-        'client_id' => $token_wrapper->client->client_key->value(),
-        'user_id' => $token->uid ? $token_wrapper->user->name->value() : NULL,
-        'access_token' => $token_wrapper->token->value(),
-        'expires' => (int) $token_wrapper->expires->value(),
-        'scope' => implode(' ', $scopes),
-      );
-      if (!empty($token['user_id']) && module_exists('uuid')) {
-        $token['user_uuid'] = $token_wrapper->user->uuid->value();
-      }
-
-      // If the user is blocked, deny access.
-      if (!empty($token['user_id']) && !$token_wrapper->user->status->value()) {
-        $token = FALSE;
-      }
+    if (!$token) {
+      return FALSE;
     }
 
-    return $token;
+    $token_wrapper = entity_metadata_wrapper('oauth2_server_token', $token);
+
+    // If the user is blocked, deny access.
+    if ($token->uid && !$token_wrapper->user->status->value()) {
+      return FALSE;
+    }
+
+    $scopes = array();
+    foreach ($token_wrapper->scopes as $scope_wrapper) {
+      $scopes[] = $scope_wrapper->name->value();
+    }
+    // Return a token array in the format expected by the library.
+    $token_array = array(
+      'server' => $token_wrapper->client->server->raw(),
+      'client_id' => $token_wrapper->client->client_key->value(),
+      'user_id' => $token->uid ? $token_wrapper->user->name->value() : NULL,
+      'access_token' => $token_wrapper->token->value(),
+      'expires' => (int) $token_wrapper->expires->value(),
+      'scope' => implode(' ', $scopes),
+    );
+    if (!empty($token_array['user_id']) && module_exists('uuid')) {
+      $token_array['user_uuid'] = $token_wrapper->user->uuid->value();
+    }
+
+    // Track last access on the token.
+    $this->logAccessTime($token);
+
+    return $token_array;
+  }
+
+  /**
+   * Track the time the token was accessed.
+   *
+   * @param \OAuth2ServerToken $token
+   */
+  protected function logAccessTime(\OAuth2ServerToken $token)
+  {
+    if ($token->last_access != REQUEST_TIME) {
+      $token->last_access = REQUEST_TIME;
+      $token->save();
+    }
   }
 
   public function setAccessToken($access_token, $client_key, $username, $expires, $scope = null) {

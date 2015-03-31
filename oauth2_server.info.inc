@@ -79,6 +79,14 @@ class OAuth2ServerTokenMetadataController extends EntityDefaultMetadataControlle
       'description' => t('The time when the token expires.'),
     ) + $expires;
 
+    $last_access = !empty($properties['last_access']) ? $properties['last_access'] : array();
+    $properties['last_access'] = array(
+        'type' => 'date',
+        'setter callback' => 'entity_property_verbatim_set',
+        'label' => t('Last access'),
+        'description' => t('The time the token was last used.'),
+      ) + $last_access;
+
     return $info;
   }
 }

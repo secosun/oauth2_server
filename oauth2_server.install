@@ -294,6 +294,12 @@ function oauth2_server_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'last_access' => array(
+        'description' => 'The Unix timestamp when the token was last used.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'primary key' => array('token_id'),
     'unique keys' => array(
@@ -407,4 +413,17 @@ function oauth2_server_update_7103() {
     'not null' => TRUE,
   );
   db_change_field('oauth2_server_client', 'redirect_uri', 'redirect_uri', $spec);
+}
+
+/**
+ * Adds the {oauth2_server_token}.last_access field.
+ */
+function oauth2_server_update_7104() {
+  $spec = array(
+    'description' => 'The Unix timestamp when the token was last used.',
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_add_field('oauth2_server_token', 'last_access', $spec);
 }
