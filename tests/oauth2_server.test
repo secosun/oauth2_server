@@ -578,6 +578,39 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
   }
 
   /**
+   * Test that access is denied when using a token for a blocked user.
+   */
+  public function testBlockedUserTokenFails() {
+    // Get a normal access token for a normal user.
+    $result = $this->passwordGrantRequest('admin');
+    $response = json_decode($result->data);
+    $access_token = $response->access_token;
+
+    // Check resource access while the user is active.
+    $resource_url = url('oauth2_test/resource/admin', array('absolute' => TRUE));
+    $options = array(
+      'headers' => array(
+        'Authorization' => 'Bearer ' . $access_token,
+      ),
+    );
+    $result = $this->httpRequest($resource_url, $options);
+    $this->assertEqual($result->code, 200, 'An active user is correctly authenticated.');
+
+    // Block the user.
+    user_save($this->loggedInUser, array('status' => 0));
+
+    // Check resource access while the user is blocked.
+    $resource_url = url('oauth2_test/resource/admin', array('absolute' => TRUE));
+    $options = array(
+      'headers' => array(
+        'Authorization' => 'Bearer ' . $access_token,
+      ),
+    );
+    $result = $this->httpRequest($resource_url, $options);
+    $this->assertEqual($result->code, 403, 'A blocked user is denied access with 403 Forbidden.');
+  }
+
+  /**
    * Performs a password grant request and returns it.
    *
    * Used to test the grant itself, as well as a helper for other tests

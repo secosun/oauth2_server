@@ -98,6 +98,11 @@ class Storage implements AuthorizationCodeInterface,
       if (!empty($token['user_id']) && module_exists('uuid')) {
         $token['user_uuid'] = $token_wrapper->user->uuid->value();
       }
+
+      // If the user is blocked, deny access.
+      if (!empty($token['user_id']) && !$token_wrapper->user->status->value()) {
+        $token = FALSE;
+      }
     }
 
     return $token;
@@ -259,7 +264,7 @@ class Storage implements AuthorizationCodeInterface,
       $account = user_load_by_mail($username);
     }
 
-    if ($account) {
+    if ($account && $account->status) {
       require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
       return user_check_password($password, $account);
     }
