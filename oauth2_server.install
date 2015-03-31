@@ -346,8 +346,9 @@ function oauth2_server_schema() {
 function oauth2_server_uninstall() {
   // Delete attached fields.
   field_attach_delete_bundle('oauth2_server_authorization_code', 'oauth2_server_authorization_code');
-  field_attach_delete_bundle('oauth2_server_token', 'access');
-  field_attach_delete_bundle('oauth2_server_token', 'refresh');
+  foreach (array_keys(oauth2_server_token_bundles()) as $bundle) {
+    field_attach_delete_bundle('oauth2_server_token', $bundle);
+  }
 
   variable_del('oauth2_server_keys');
   variable_del('oauth2_server_keys_last_generated');

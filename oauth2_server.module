@@ -257,14 +257,7 @@ function oauth2_server_entity_info() {
       'id' => 'token_id',
       'bundle' => 'type',
     ),
-    'bundles' => array(
-      'access' => array(
-        'label' => t('Access token'),
-      ),
-      'refresh' => array(
-        'label' => t('Refresh token')
-      ),
-    ),
+    'bundles' => oauth2_server_token_bundles(),
     'module' => 'oauth2_server',
     'metadata controller class' => 'OAuth2ServerTokenMetadataController',
     'views controller class' => 'EntityDefaultViewsController',
@@ -285,6 +278,25 @@ function oauth2_server_entity_info() {
   );
 
   return $items;
+}
+
+/**
+ * Define the available token bundles.
+ *
+ * @return array
+ *   An array as expected by the 'bundles' key in hook_entity_info().
+ */
+function oauth2_server_token_bundles() {
+  $bundles = array(
+    'access' => array(
+      'label' => t('Access token'),
+    ),
+    'refresh' => array(
+      'label' => t('Refresh token')
+    ),
+  );
+  drupal_alter(__FUNCTION__, $bundles);
+  return $bundles;
 }
 
 /**
@@ -310,7 +322,7 @@ function oauth2_server_flush_caches() {
   // Go over all bundles that should have an instance of the scopes field,
   // and create the instance where missing.
   $needed_instances = array(
-    'oauth2_server_token' => array('access', 'refresh'),
+    'oauth2_server_token' => array_keys(oauth2_server_token_bundles()),
     'oauth2_server_authorization_code' => array('oauth2_server_authorization_code'),
   );
   foreach ($needed_instances as $entity_type => $bundles) {
