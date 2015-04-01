@@ -226,7 +226,7 @@ function oauth2_server_userinfo() {
  * Page callback: Returns the server's certificates.
  *
  * Clients use this callback to get the public key certificates used to verify
- * encrypted tokens (crypto token, OpenID Connect) sent by the server.
+ * encrypted tokens (JWT Access token, OpenID Connect) sent by the server.
  *
  * @return
  *   An array of X.509 certificates.

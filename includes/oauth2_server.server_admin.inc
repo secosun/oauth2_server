@@ -137,11 +137,11 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     '#default_value' => !empty($server->settings['use_openid_connect']),
     '#access' => extension_loaded('openssl'),
   );
-  $documentation_link = l('documentation', 'http://bshaffer.github.io/oauth2-server-php-docs/overview/crypto-tokens');
+  $documentation_link = l('documentation', 'http://bshaffer.github.io/oauth2-server-php-docs/overview/jwt-access-tokens/');
   $form['settings']['use_crypto_tokens'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Use crypto tokens'),
-    '#description' => t("Sends encrypted access tokens that aren't stored in the database. See the !documentation for more details.", array('!documentation' => $documentation_link)),
+    '#title' => t('Use JWT Access Tokens'),
+    '#description' => t("Sends encrypted JWT access tokens that aren't stored in the database. See the !documentation for more details.", array('!documentation' => $documentation_link)),
     '#default_value' => !empty($server->settings['use_crypto_tokens']),
     '#access' => extension_loaded('openssl'),
   );

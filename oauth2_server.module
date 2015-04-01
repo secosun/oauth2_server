@@ -701,7 +701,7 @@ function oauth2_server_cron() {
  * Returns whether the current site needs to have keys generated.
  *
  * @return
- *   TRUE if at least one server uses crypto tokens or OpenID Connect,
+ *   TRUE if at least one server uses JWT Access Tokens or OpenID Connect,
  *   FALSE otherwise.
  */
 function oauth2_server_site_needs_keys() {
@@ -809,6 +809,11 @@ function oauth2_server_start($server = NULL) {
     $settings = $server->settings + array(
       'issuer' => url(NULL, array('absolute' => TRUE, 'https' => TRUE)),
     );
+
+    // The setting 'use_crypto_tokens' was changed to 'use_jwt_access_tokens' in
+    // v1.6 of the library. So this provides both.
+    $settings['use_jwt_access_tokens'] = $settings['use_crypto_tokens'] ?: FALSE;
+
     // Initialize the server and add the scope util.
     $oauth2_server = new OAuth2\Server($storage, $settings);
     $scope_util = new Drupal\oauth2_server\Scope($server);

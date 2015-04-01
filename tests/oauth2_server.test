@@ -542,15 +542,15 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
 
     $verified = FALSE;
     if (substr_count($response->access_token, '.') == 2) {
-      // Verify the crypto token following the instructions from
-      // http://bshaffer.github.io/oauth2-server-php-docs/overview/crypto-tokens
+      // Verify the JTW Access token following the instructions from
+      // http://bshaffer.github.io/oauth2-server-php-docs/overview/jwt-access-tokens
       list($header, $payload, $signature) = explode('.', $response->access_token);
       // The signature is "url safe base64 encoded".
       $signature = base64_decode(strtr($signature, '-_,', '+/'));
       $payload_to_verify = utf8_decode($header . '.' . $payload);
       $verified = openssl_verify($payload_to_verify, $signature, $this->public_key, 'sha256');
     }
-    $this->assertTrue($verified, 'The crypto token is valid.');
+    $this->assertTrue($verified, 'The JWT Access Token is valid.');
   }
 
   /**
