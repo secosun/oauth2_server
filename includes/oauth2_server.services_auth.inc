@@ -22,7 +22,7 @@ function oauth2_server_services_authenticate_call($auth_settings, $controller, $
   // If the resource owner is known, switch the current user to it.
   if ($token['user_id']) {
     global $user;
-    $user = user_load_by_name($token['user_id']);
+    $user = user_load($token['user_id']);
   }
 }
 

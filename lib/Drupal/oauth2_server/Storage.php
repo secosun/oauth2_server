@@ -99,7 +99,7 @@ class Storage implements AuthorizationCodeInterface,
     $token_array = array(
       'server' => $token_wrapper->client->server->raw(),
       'client_id' => $token_wrapper->client->client_key->value(),
-      'user_id' => $token->uid ? $token_wrapper->user->name->value() : NULL,
+      'user_id' => $token->uid ? $token_wrapper->user->uid->value() : NULL,
       'access_token' => $token_wrapper->token->value(),
       'expires' => (int) $token_wrapper->expires->value(),
       'scope' => implode(' ', $scopes),
@@ -127,7 +127,7 @@ class Storage implements AuthorizationCodeInterface,
     }
   }
 
-  public function setAccessToken($access_token, $client_key, $username, $expires, $scope = null) {
+  public function setAccessToken($access_token, $client_key, $uid, $expires, $scope = null) {
     $client = oauth2_server_client_load($client_key);
     if (!$client) {
       throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
@@ -138,10 +138,8 @@ class Storage implements AuthorizationCodeInterface,
     if (!$token) {
       // The username is not required, the "Client credentials" grant type
       // doesn't provide it, for instance.
-      $uid = 0;
-      if ($username) {
-        $user = user_load_by_name($username);
-        $uid = $user->uid;
+      if (!$uid || !user_load($uid)) {
+        $uid = 0;
       }
 
       $token = entity_create('oauth2_server_token', array('type' => 'access'));
@@ -170,7 +168,7 @@ class Storage implements AuthorizationCodeInterface,
       $code = array(
         'server' => $code_wrapper->client->server->raw(),
         'client_id' => $code_wrapper->client->client_key->value(),
-        'user_id' => $code_wrapper->user->name->value(),
+        'user_id' => $code_wrapper->user->uid->value(),
         'authorization_code' => $code_wrapper->code->value(),
         'redirect_uri' => $code_wrapper->redirect_uri->value(),
         'expires' => (int) $code_wrapper->expires->value(),
@@ -185,7 +183,7 @@ class Storage implements AuthorizationCodeInterface,
     return $code;
   }
 
-  public function setAuthorizationCode($code, $client_key, $username, $redirect_uri, $expires, $scope = null, $id_token = null) {
+  public function setAuthorizationCode($code, $client_key, $uid, $redirect_uri, $expires, $scope = null, $id_token = null) {
     $client = oauth2_server_client_load($client_key);
     if (!$client) {
       throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
@@ -194,14 +192,14 @@ class Storage implements AuthorizationCodeInterface,
     // If no code was found, start with a new entity.
     $authorization_code = oauth2_server_authorization_code_load($code);
     if (!$authorization_code) {
-      $user = user_load_by_name($username);
+      $user = user_load($uid);
       if (!$user) {
         throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
       }
 
       $authorization_code = entity_create('oauth2_server_authorization_code', array());
       $authorization_code->client_id = $client->client_id;
-      $authorization_code->uid = $user->uid;
+      $authorization_code->uid = $uid;
       $authorization_code->code = $code;
       $authorization_code->id_token = $id_token;
     }
@@ -299,20 +297,23 @@ class Storage implements AuthorizationCodeInterface,
     }
 
     if ($account) {
-      // The default library behavior is to use the username as the user_id.
-      return array('user_id' => $account->name);
+      return array('user_id' => $account->uid);
     }
 
     return FALSE;
   }
 
   /* UserClaimsInterface */
-  public function getUserClaims($username, $scope) {
-    $user = user_load_by_name($username);
+  public function getUserClaims($uid, $scope) {
+    $user = user_load($uid);
+    if (!$user) {
+      throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
+    }
     $scope = explode(' ', trim($scope));
+    $sub_property = variable_get('oauth2_server_user_sub_property', 'uid');
     // Prepare the default claims.
     $claims = array(
-      'sub' => $username,
+      'sub' => isset($user->$sub_property) ? $user->$sub_property : $user->uid,
     );
     if (in_array('profile', $scope)) {
       if (!empty($user->timezone)) {
@@ -342,7 +343,7 @@ class Storage implements AuthorizationCodeInterface,
       $token = array(
         'server' => $token_wrapper->client->server->raw(),
         'client_id' => $token_wrapper->client->client_key->value(),
-        'user_id' => $token_wrapper->user->name->value(),
+        'user_id' => $token_wrapper->user->uid->value(),
         'refresh_token' => $token_wrapper->token->value(),
         'expires' => (int) $token_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
@@ -355,7 +356,7 @@ class Storage implements AuthorizationCodeInterface,
     return $token;
   }
 
-  public function setRefreshToken($refresh_token, $client_key, $username, $expires, $scope = null) {
+  public function setRefreshToken($refresh_token, $client_key, $uid, $expires, $scope = null) {
     // If no token was found, start with a new entity.
     $token = oauth2_server_token_load($refresh_token);
     if (!$token) {
@@ -363,14 +364,14 @@ class Storage implements AuthorizationCodeInterface,
       if (!$client) {
         throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
       }
-      $user = user_load_by_name($username);
+      $user = user_load($uid);
       if (!$user) {
         throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
       }
 
       $token = entity_create('oauth2_server_token', array('type' => 'refresh'));
       $token->client_id = $client->client_id;
-      $token->uid = $user->uid;
+      $token->uid = $uid;
       $token->token = $refresh_token;
     }
 

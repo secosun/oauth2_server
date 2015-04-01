@@ -53,7 +53,7 @@ function oauth2_server_authorize_page() {
   $response = new OAuth2\Response();
   if ($client && $client->automatic_authorization) {
     unset($_SESSION['oauth2_server_authorize']);
-    $oauth2_server->handleAuthorizeRequest($request, $response, TRUE, $user->name);
+    $oauth2_server->handleAuthorizeRequest($request, $response, TRUE, $user->uid);
     return oauth2_server_send_response($response);
   }
   else {
@@ -140,7 +140,7 @@ function oauth2_server_authorize_form_submit($form, &$form_state) {
   // Finish the authorization request.
   $response = new OAuth2\Response();
   $oauth2_server = oauth2_server_start($server);
-  $oauth2_server->handleAuthorizeRequest($request, $response, $authorized, $user->name);
+  $oauth2_server->handleAuthorizeRequest($request, $response, $authorized, $user->uid);
   return oauth2_server_send_response($response);
 }
 

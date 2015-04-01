@@ -359,6 +359,7 @@ function oauth2_server_uninstall() {
   variable_del('oauth2_server_keys');
   variable_del('oauth2_server_keys_last_generated');
   variable_del('oauth2_server_next_certificate_id');
+  variable_del('oauth2_server_user_sub_property');
 }
 
 /**
@@ -426,4 +427,12 @@ function oauth2_server_update_7104() {
     'default' => 0,
   );
   db_add_field('oauth2_server_token', 'last_access', $spec);
+}
+
+/**
+ * Set the OpenID Connect 'sub' to the user name (the default for new installs
+ * is the UID).
+ */
+function oauth2_server_update_7105() {
+  variable_set('oauth2_server_user_sub_property', 'name');
 }
