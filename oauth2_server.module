@@ -124,19 +124,36 @@ function oauth2_server_permission() {
 }
 
 /**
+ * Delete a user's tokens.
+ *
+ * @param int $uid
+ */
+function oauth2_server_delete_user_tokens($uid) {
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'oauth2_server_token');
+  $query->propertyCondition('uid', $uid);
+  $result = $query->execute();
+  if (!empty($result['oauth2_server_token'])) {
+    $token_ids = array_keys($result['oauth2_server_token']);
+    entity_delete_multiple('oauth2_server_token', $token_ids);
+  }
+}
+
+/**
+ * Implements hook_user_delete().
+ */
+function oauth2_server_user_delete($account) {
+  // Delete a user's tokens if the account is deleted.
+  oauth2_server_delete_user_tokens($account->uid);
+}
+
+/**
  * Implements hook_user_update().
  */
 function oauth2_server_user_update(&$edit, $account) {
   // Delete a user's tokens if the account is blocked.
   if ($account->status == 0) {
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'oauth2_server_token');
-    $query->propertyCondition('uid', $account->uid);
-    $result = $query->execute();
-    if (!empty($result['oauth2_server_token'])) {
-      $token_ids = array_keys($result['oauth2_server_token']);
-      entity_delete_multiple('oauth2_server_token', $token_ids);
-    }
+    oauth2_server_delete_user_tokens($account->uid);
   }
 }
 
