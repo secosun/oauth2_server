@@ -914,19 +914,18 @@ function oauth2_server_get_client_credentials(Oauth2\Request $request) {
 }
 
 /**
- * Verifies access for the passed server and scope.
+ * Check access for the passed server and scope.
  *
- * @param $server_name
+ * @param string $server_name
  *   The name of the server for which access should be verified.
- * @param $scope
+ * @param string $scope
  *   An optional string of space-separated scopes to check.
  *
- * @return
- *   A valid access token if found.
- *   If the access check fails, execution is aborted and an error response is
- *   sent to the user.
+ * @return \OAuth2\Response|array
+ *   A valid access token if found, otherwise an \OAuth2\Response object
+ *   containing an appropriate response message and status code.
  */
-function oauth2_server_verify_access($server_name, $scope = NULL) {
+function oauth2_server_check_access($server_name, $scope = NULL) {
   // Disable the page cache to ensure access to the resource is not granted
   // longer than allowed.
   drupal_page_is_cacheable(FALSE);
@@ -937,14 +936,14 @@ function oauth2_server_verify_access($server_name, $scope = NULL) {
   $token = $oauth2_server->getAccessTokenData(OAuth2\Request::createFromGlobals(), $response, $scope);
   // If there's no token, that means validation failed. Stop here.
   if (!$token) {
-    return oauth2_server_send_response($response);
+    return $response;
   }
 
   // Make sure that the token we have matches our server.
   if ($token['server'] != $server->name) {
     $response->setError(401, 'invalid_grant', 'The access token provided is invalid');
     $response->addHttpHeaders(array('WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope)));
-    return oauth2_server_send_response($response);
+    return $response;
   }
 
   // Check scope, if provided
@@ -953,10 +952,34 @@ function oauth2_server_verify_access($server_name, $scope = NULL) {
   if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$scope_util->checkScope($scope, $token["scope"]))) {
     $response->setError(401, 'insufficient_scope', 'The request requires higher privileges than provided by the access token');
     $response->addHttpHeaders(array('WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope)));
-    return oauth2_server_send_response($response);
+    return $response;
   }
 
   return $token;
+}
+
+/**
+ * Verifies access for the passed server and scope.
+ *
+ * @param $server_name
+ *   The name of the server for which access should be verified.
+ * @param $scope
+ *   An optional string of space-separated scopes to check.
+ *
+ * @see oauth2_server_check_access()
+ *
+ * @return array
+ *   A valid access token if found.
+ *   If the access check fails, execution is aborted and an error response is
+ *   sent to the user.
+ */
+function oauth2_server_verify_access($server_name, $scope = NULL) {
+  $result = oauth2_server_check_access($server_name, $scope);
+  if ($result instanceof \OAuth2\Response) {
+    oauth2_server_send_response($result);
+  }
+
+  return $result;
 }
 
 /**
