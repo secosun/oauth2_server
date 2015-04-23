@@ -150,37 +150,49 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     '#default_value' => $client->label,
     '#description' => t('The human-readable name of this client.'),
     '#required' => TRUE,
-    '#weight' => -4,
+    '#weight' => -50,
   );
   $form['client_key'] = array(
     '#title' => t('Client ID'),
     '#type' => 'textfield',
     '#default_value' => $client->client_key,
     '#required' => TRUE,
-    '#weight' => -3,
+    '#weight' => -40,
   );
-  $form['client_secret'] = array(
-    '#title' => t('Client secret'),
-    '#type' => 'textarea',
-    '#default_value' => $client->client_secret,
-    '#weight' => -2,
+  $form['require_client_secret'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Require a client secret'),
+    '#default_value' => !empty($client->is_new) || !empty($client->client_secret),
+    '#weight' => -35,
   );
-  $grant_types = array_filter($server->settings['grant_types']);
+  $grant_types = array_filter($form_state['server']->settings['grant_types']);
   $jwt_bearer_enabled = isset($grant_types['urn:ietf:params:oauth:grant-type:jwt-bearer']);
   $form['client_secret'] = array(
     '#title' => t('Client secret'),
-    '#type' => 'textarea',
-    '#default_value' => $client->client_secret,
-    '#weight' => -2,
+    '#type' => 'password',
+    '#weight' => -30,
     // Hide this field if only JWT bearer is enabled, since it doesn't use it.
     '#access' => (count($grant_types) != 1 || !$jwt_bearer_enabled),
+    '#states' => array(
+      'required' => array(
+        'input[name="require_client_secret"]' => array('checked' => TRUE),
+      ),
+      'visible' => array(
+        'input[name="require_client_secret"]' => array('checked' => TRUE),
+      ),
+    ),
   );
+  if (!empty($client->client_secret)) {
+    $form['client_secret']['#description'] = t('Leave this blank, and leave "Require a client secret" checked, to use the previously saved secret.');
+    unset($form['client_secret']['#states']['required']);
+  }
   $form['public_key'] = array(
     '#title' => t('Public key'),
     '#type' => 'textarea',
     '#default_value' => $client->public_key,
+    '#required' => TRUE,
     '#description' => 'Used to decode the JWT when the <em>JWT bearer</em> grant type is used.',
-    '#weight' => -2,
+    '#weight' => -20,
     // Show the field if JWT bearer is enabled, other grant types don't use it.
     '#access' => $jwt_bearer_enabled,
   );
@@ -191,7 +203,7 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     '#default_value' => $client->redirect_uri,
     '#description' => t('The absolute URIs to validate against. Enter one value per line.'),
     '#required' => TRUE,
-    '#weight' => -1,
+    '#weight' => -10,
   );
 
   field_attach_form('oauth2_server_client', $client, $form, $form_state);
@@ -291,6 +303,22 @@ function oauth2_server_client_form_validate($form, &$form_state) {
       form_set_error('client_key', t('The chosen Client ID is already in use.'));
     }
   }
+
+  $form_state['client_secret'] = '';
+  if (!empty($form_state['values']['require_client_secret'])) {
+    if (!empty($form_state['values']['client_secret'])) {
+      $form_state['client_secret'] = oauth2_server_hash_client_secret($form_state['values']['client_secret']);
+      if (!$form_state['client_secret']) {
+        throw new \Exception("Failed to hash client secret");
+      }
+    }
+    elseif (!empty($client->client_secret)) {
+      $form_state['client_secret'] = $client->client_secret;
+    }
+    else {
+      form_set_error('client_secret', t('A client secret is required.'));
+    }
+  }
 }
 
 /**
@@ -298,6 +326,8 @@ function oauth2_server_client_form_validate($form, &$form_state) {
  */
 function oauth2_server_client_form_submit(&$form, &$form_state) {
   $client = entity_ui_form_submit_build_entity($form, $form_state);
+  $client->client_secret = $form_state['client_secret'];
+
   // Save and go back.
   $client->save();
 

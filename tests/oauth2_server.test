@@ -122,7 +122,7 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
     $client->server = $server->name;
     $client->label = 'Test client';
     $client->client_key = $this->client_key;
-    $client->client_secret = $this->client_secret;
+    $client->client_secret = oauth2_server_hash_client_secret($this->client_secret);
     $client->public_key = $this->public_key;
     // The module supports entering multiple redirect uris separated by a
     // newline. Both a dummy and the real uri are specified to confirm that
@@ -869,7 +869,7 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
     $this->client->server = $server->name;
     $this->client->label = 'Test client';
     $this->client->client_key = $this->client_key;
-    $this->client->client_secret = $this->client_secret;
+    $this->client->client_secret = oauth2_server_hash_client_secret($this->client_secret);
     $this->client->redirect_uri = url('authorized', array('absolute' => TRUE));
     $this->client->automatic_authorization = TRUE;
     $this->client->save();
@@ -1015,5 +1015,98 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
     // Invalid password.
     $result = $this->storage->checkUserCredentials($user->name, 'fakepass');
     $this->assertFalse($result, 'Invalid password correctly detected');
+  }
+}
+
+/**
+ * Test administration forms.
+ */
+class OAuth2ServerAdminTestCase extends DrupalWebTestCase {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'OAuth2 Server Admin',
+      'description' => 'Tests administration functionality for OAuth2 Server.',
+      'group' => 'OAuth2',
+    );
+  }
+
+  public function setUp() {
+    parent::setUp('oauth2_server');
+  }
+
+  public function testEditingClientSecret() {
+    $account = $this->drupalCreateUser(array('administer oauth2 server'));
+    $this->drupalLogin($account);
+
+    $server_name = strtolower($this->randomName());
+
+    // Create a server in the UI.
+    $this->drupalPost('admin/structure/oauth2-servers/add', array(
+      'label' => $this->randomString(),
+      'name' => $server_name,
+    ), t('Save server'));
+
+    // Create a client of the server in the UI, with a random secret.
+    $client_key = strtolower($this->randomName());
+    $secret = $this->randomString(32);
+    $this->drupalPost('admin/structure/oauth2-servers/manage/' . $server_name . '/clients/add', array(
+      'label' => $this->randomString(),
+      'client_key' => $client_key,
+      'redirect_uri' => 'http://localhost',
+      'require_client_secret' => TRUE,
+      'client_secret' => $secret,
+    ), t('Save client'));
+
+    // Test that the raw secret does not match the saved (hashed) one.
+    $client = oauth2_server_client_load($client_key);
+    $this->assertNotEqual($secret, $client->client_secret, 'Raw secret does not match hashed secret.');
+
+    // Test that the secret can be matched.
+    $this->assertTrue(oauth2_server_check_client_secret($client->client_secret, $secret), 'Hashes match for known secret and stored secret.');
+
+    // Edit the client, and do not set a new secret. It should stay the same.
+    $old_hashed_secret = $client->client_secret;
+    $this->updateClient($client, array(
+      'label' => $this->randomString(),
+    ));
+    $client_controller = entity_get_controller('oauth2_server_client');
+    $client_controller->resetCache();
+    $client = oauth2_server_client_load($client_key);
+    $this->assertEqual($old_hashed_secret, $client->client_secret, 'Secret is not changed accidentally when editing the client.');
+
+    // Edit the client, and set an empty secret.
+    $this->updateClient($client, array(
+      'require_client_secret' => FALSE,
+    ));
+    $client_controller->resetCache();
+    $client = oauth2_server_client_load($client_key);
+    $this->assertTrue($client->client_secret === '', 'Secret is set to empty if it is not required.');
+
+    // Edit the client, and set a new, non-empty secret.
+    $new_secret = $this->randomString(32);
+    $this->updateClient($client, array(
+      'require_client_secret' => TRUE,
+      'client_secret' => $new_secret,
+    ));
+    $client_controller->resetCache();
+    $client = oauth2_server_client_load($client_key);
+    $this->assertTrue(oauth2_server_check_client_secret($client->client_secret, $new_secret), 'Hashes match for new secret and stored secret.');
+  }
+
+  /**
+   * Edit a client in the UI.
+   *
+   * @param \OAuth2ServerClient $client
+   *   The client entity.
+   * @param array $values
+   *   New values.
+   */
+  protected function updateClient(\OAuth2ServerClient $client, array $values) {
+    $this->drupalPost(
+      'admin/structure/oauth2-servers/manage/' . $client->server . '/clients/' . $client->internalIdentifier() . '/edit',
+      $values,
+      t('Save client')
+    );
   }
 }

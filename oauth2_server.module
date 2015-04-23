@@ -570,6 +570,48 @@ function oauth2_server_oauth2_server_client_delete($client) {
 }
 
 /**
+ * Hash a client secret for storage.
+ *
+ * @param string $client_secret
+ *   The raw secret.
+ *
+ * @return string
+ *   The hashed secret.
+ */
+function oauth2_server_hash_client_secret($client_secret) {
+  if ($client_secret === '') {
+    return $client_secret;
+  }
+  require_once DRUPAL_ROOT . '/includes/password.inc';
+
+  return user_hash_password($client_secret);
+}
+
+/**
+ * Check if a raw client secret matches a stored hash.
+ *
+ * This uses the same method as user_check_password().
+ *
+ * @param string $stored_hash
+ *   The stored client secret hash.
+ * @param string $value
+ *   The new, raw value to check.
+ *
+ * @return bool
+ *   TRUE if the hashes match, FALSE otherwise.
+ */
+function oauth2_server_check_client_secret($stored_hash, $value) {
+  // Client secrets can be empty.
+  if ($stored_hash === '' && $value === '') {
+    return TRUE;
+  }
+  require_once DRUPAL_ROOT . '/includes/password.inc';
+  $new_hash = _password_crypt('sha512', $value, $stored_hash);
+
+  return $new_hash && $new_hash == $stored_hash;
+}
+
+/**
  * Loads a single token entity.
  *
  * @param $token

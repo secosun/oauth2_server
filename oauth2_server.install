@@ -436,3 +436,43 @@ function oauth2_server_update_7104() {
 function oauth2_server_update_7105() {
   variable_set('oauth2_server_user_sub_property', 'name');
 }
+
+/**
+ * Hash all client secrets.
+ */
+function oauth2_server_update_7106(&$sandbox) {
+  if (!isset($sandbox['progress'])) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'oauth2_server_client');
+    $sandbox['max'] = $query->count()->execute();
+    $sandbox['progress'] = 0;
+  }
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'oauth2_server_client');
+  $query->propertyOrderBy('client_id');
+  $query->range($sandbox['progress'], 50);
+  $result = $query->execute();
+
+  $clients = array();
+  if (!empty($result['oauth2_server_client'])) {
+    $clients = entity_load('oauth2_server_client', array_keys($result['oauth2_server_client']));
+  }
+
+  $client_controller = entity_get_controller('oauth2_server_client');
+  foreach ($clients as $id => $client) {
+    if (!empty($client->client_secret)) {
+      $client->client_secret = oauth2_server_hash_client_secret($client->client_secret);
+      $client_controller->save($client);
+    }
+    $sandbox['progress']++;
+  }
+
+  $sandbox['#finished'] = $sandbox['progress'] >= $sandbox['max'];
+
+  return t('@func(): processed @progress of @max', array(
+    '@func' => __FUNCTION__,
+    '@progress' => $sandbox['progress'],
+    '@max' => $sandbox['max'],
+  ));
+}

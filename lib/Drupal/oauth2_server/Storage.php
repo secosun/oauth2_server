@@ -24,7 +24,11 @@ class Storage implements AuthorizationCodeInterface,
   /* ClientCredentialsInterface */
   public function checkClientCredentials($client_key, $client_secret = null) {
     $client = $this->getClientDetails($client_key);
-    return $client && $client['client_secret'] == $client_secret;
+    if (!$client) {
+      return FALSE;
+    }
+
+    return oauth2_server_check_client_secret($client['client_secret'], $client_secret);
   }
 
   public function isPublicClient($client_key) {
