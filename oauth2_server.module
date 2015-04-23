@@ -797,15 +797,28 @@ function oauth2_server_get_keys() {
 /**
  * Decodes base64url encoded data.
  *
- * @param $data
+ * @param string $data
  *   A string containing the base64url encoded data.
  *
- * @return
- *   The decoded data.
+ * @return string|FALSE
+ *   The decoded data, or FALSE on failure.
  */
 function oauth2_server_base64url_decode($data) {
   $data = str_replace(array('-', '_'), array('+', '/'), $data);
   return base64_decode($data);
+}
+
+/**
+ * Encodes a string as base64url.
+ *
+ * @param string $data
+ *   The string to encode.
+ *
+ * @return string
+ *   The encoded data.
+ */
+function oauth2_server_base64url_encode($data) {
+  return str_replace(array('+', '/'), array('-', '_'), base64_encode($data));
 }
 
 /**

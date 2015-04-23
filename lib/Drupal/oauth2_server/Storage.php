@@ -178,6 +178,23 @@ class Storage implements AuthorizationCodeInterface,
       if (module_exists('uuid')) {
         $code['user_uuid'] = $code_wrapper->user->uuid->value();
       }
+
+      // Examine the id_token and alter the OpenID Connect 'sub' property if
+      // necessary. The 'sub' property is usually the user's UID, but this is
+      // configurable for backwards compatibility reasons. See:
+      // https://www.drupal.org/node/2274357#comment-9779467
+      $sub_property = variable_get('oauth2_server_user_sub_property', 'uid');
+      if (!empty($code['id_token']) && $sub_property != 'uid') {
+        $account = $code_wrapper->user->value();
+        $desired_sub = $account->$sub_property;
+        $parts = explode('.', $code['id_token']);
+        $claims = json_decode(oauth2_server_base64url_decode($parts[1]), TRUE);
+        if (isset($claims['sub']) && $desired_sub != $claims['sub']) {
+          $claims['sub'] = $desired_sub;
+          $parts[1] = oauth2_server_base64url_encode(json_encode($claims));
+          $code['id_token'] = implode('.', $parts);
+        }
+      }
     }
 
     return $code;
@@ -310,10 +327,15 @@ class Storage implements AuthorizationCodeInterface,
       throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
     }
     $scope = explode(' ', trim($scope));
+
+    // The OpenID Connect 'sub' property is usually the user's UID, but this is
+    // configurable for backwards compatibility reasons. See:
+    // https://www.drupal.org/node/2274357#comment-9779467
     $sub_property = variable_get('oauth2_server_user_sub_property', 'uid');
+
     // Prepare the default claims.
     $claims = array(
-      'sub' => isset($user->$sub_property) ? $user->$sub_property : $user->uid,
+      'sub' => $user->$sub_property,
     );
     if (in_array('profile', $scope)) {
       if (!empty($user->timezone)) {
