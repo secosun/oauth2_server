@@ -884,7 +884,7 @@ function oauth2_server_start($server = NULL) {
 
     // The setting 'use_crypto_tokens' was changed to 'use_jwt_access_tokens' in
     // v1.6 of the library. So this provides both.
-    $settings['use_jwt_access_tokens'] = $settings['use_crypto_tokens'] ?: FALSE;
+    $settings['use_jwt_access_tokens'] = !empty($settings['use_crypto_tokens']) ?: FALSE;
 
     // Initialize the server and add the scope util.
     $oauth2_server = new OAuth2\Server($storage, $settings);
