@@ -360,6 +360,8 @@ function oauth2_server_uninstall() {
   variable_del('oauth2_server_keys_last_generated');
   variable_del('oauth2_server_next_certificate_id');
   variable_del('oauth2_server_user_sub_property');
+  variable_del('oauth2_server_restful_server');
+  variable_del('oauth2_server_restful_scope');
 }
 
 /**

@@ -14,11 +14,11 @@ class OAuth2ServerRestfulAuthentication extends \RestfulAuthenticationBase {
    * {@inheritdoc}
    */
   public function authenticate(array $request = array(), $method = \RestfulInterface::GET) {
-    if (!$server = variable_get('restful_oauth2_server')) {
+    if (!$server = variable_get('oauth2_server_restful_server')) {
       return NULL;
     }
 
-    $result = oauth2_server_check_access($server, variable_get('restful_oauth2_scope'));
+    $result = oauth2_server_check_access($server, variable_get('oauth2_server_restful_scope'));
     if ($result instanceof OAuth2\Response) {
       throw new \OAuth2ServerRestfulException($result);
     }
