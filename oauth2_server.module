@@ -1076,6 +1076,7 @@ function oauth2_server_grant_types() {
       'settings callback' => 'oauth2_server_refresh_token_settings',
       'default settings' => array(
         'always_issue_new_refresh_token' => FALSE,
+        'unset_refresh_token_after_use' => TRUE,
       ),
     ),
     'password' => array(
@@ -1096,11 +1097,15 @@ function oauth2_server_refresh_token_settings($config, $dom_ids = array()) {
     '#type' => 'checkbox',
     '#title' => t('Always issue a new refresh token after the existing one has been used'),
     '#default_value' => $config['always_issue_new_refresh_token'],
-    '#states' => array(),
+  );
+  $form['unset_refresh_token_after_use'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Unset (delete) the refresh token after it has been used'),
+    '#default_value' => $config['unset_refresh_token_after_use'],
   );
   foreach ($dom_ids as $dom_id) {
-    $states = &$form['always_issue_new_refresh_token']['#states'];
-    $states['visible']['#' . $dom_id] = array('checked' => TRUE);
+    $form['always_issue_new_refresh_token']['#states']['visible']['#' . $dom_id]['checked'] = TRUE;
+    $form['unset_refresh_token_after_use']['#states']['visible']['#' . $dom_id]['checked'] = TRUE;
   }
 
   return $form;
