@@ -899,6 +899,10 @@ class OAuth2ServerStorageTestCase extends DrupalWebTestCase {
     $this->client->save();
     $result = $this->storage->checkClientCredentials($this->client_key, '');
     $this->assertTrue($result, 'Empty client secret accepted if none required.');
+
+    // Try again with a NULL client secret. This should be accepted too.
+    $result = $this->storage->checkClientCredentials($this->client_key, NULL);
+    $this->assertTrue($result, 'Null client secret accepted if none required.');
   }
 
   public function testGetClientDetails() {

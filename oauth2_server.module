@@ -936,26 +936,25 @@ function oauth2_server_start($server = NULL) {
  */
 function oauth2_server_get_client_credentials(Oauth2\Request $request) {
   // Get the client credentials from the Authorization header.
-  if (!is_null($request->headers('PHP_AUTH_USER')) && !is_null($request->headers('PHP_AUTH_PW'))) {
+  if (!is_null($request->headers('PHP_AUTH_USER'))) {
     return array(
       'client_id' => $request->headers('PHP_AUTH_USER'),
-      'client_secret' => $request->headers('PHP_AUTH_PW')
+      'client_secret' => $request->headers('PHP_AUTH_PW', ''),
     );
   }
 
   // Get the client credentials from the request body (POST).
   // Per spec, this method is not recommended and should be limited to clients
   // unable to utilize HTTP authentication.
-  if (!is_null($request->request('client_id')) && !is_null($request->request('client_secret'))) {
+  if (!is_null($request->request('client_id'))) {
     return array(
       'client_id' => $request->request('client_id'),
-      'client_secret' => $request->request('client_secret')
+      'client_secret' => $request->request('client_secret', ''),
     );
   }
 
   // This request contains a JWT, extract the client_id from there.
   if (!is_null($request->request('assertion'))) {
-    $undecodedJWT = $request->request('assertion');
     $jwt_util = new OAuth2\Encryption\Jwt();
     $jwt = $jwt_util->decode($request->request('assertion'), NULL, FALSE);
     if (!empty($jwt['iss'])) {
