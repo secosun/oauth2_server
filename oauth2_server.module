@@ -808,7 +808,7 @@ function oauth2_server_generate_keys() {
   openssl_x509_export($x509, $public_key_certificate);
   // Increment the id for next time. db_next_id() is not used since it can't
   // guarantee sequential numbers.
-  variable_set('oauth2_server_next_certificate_id', $serial++);
+  variable_set('oauth2_server_next_certificate_id', ++$serial);
 
   return array(
     'private_key' => $private_key,
