@@ -44,7 +44,7 @@ class Scope implements ScopeInterface
    * @param $client_id
    *   The requesting client.
    *
-   * @return
+   * @return bool
    *   TRUE if it exists, FALSE otherwise.
    */
   function scopeExists($scope, $client_id = null) {
@@ -68,6 +68,8 @@ class Scope implements ScopeInterface
 
       return (count(array_diff($scope, $found_scope)) == 0);
     }
+
+    return FALSE;
   }
 
   public function getScopeFromRequest(RequestInterface $request) {

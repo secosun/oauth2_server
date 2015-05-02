@@ -32,7 +32,7 @@ function hook_oauth2_server_pre_authorize() {
  * is required, and no claim is required.
  *
  * Note: OAuth2 Server already provides claims for the email scope, so they
- * don't need to be returned by this hook unless they need to be overriden.
+ * don't need to be returned by this hook unless they need to be overridden.
  *
  * @param $account
  *   The user account for which claims should be returned.
