@@ -601,8 +601,10 @@ function oauth2_server_hash_client_secret($client_secret) {
  *   TRUE if the hashes match, FALSE otherwise.
  */
 function oauth2_server_check_client_secret($stored_hash, $value) {
-  // Client secrets can be empty.
-  if ($stored_hash === '' && $value === '') {
+  // The client may omit the client secret or provide NULL, and expect that to
+  // be treated the same as an empty string.
+  // See https://tools.ietf.org/html/rfc6749#section-2.3.1
+  if ($stored_hash === '' && ($value === '' || $value === NULL)) {
     return TRUE;
   }
   require_once DRUPAL_ROOT . '/includes/password.inc';
