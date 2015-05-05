@@ -197,7 +197,7 @@ function oauth2_server_scope_form($form, &$form_state, $scope, $op = 'edit') {
   field_attach_form('oauth2_server_scope', $scope, $form, $form_state);
 
   $is_default = FALSE;
-  if (!empty($scope->name) && $server->settings['default_scope'] == $scope->name) {
+  if (!empty($scope->name) && $form_state['server']->settings['default_scope'] == $scope->name) {
     $is_default = TRUE;
   }
   $form['default'] = array(

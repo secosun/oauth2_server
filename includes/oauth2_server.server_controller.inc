@@ -26,7 +26,7 @@ class OAuth2ServerEntityController extends EntityAPIControllerExportable {
       field_attach_create_bundle('oauth2_server_scope', $entity->name);
       field_attach_create_bundle('oauth2_server_client', $entity->name);
     }
-    elseif ($hook == 'delete' && !$is_revert) {
+    elseif ($hook == 'delete' && empty($is_revert)) {
       field_attach_delete_bundle('oauth2_server_scope', $entity->name);
       field_attach_delete_bundle('oauth2_server_client', $entity->name);
     }
@@ -82,7 +82,7 @@ class OAuth2ServerEntityController extends EntityAPIControllerExportable {
           $scope_names[] = $scope_values['name'];
         }
         $scopes = oauth2_server_scope_load_multiple($entity->name, $scope_names);
-        foreach ($scopes as $scope_id => $scope) {
+        foreach ($scopes as $scope) {
           $existing_scopes[$scope->name] = $scope;
         }
       }

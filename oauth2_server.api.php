@@ -95,11 +95,16 @@ function hook_oauth2_server_user_claims($account, $requested_scopes) {
  * oauth2_server_get_client_credentials() (for "token").
  * Note that client_id in this case corresponds to $client->client_key.
  *
- * @return
+ * @param OAuth2Server $server
+ *   The server entity.
+ *
+ * @return string[]
  *   An array of default scopes (their machine names).
  */
-function hook_oauth2_server_default_scope($server) {
+function hook_oauth2_server_default_scope(OAuth2Server $server) {
   // For the "test" server, grant the user any scope he has access to.
+  $default_scopes = array();
+
   if ($server->name == 'test') {
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'oauth2_server_scope');
@@ -111,14 +116,13 @@ function hook_oauth2_server_default_scope($server) {
     if ($results) {
       $scope_ids = array_keys($results['oauth2_server_scope']);
       $scopes = entity_load('oauth2_server_scope', $scope_ids);
-      $default_scopes = array();
       foreach ($scopes as $scope) {
         $default_scopes[] = $scope->name;
       }
-
-      return $default_scopes;
     }
   }
+
+  return $default_scopes;
 }
 
 /**

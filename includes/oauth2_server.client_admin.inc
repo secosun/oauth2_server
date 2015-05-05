@@ -191,7 +191,7 @@ function oauth2_server_client_form($form, &$form_state, $client, $op = 'edit') {
     '#type' => 'textarea',
     '#default_value' => $client->public_key,
     '#required' => TRUE,
-    '#description' => 'Used to decode the JWT when the <em>JWT bearer</em> grant type is used.',
+    '#description' => t('Used to decode the JWT when the %JWT grant type is used.', array('%JWT' => t('JWT bearer'))),
     '#weight' => -20,
     // Show the field if JWT bearer is enabled, other grant types don't use it.
     '#access' => $jwt_bearer_enabled,

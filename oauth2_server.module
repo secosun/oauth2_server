@@ -127,6 +127,7 @@ function oauth2_server_permission() {
  * Delete a user's tokens.
  *
  * @param int $uid
+ *   The user ID.
  */
 function oauth2_server_delete_user_tokens($uid) {
   $query = new EntityFieldQuery();
@@ -309,7 +310,7 @@ function oauth2_server_token_bundles() {
       'label' => t('Access token'),
     ),
     'refresh' => array(
-      'label' => t('Refresh token')
+      'label' => t('Refresh token'),
     ),
   );
   drupal_alter(__FUNCTION__, $bundles);
@@ -363,18 +364,21 @@ function oauth2_server_flush_caches() {
 /**
  * Access control for oauth2_server entities.
  *
- * @param $op
+ * @param string $op
  *   The operation being performed. One of 'view', 'update', 'create' or
  *   'delete'.
- * @param $entity
+ * @param object $entity
  *   Optionally an entity to check access for. If no entity is given, it will be
  *   determined whether access is allowed for all entities of the given type.
- * @param $account
+ * @param object $account
  *   The user to check for. Leave it to NULL to check for the global user.
- * @param $entity_type
+ * @param string $entity_type
  *   The entity type of the entity to check for.
  *
  * @see entity_access()
+ *
+ * @return bool
+ *   TRUE if access is granted, FALSE otherwise.
  */
 function oauth2_server_access($op, $entity, $account, $entity_type) {
   return user_access('administer oauth2 server', $account);
@@ -383,10 +387,10 @@ function oauth2_server_access($op, $entity, $account, $entity_type) {
 /**
  * Loads a single server entity.
  *
- * @param $name
+ * @param string $name
  *   The server machine name.
  *
- * @return
+ * @return OAuth2Server|FALSE
  *   The server entity, or FALSE.
  */
 function oauth2_server_load($name) {
@@ -396,10 +400,10 @@ function oauth2_server_load($name) {
 /**
  * Loads multiple server entities.
  *
- * @param $names
+ * @param string[] $names
  *   An array of server machine names.
  *
- * @return
+ * @return OAuth2Server[]
  *   An array of server entities indexed by their ids.
  */
 function oauth2_server_load_multiple($names) {
@@ -409,18 +413,21 @@ function oauth2_server_load_multiple($names) {
 /**
  * Access control for oauth2_server_scope entities.
  *
- * @param $op
+ * @param string $op
  *   The operation being performed. One of 'view', 'update', 'create' or
  *   'delete'.
- * @param $entity
+ * @param object $entity
  *   Optionally an entity to check access for. If no entity is given, it will be
  *   determined whether access is allowed for all entities of the given type.
- * @param $account
+ * @param object $account
  *   The user to check for. Leave it to NULL to check for the global user.
- * @param $entity_type
+ * @param string $entity_type
  *   The entity type of the entity to check for.
  *
  * @see entity_access()
+ *
+ * @return bool
+ *   TRUE if access is granted, FALSE otherwise.
  */
 function oauth2_server_scope_access($op, $entity, $account, $entity_type) {
   if ($entity) {
@@ -435,13 +442,13 @@ function oauth2_server_scope_access($op, $entity, $account, $entity_type) {
 /**
  * Loads a single scope entity.
  *
- * @param $server
+ * @param string $server
  *   The server machine name.
- * @param $name
+ * @param string $name
  *   The scope machine name.
  *
- * @return
- *   The scope entity, or FALSE.
+ * @return OAuth2ServerScope|FALSE
+ *   The scope entity, or FALSE if not found.
  */
 function oauth2_server_scope_load($server, $name) {
   $values = array(
@@ -449,18 +456,19 @@ function oauth2_server_scope_load($server, $name) {
     'name' => $name,
   );
   $scopes = oauth2_server_entity_load_by_properties('oauth2_server_scope', $values);
-  return reset($scopes);
+
+  return $scopes ? reset($scopes) : FALSE;
 }
 
 /**
  * Loads multiple scope entities.
  *
- * @param $server
+ * @param string $server
  *   The server machine name.
- * @param $names
+ * @param string[] $names
  *   An array of scope machine names.
  *
- * @return
+ * @return OAuth2ServerScope[]
  *   An array of scope entities indexed by their ids.
  */
 function oauth2_server_scope_load_multiple($server, $names) {
@@ -468,6 +476,7 @@ function oauth2_server_scope_load_multiple($server, $names) {
     'server' => $server,
     'name' => $names,
   );
+
   return oauth2_server_entity_load_by_properties('oauth2_server_scope', $values);
 }
 
@@ -513,18 +522,21 @@ function oauth2_server_oauth2_server_scope_delete($scope) {
 /**
  * Access control for oauth2_server_client entities.
  *
- * @param $op
+ * @param string $op
  *   The operation being performed. One of 'view', 'update', 'create' or
  *   'delete'.
- * @param $entity
+ * @param object $entity
  *   Optionally an entity to check access for. If no entity is given, it will be
  *   determined whether access is allowed for all entities of the given type.
- * @param $account
+ * @param object $account
  *   The user to check for. Leave it to NULL to check for the global user.
- * @param $entity_type
+ * @param string $entity_type
  *   The entity type of the entity to check for.
  *
  * @see entity_access()
+ *
+ * @return bool
+ *   TRUE if access granted, FALSE otherwise.
  */
 function oauth2_server_client_access($op, $entity, $account, $entity_type) {
   return user_access('administer oauth2 server', $account);
@@ -547,10 +559,10 @@ function oauth2_server_client_load($client_key) {
 /**
  * Loads multiple client entities.
  *
- * @param $client_keys
+ * @param string[] $client_keys
  *   An array of client keys.
  *
- * @return
+ * @return OAuth2ServerClient[]
  *   An array of client entities indexed by their ids.
  */
 function oauth2_server_client_load_multiple($client_keys) {
@@ -616,24 +628,25 @@ function oauth2_server_check_client_secret($stored_hash, $value) {
 /**
  * Loads a single token entity.
  *
- * @param $token
+ * @param string $token
  *   The token.
  *
- * @return
+ * @return OAuth2ServerToken|FALSE
  *   The token entity, or FALSE.
  */
 function oauth2_server_token_load($token) {
   $tokens = oauth2_server_entity_load_by_properties('oauth2_server_token', array('token' => $token));
-  return reset($tokens);
+
+  return $tokens ? reset($tokens) : FALSE;
 }
 
 /**
  * Loads multiple token entities.
  *
- * @param $tokens
+ * @param string[] $tokens
  *   An array of tokens.
  *
- * @return
+ * @return OAuth2ServerToken[]
  *   An array of token entities indexed by their ids.
  */
 function oauth2_server_token_load_multiple($tokens) {
@@ -643,24 +656,25 @@ function oauth2_server_token_load_multiple($tokens) {
 /**
  * Loads a single authorization code entity.
  *
- * @param $code
+ * @param string $code
  *   The code.
  *
- * @return
+ * @return OAuth2ServerAuthorizationCode|FALSE
  *   The authorization code entity, or FALSE.
  */
 function oauth2_server_authorization_code_load($code) {
   $codes = oauth2_server_entity_load_by_properties('oauth2_server_authorization_code', array('code' => $code));
-  return reset($codes);
+
+  return $codes ? reset($codes) : FALSE;
 }
 
 /**
  * Loads multiple authorization code entities.
  *
- * @param $codes
+ * @param string[] $codes
  *   An array of codes.
  *
- * @return
+ * @return OAuth2ServerAuthorizationCode[]
  *   An array of authorization code entities indexed by their ids.
  */
 function oauth2_server_authorization_code_load_multiple($codes) {
@@ -670,7 +684,7 @@ function oauth2_server_authorization_code_load_multiple($codes) {
 /**
  * Loads oauth2_server entities by their property values.
  *
- * Modeled after Drupal 8's entity_load_by_properties().
+ * Modelled after Drupal 8's entity_load_by_properties().
  * Uses EntityFieldQuery because entity_load($entity_type, $ids, $conditions)
  * doesn't allow a condition to be an array.
  *
@@ -761,7 +775,7 @@ function oauth2_server_cron() {
 /**
  * Returns whether the current site needs to have keys generated.
  *
- * @return
+ * @return bool
  *   TRUE if at least one server uses JWT Access Tokens or OpenID Connect,
  *   FALSE otherwise.
  */
@@ -785,7 +799,7 @@ function oauth2_server_site_needs_keys() {
  * The public key is stored in a PEM encoded X.509 certificate, following
  * Google's example. The certificate can be passed to openssl_verify() directly.
  *
- * @return
+ * @return array
  *   An array with the following keys:
  *   - private_key: The generated private key.
  *   - public_key: The generated public key certificate (PEM encoded X.509).
@@ -821,7 +835,7 @@ function oauth2_server_generate_keys() {
 /**
  * Returns the pair of private and public keys used to sign tokens.
  *
- * @return
+ * @return array
  *   An array with the following keys:
  *   - private_key: The private key.
  *   - public_key: The public key certificate (PEM encoded X.509).
@@ -868,13 +882,13 @@ function oauth2_server_base64url_encode($data) {
 /**
  * Initializes and returns an OAuth2 server.
  *
- * @param $server
+ * @param \OAuth2Server|NULL $server
  *   The server entity to use for supplying settings to the server, and
  *   initializing the scope. NULL only when we expect the validation to
  *   fail due to an incomplete or invalid request.
  *
- * @return
- *   An instance of OAuth2_Server.
+ * @return OAuth2\Server
+ *   An instance of OAuth2\Server.
  */
 function oauth2_server_start($server = NULL) {
   $storage = new Drupal\oauth2_server\Storage();
@@ -927,10 +941,10 @@ function oauth2_server_start($server = NULL) {
  *
  * Used during token requests.
  *
- * @param $request
- *   An instance of OAuth2_Request.
+ * @param OAuth2\Request $request
+ *   An instance of OAuth2\Request.
  *
- * @return
+ * @return array|NULL
  *   An array with the following keys:
  *   - client_id: The client key.
  *   - client_secret: The client secret.
@@ -967,6 +981,8 @@ function oauth2_server_get_client_credentials(Oauth2\Request $request) {
       );
     }
   }
+
+  return NULL;
 }
 
 /**

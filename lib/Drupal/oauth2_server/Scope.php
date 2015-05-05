@@ -19,12 +19,12 @@ class Scope implements ScopeInterface
   /**
    * Check if everything in required scope is contained in available scope.
    *
-   * @param $required_scope
-   * A space-separated string of scopes.
+   * @param string $required_scope
+   *   A space-separated string of scopes.
    *
-   * @return
-   * TRUE if everything in required scope is contained in available scope,
-   * and FALSE if it isn't.
+   * @return bool
+   *   TRUE if everything in required scope is contained in available scope,
+   *   and FALSE if it isn't.
    *
    * @see http://tools.ietf.org/html/rfc6749#section-7
    *
@@ -91,7 +91,7 @@ class Scope implements ScopeInterface
 
     // If there's a valid default scope set in server settings, return it.
     $default_scope = $this->server->settings['default_scope'];
-    if (!empty($default_scope) && $scope = oauth2_server_scope_load($this->server->name, $default_scope)) {
+    if (!empty($default_scope) && oauth2_server_scope_load($this->server->name, $default_scope)) {
       return $default_scope;
     }
 

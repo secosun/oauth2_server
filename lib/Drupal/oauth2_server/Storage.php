@@ -399,13 +399,14 @@ class Storage implements AuthorizationCodeInterface,
   }
 
   public function setRefreshToken($refresh_token, $client_key, $uid, $expires, $scope = null) {
+    $client = oauth2_server_client_load($client_key);
+    if (!$client) {
+      throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
+    }
+
     // If no token was found, start with a new entity.
     $token = oauth2_server_token_load($refresh_token);
     if (!$token) {
-      $client = oauth2_server_client_load($client_key);
-      if (!$client) {
-        throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
-      }
       $user = user_load($uid);
       if (!$user) {
         throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
