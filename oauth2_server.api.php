@@ -38,6 +38,8 @@ function hook_oauth2_server_pre_authorize() {
  * @param array $requested_scopes
  *   The requested scopes.
  *
+ * @see hook_oauth2_server_user_claims()
+ *
  * @see http://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
  */
 function hook_oauth2_server_user_claims_alter(&$claims, $account, $requested_scopes) {
@@ -57,6 +59,28 @@ function hook_oauth2_server_user_claims_alter(&$claims, $account, $requested_sco
       'phone_number_verified' => FALSE,
     );
   }
+}
+
+/**
+ * Provide new user claims.
+ *
+ * @param object $account
+ *   The user account for which claims should be returned.
+ * @param array $requested_scopes
+ *   The requested scopes.
+ *
+ * @see hook_oauth2_server_user_claims_alter()
+ *
+ * @return array
+ *   An array of new user claims.
+ */
+function hook_oauth2_server_user_claims($account, $requested_scopes) {
+  $claims = array();
+  if (in_array('profile', $requested_scopes)) {
+    $claims['custom_claim'] = $account->custom_property;
+  }
+
+  return $claims;
 }
 
 /**
