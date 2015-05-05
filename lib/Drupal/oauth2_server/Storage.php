@@ -326,32 +326,48 @@ class Storage implements AuthorizationCodeInterface,
 
   /* UserClaimsInterface */
   public function getUserClaims($uid, $scope) {
-    $user = user_load($uid);
-    if (!$user) {
+    $account = user_load($uid);
+    if (!$account) {
       throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
     }
-    $scope = explode(' ', trim($scope));
+    $requested_scopes = explode(' ', trim($scope));
 
-    // The OpenID Connect 'sub' property is usually the user's UID, but this is
-    // configurable for backwards compatibility reasons. See:
-    // https://www.drupal.org/node/2274357#comment-9779467
+    // The OpenID Connect 'sub' (Subject Identifier) property is usually the
+    // user's UID, but this is configurable for backwards compatibility reasons.
+    // See: https://www.drupal.org/node/2274357#comment-9779467
     $sub_property = variable_get('oauth2_server_user_sub_property', 'uid');
 
     // Prepare the default claims.
     $claims = array(
-      'sub' => $user->$sub_property,
+      'sub' => $account->$sub_property,
     );
-    if (in_array('profile', $scope)) {
-      if (!empty($user->timezone)) {
-        $claims['zoneinfo'] = $user->timezone;
-      }
-    }
-    if (in_array('email', $scope)) {
-      $claims['email'] = $user->mail;
+
+    if (in_array('email', $requested_scopes)) {
+      $claims['email'] = $account->mail;
       $claims['email_verified'] = variable_get('user_email_verification', TRUE);
     }
+
+    if (in_array('profile', $requested_scopes)) {
+      if (!empty($account->name)) {
+        $claims['name'] = format_username($account);
+        $claims['preferred_username'] = $account->name;
+      }
+      if (!empty($account->timezone)) {
+        $claims['zoneinfo'] = $account->timezone;
+      }
+      if (user_access('access user profiles', drupal_anonymous_user())) {
+        $claims['profile'] = url('user/' . $account->uid, array('absolute' => TRUE));
+      }
+      if ($picture = $this->getUserPicture($account)) {
+        $claims['picture'] = $picture;
+      }
+    }
+
     // Allow modules to supply additional claims.
-    $claims += module_invoke_all('oauth2_server_user_claims', $user, $scope);
+    $claims += module_invoke_all('oauth2_server_user_claims', $account, $requested_scopes);
+
+    // Finally, allow modules to alter claims.
+    drupal_alter('oauth2_server_user_claims', $claims, $account, $requested_scopes);
 
     return $claims;
   }
@@ -454,4 +470,46 @@ class Storage implements AuthorizationCodeInterface,
   public function getEncryptionAlgorithm($client_key = null) {
     return 'RS256';
   }
+
+  /**
+   * Get the user's picture to return as an OpenID Connect claim.
+   *
+   * @param object $account
+   *   The user account object.
+   *
+   * @return string|NULL
+   *   An absolute URL to the user picture, or NULL if none is found.
+   */
+  protected function getUserPicture($account) {
+    if (!variable_get('user_pictures', 0)) {
+      return NULL;
+    }
+
+    // This uses logic from template_preprocess_user_picture().
+    if (!empty($account->picture)) {
+      if (is_numeric($account->picture)) {
+        $account->picture = file_load($account->picture);
+      }
+      if (!empty($account->picture->uri)) {
+        $picture_path = $account->picture->uri;
+      }
+    }
+    else {
+      $picture_path = variable_get('user_picture_default', NULL);
+    }
+
+    if (empty($picture_path)) {
+      return NULL;
+    }
+
+    if (module_exists('image') && file_valid_uri($picture_path) && $style = variable_get('user_picture_style', '')) {
+      $picture_url = image_style_url($style, $picture_path);
+    }
+    else {
+      $picture_url = url(file_create_url($picture_path), array('absolute' => TRUE));
+    }
+
+    return $picture_url;
+  }
+
 }

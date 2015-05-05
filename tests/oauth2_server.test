@@ -138,6 +138,7 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
       'openid' => 'OpenID Connect',
       'email' => 'email',
       'phone' => 'phone',
+      'profile' => 'Profile',
       'offline_access' => 'Offline Access',
     );
     foreach ($scopes as $scope_name => $scope_label) {
@@ -469,20 +470,20 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
    * Tests the OpenID Connect implicit flow.
    */
   function testOpenIdConnectImplicitFlow() {
-    $user = $this->drupalCreateUser(array('use oauth2 server'));
-    $this->drupalLogin($user);
+    $account = $this->drupalCreateUser(array('use oauth2 server'));
+    $this->drupalLogin($account);
     $result = $this->authorizationCodeRequest('id_token', 'openid email');
     $this->assertEqual($result->code, 302, 'The "id_token" implicit flow request completed successfully');
     $redirect_url_parts = explode('#', $result->redirect_url);
     $response = drupal_get_query_array($redirect_url_parts[1]);
     if (!empty($response['id_token'])) {
-      $this->assertIdToken($response['id_token'], FALSE, $user);
+      $this->assertIdToken($response['id_token'], FALSE, $account);
     }
     else {
       $this->assertTrue(FALSE, 'The token request returned an id_token.');
     }
 
-    $result = $this->authorizationCodeRequest('token id_token', 'openid email phone');
+    $result = $this->authorizationCodeRequest('token id_token', 'openid email profile phone');
     $this->assertEqual($result->code, 302, 'The "token id_token" implicit flow request completed successfully');
     $redirect_url_parts = explode('#', $result->redirect_url);
     $response = drupal_get_query_array($redirect_url_parts[1]);
@@ -494,17 +495,33 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
       $this->assertTrue(FALSE, 'The token request returned an id_token.');
     }
 
+    // Add a timezone to the account, to test the 'zoneinfo' claim.
+    user_save($account, array(
+      'timezone' => 'Europe/London',
+    ));
+
+    // Request OpenID Connect user information (claims).
     $query = array(
       'access_token' => $response['access_token'],
     );
     $info_url = url('oauth2/UserInfo', array('absolute' => TRUE, 'query' => $query));
     $result = $this->httpRequest($info_url);
     $response = json_decode($result->data);
-    $this->assertEqual($response->sub, $user->uid, 'The UserInfo endpoint returned a valid "sub" claim');
-    $this->assertEqual($response->email, $user->mail, 'The UserInfo endpoint returned a valid "email" claim');
-    $this->assertEqual($response->email_verified, TRUE, 'The UserInfo endpoint returned a valid "email_verified" claim');
-    $this->assertEqual($response->phone_number, '123456', 'The UserInfo endpoint returned a valid "phone_number" claim');
-    $this->assertEqual($response->phone_number_verified, FALSE, 'The UserInfo endpoint returned a valid "phone_number_verified" claim');
+
+    $expected_claims = array(
+      'sub' => $account->uid,
+      'email' => $account->mail,
+      'email_verified' => TRUE,
+      'phone_number' => '123456',
+      'phone_number_verified' => FALSE,
+      'preferred_username' => $account->name,
+      'name' => format_username($account),
+      'zoneinfo' => $account->timezone,
+    );
+
+    foreach ($expected_claims as $claim => $expected_value) {
+      $this->assertEqual($response->$claim, $expected_value, 'The UserInfo endpoint returned a valid "' . $claim . '" claim');
+    }
   }
 
   /**

@@ -23,7 +23,7 @@ function hook_oauth2_server_pre_authorize() {
 }
 
 /**
- * Returns claims about the provided account for OpenID Connect purposes.
+ * Alter user claims about the provided account.
  *
  * The provided claims can be included in the id_token and / or returned from
  * the /oauth2/UserInfo endpoint.
@@ -31,57 +31,32 @@ function hook_oauth2_server_pre_authorize() {
  * Groups of claims are returned based on the requested scopes. No group
  * is required, and no claim is required.
  *
- * Note: OAuth2 Server already provides claims for the email scope, so they
- * don't need to be returned by this hook unless they need to be overridden.
- *
- * @param $account
+ * @param array &$claims
+ *   Existing claims provided by OAuth2 Server or other modules.
+ * @param object $account
  *   The user account for which claims should be returned.
  * @param array $requested_scopes
  *   The requested scopes.
- *   Scopes with matching claims: profile, email, address, phone.
- *
- * @return
- *   An array in the claim => value format.
  *
  * @see http://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
  */
-function hook_oauth2_server_user_claims($account, $requested_scopes) {
-  $claims = array();
-  if (in_array('profile', $requested_scopes)) {
-    $claims += array(
-      'name' => '',
-      'family_name' => '',
-      'given_name' => '',
-      'middle_name' => '',
-      'nickname' => '',
-      'preferred_username' => $account->name,
-      'profile' => '',
-      'picture' => '',
-      'website' => '',
-      'gender' => '',
-      'birthdate' => '',
-      'zoneinfo' => $account->timezone,
-      'updated_at' => $account->created,
-    );
-  }
-  if (in_array('address', $requested_scopes)) {
-    $claims += array(
-      'formatted' => '',
-      'street_address' => '',
-      'locality' => '',
-      'region' => '',
-      'postal_code' => '',
-      'country' => '',
-    );
-  }
-  if (in_array('phone', $requested_scopes)) {
-    $claims += array(
-      'phone_number' => '',
-      'phone_number_verified' => '',
-    );
+function hook_oauth2_server_user_claims_alter(&$claims, $account, $requested_scopes) {
+  $wrapper = entity_metadata_wrapper('user', $account);
+
+  // Example: add the birthday from a custom field, if the 'profile' scope is
+  // requested.
+  if (in_array('profile', $requested_scopes) && !empty($wrapper->field_birthday)) {
+    $claims['birthdate'] = date('0000-m-d', strtotime($wrapper->field_birthday->value()));
   }
 
-  return $claims;
+  // Example: add the phone number from a custom field, if the 'phone' scope is
+  // requested.
+  if (in_array('phone', $requested_scopes) && !empty($wrapper->field_phone)) {
+    $claims += array(
+      'phone_number' => date('0000-m-d', strtotime($wrapper->field_phone->value())),
+      'phone_number_verified' => FALSE,
+    );
+  }
 }
 
 /**
