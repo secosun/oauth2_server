@@ -64,12 +64,12 @@ class Storage implements AuthorizationCodeInterface,
     $server = oauth2_server_load($client->server);
     if (!empty($client->settings['override_grant_types'])) {
       $grant_types = array_filter($client->settings['grant_types']);
-      $allow_implicit = $client->settings['allow_implicit'];
+      $allow_implicit = !empty($client->settings['allow_implicit']);
     }
     else {
       // Fallback to the global server settings.
       $grant_types = array_filter($server->settings['grant_types']);
-      $allow_implicit = $server->settings['allow_implicit'];
+      $allow_implicit = !empty($server->settings['allow_implicit']);
     }
 
     // Implicit flow is enabled by a different setting, so it needs to be
