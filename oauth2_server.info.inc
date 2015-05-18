@@ -87,6 +87,13 @@ class OAuth2ServerTokenMetadataController extends EntityDefaultMetadataControlle
         'description' => t('The time the token was last used.'),
       ) + $last_access;
 
+    $created = !empty($properties['created']) ? $properties['created'] : array();
+    $properties['created'] = array(
+        'type' => 'date',
+        'setter callback' => 'entity_property_verbatim_set',
+        'description' => t('The time the token was created.'),
+      ) + $created;
+
     return $info;
   }
 }

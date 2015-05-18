@@ -300,6 +300,12 @@ function oauth2_server_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the token was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'primary key' => array('token_id'),
     'unique keys' => array(
@@ -477,4 +483,17 @@ function oauth2_server_update_7106(&$sandbox) {
     '@progress' => $sandbox['progress'],
     '@max' => $sandbox['max'],
   ));
+}
+
+/**
+ * Add the {oauth2_server_token}.created field.
+ */
+function oauth2_server_update_7107() {
+  $spec = array(
+    'description' => 'The Unix timestamp when the token was created.',
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_add_field('oauth2_server_token', 'created', $spec);
 }
