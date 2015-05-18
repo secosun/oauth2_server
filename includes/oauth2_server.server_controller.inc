@@ -74,17 +74,14 @@ class OAuth2ServerEntityController extends EntityAPIControllerExportable {
     // There are scopes to be saved.
     if (!empty($entity->scopes)) {
       $existing_scopes = array();
-      // We are overwriting an existing server.
-      if (empty($entity->is_new)) {
-        // Gather scope names, load all existing scopes, rekey them by name.
-        $scope_names = array();
-        foreach ($entity->scopes as $scope_values) {
-          $scope_names[] = $scope_values['name'];
-        }
-        $scopes = oauth2_server_scope_load_multiple($entity->name, $scope_names);
-        foreach ($scopes as $scope) {
-          $existing_scopes[$scope->name] = $scope;
-        }
+      // Gather scope names, load all existing scopes, rekey them by name.
+      $scope_names = array();
+      foreach ($entity->scopes as $scope_values) {
+        $scope_names[] = $scope_values['name'];
+      }
+      $scopes = oauth2_server_scope_load_multiple($entity->name, $scope_names);
+      foreach ($scopes as $scope) {
+        $existing_scopes[$scope->name] = $scope;
       }
 
       // Handle the insert / update.
