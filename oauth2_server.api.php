@@ -23,6 +23,24 @@ function hook_oauth2_server_pre_authorize() {
 }
 
 /**
+ * Execute operations before OAuth2 Server sends a token response.
+ *
+ * @param \OAuth2Server $server
+ * @param \OAuth2\Request $request
+ * @param \OAuth2\Response $response
+ */
+function hook_oauth2_server_token(\OAuth2Server $server, \OAuth2\Request $request, \OAuth2\Response $response) {
+  // Example: if the response is not successful, log a message.
+  if ($response->getStatusCode() != 200) {
+    watchdog('mymodule', 'Failed token response from server @server: @code @body', array(
+      '@server' => $server->name,
+      '@code' => $response->getStatusCode(),
+      '@body' => $response->getResponseBody(),
+    ));
+  }
+}
+
+/**
  * Alter user claims about the provided account.
  *
  * The provided claims can be included in the id_token and / or returned from

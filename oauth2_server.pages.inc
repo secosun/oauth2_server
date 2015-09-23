@@ -164,6 +164,10 @@ function oauth2_server_token_page() {
   $response = new OAuth2\Response();
   $oauth2_server = oauth2_server_start($server);
   $oauth2_server->handleTokenRequest($request, $response);
+
+  // Allow other modules to act before the token response is sent.
+  module_invoke_all('oauth2_server_token', $server, $request, $response);
+
   return oauth2_server_send_response($response);
 }
 
