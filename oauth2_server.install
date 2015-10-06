@@ -356,6 +356,8 @@ function oauth2_server_schema() {
  * Implements hook_uninstall().
  */
 function oauth2_server_uninstall() {
+  drupal_load('module', 'oauth2_server');
+
   // Delete attached fields.
   field_attach_delete_bundle('oauth2_server_authorization_code', 'oauth2_server_authorization_code');
   foreach (array_keys(oauth2_server_token_bundles()) as $bundle) {
