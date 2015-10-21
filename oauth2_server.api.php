@@ -25,7 +25,7 @@ function hook_oauth2_server_pre_authorize() {
 /**
  * Execute operations before OAuth2 Server sends a token response.
  *
- * @param \OAuth2Server $server
+ * @param \OAuth2Server|NULL $server
  * @param \OAuth2\Request $request
  * @param \OAuth2\Response $response
  */
@@ -33,7 +33,7 @@ function hook_oauth2_server_token(\OAuth2Server $server, \OAuth2\Request $reques
   // Example: if the response is not successful, log a message.
   if ($response->getStatusCode() != 200) {
     watchdog('mymodule', 'Failed token response from server @server: @code @body', array(
-      '@server' => $server->name,
+      '@server' => $server ? $server->name : NULL,
       '@code' => $response->getStatusCode(),
       '@body' => $response->getResponseBody(),
     ));
