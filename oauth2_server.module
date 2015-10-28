@@ -1033,7 +1033,7 @@ function oauth2_server_check_access($server_name, $scope = NULL) {
   $server = oauth2_server_load($server_name);
   $oauth2_server = oauth2_server_start($server);
   $response = new OAuth2\Response();
-  $token = $oauth2_server->getAccessTokenData(OAuth2\Request::createFromGlobals(), $response, $scope);
+  $token = $oauth2_server->getAccessTokenData(OAuth2\Request::createFromGlobals(), $response);
   // If there's no token, that means validation failed. Stop here.
   if (!$token) {
     return $response;
