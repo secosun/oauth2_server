@@ -4,4 +4,4 @@ api = 2
 core = 7.x
 
 libraries[oauth2-server-php][download][type] = "get"
-libraries[oauth2-server-php][download][url] = "https://github.com/bshaffer/oauth2-server-php/archive/v1.7.0.tar.gz"
+libraries[oauth2-server-php][download][url] = "https://github.com/bshaffer/oauth2-server-php/archive/v1.8.0.tar.gz"
