@@ -608,6 +608,46 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
   }
 
   /**
+   * Tests revoking an access token.
+   */
+  public function testRevoke() {
+    $result = $this->passwordGrantRequest();
+    $response = json_decode($result->data);
+    $access_token = $response->access_token;
+
+    $resource_request_options = array(
+      'headers' => array(
+        'Authorization' => 'Bearer ' . $access_token,
+      ),
+    );
+    $resource_url = url('oauth2_test/resource/admin', array('absolute' => TRUE));
+
+    $result = $this->httpRequest($resource_url, $resource_request_options);
+    $this->assertEqual($result->code, 200, 'Token works before revocation.');
+
+    // Revoke the access token.
+    $revoke_url = url('oauth2/revoke', array('absolute' => TRUE));
+    $revoke_options = array(
+      'method' => 'POST',
+      'data' => http_build_query(array(
+        'token' => $access_token,
+        'token_type_hint' => 'access_token',
+      )),
+      'headers' => array(
+        'Content-Type' => 'application/x-www-form-urlencoded',
+        'Authorization' => 'Basic ' . base64_encode($this->client_key . ':' . $this->client_secret),
+      ),
+    );
+    $result = $this->httpRequest($revoke_url, $revoke_options);
+    // Note: a valid revoke request will always return 200 even if the token was
+    // invalid (see https://tools.ietf.org/html/rfc7009#section-2.2).
+    $this->assertEqual(200, $result->code, 'Revoke request succeeded');
+
+    $result = $this->httpRequest($resource_url, $resource_request_options);
+    $this->assertEqual($result->code, 401, 'Token no longer works after revocation.');
+  }
+
+  /**
    * Tests resource requests.
    */
   public function testResourceRequests() {

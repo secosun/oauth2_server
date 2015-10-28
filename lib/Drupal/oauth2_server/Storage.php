@@ -430,6 +430,11 @@ class Storage implements AuthorizationCodeInterface,
     $token->delete();
   }
 
+  public function unsetAccessToken($access_token) {
+    $token = oauth2_server_token_load($access_token);
+    $token->delete();
+  }
+
   /**
    * Sets the "scopes" entityreference field on the passed entity.
    *

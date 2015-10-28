@@ -83,6 +83,12 @@ function oauth2_server_menu() {
     'type' => MENU_CALLBACK,
     'file' => 'oauth2_server.pages.inc',
   );
+  $items['oauth2/revoke'] = array(
+    'page callback' => 'oauth2_server_revoke_page',
+    'access arguments' => array('use oauth2 server'),
+    'type' => MENU_CALLBACK,
+    'file' => 'oauth2_server.pages.inc',
+  );
   $items['oauth2/tokens/%'] = array(
     'page callback' => 'oauth2_server_tokens_page',
     'page arguments' => array(2),
@@ -934,6 +940,28 @@ function oauth2_server_start($server = NULL) {
   }
 
   return $oauth2_server;
+}
+
+/**
+ * Loads an OAuth2 server using the request details.
+ *
+ * @param \OAuth2\Request $request
+ *   The request.
+ *
+ * @return OAuth2\Server
+ *   An instance of OAuth2\Server.
+ */
+function oauth2_server_from_request(\OAuth2\Request $request) {
+  $client_credentials = oauth2_server_get_client_credentials($request);
+  $server = NULL;
+  if ($client_credentials) {
+    $client = oauth2_server_client_load($client_credentials['client_id']);
+    if ($client) {
+      $server = oauth2_server_load($client->server);
+    }
+  }
+
+  return oauth2_server_start($server);
 }
 
 /**
