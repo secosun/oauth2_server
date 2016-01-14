@@ -235,7 +235,9 @@ class Storage implements AuthorizationCodeInterface,
 
   public function expireAuthorizationCode($code) {
     $code = oauth2_server_authorization_code_load($code);
-    $code->delete();
+    if ($code) {
+      $code->delete();
+    }
   }
 
   /* JwtBearerInterface */
@@ -427,12 +429,16 @@ class Storage implements AuthorizationCodeInterface,
 
   public function unsetRefreshToken($refresh_token) {
     $token = oauth2_server_token_load($refresh_token);
-    $token->delete();
+    if ($token) {
+      $token->delete();
+    }
   }
 
   public function unsetAccessToken($access_token) {
     $token = oauth2_server_token_load($access_token);
-    $token->delete();
+    if ($token) {
+      $token->delete();
+    }
   }
 
   /**
