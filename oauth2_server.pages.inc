@@ -14,25 +14,19 @@ function oauth2_server_authorize_page() {
 
   module_invoke_all('oauth2_server_pre_authorize');
 
+  // Save the parameters in session so that they can be fetched later.
+  $parameters = drupal_get_query_parameters();
+  $_SESSION['oauth2_server_authorize'] = $parameters;
+
   // The user is not logged in. Redirect to login.
   if (!user_is_logged_in()) {
-    // Save the parameters in session so that they can be fetched later.
-    $parameters = drupal_get_query_parameters();
-    $_SESSION['oauth2_server_authorize'] = $parameters;
-
     $query = array(
       'destination' => 'oauth2/authorize',
     );
     drupal_goto('user/login', array('query' => $query));
   }
 
-  // A login happened. Create the request with parameters from the session.
-  if (!empty($_SESSION['oauth2_server_authorize'])) {
-    $request = new OAuth2\Request($_SESSION['oauth2_server_authorize']);
-  }
-  else {
-    $request = OAuth2\Request::createFromGlobals();
-  }
+  $request = new OAuth2\Request($_SESSION['oauth2_server_authorize']);
 
   $client_id = $request->query('client_id');
   $client = NULL;
