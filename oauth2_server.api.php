@@ -102,6 +102,21 @@ function hook_oauth2_server_user_claims($account, $requested_scopes) {
 }
 
 /**
+ * Alter the list of available grant types.
+ *
+ * @param array &$grant_types
+ *   The grant types available for any OAuth2 servers. Each grant type is an
+ *   array containing a 'name' and a 'class'. The 'class' is the name of a grant
+ *   type class that implements \OAuth2\GrantType\GrantTypeInterface.
+ */
+function hook_oauth2_server_grant_types_alter(&$grant_types) {
+  $grant_types['custom_grant_type'] = array(
+    'name' => t('Custom grant type'),
+    'class' => 'MyModuleCustomGrantType',
+  );
+}
+
+/**
  * Returns the default scope for the provided server.
  *
  * Invoked by OAuth2_Scope_Drupal.

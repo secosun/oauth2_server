@@ -1129,6 +1129,8 @@ function oauth2_server_grant_types() {
     ),
   );
 
+  drupal_alter(__FUNCTION__, $grant_types);
+
   return $grant_types;
 }
 
