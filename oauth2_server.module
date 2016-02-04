@@ -924,6 +924,10 @@ function oauth2_server_start($server = NULL) {
 
   // Initialize the enabled grant types.
   foreach ($enabled_grant_types as $grant_type_name) {
+    if (!isset($grant_types[$grant_type_name])) {
+      watchdog('oauth2_server', 'Invalid grant type: @name', array('@name' => $grant_type_name), WATCHDOG_ERROR);
+      continue;
+    }
     if ($grant_type_name == 'urn:ietf:params:oauth:grant-type:jwt-bearer') {
       $audience = url('oauth2/token', array('absolute' => TRUE));
       $grant_type = new $grant_types[$grant_type_name]['class']($storage, $audience);
