@@ -7,22 +7,39 @@
 
 /**
  * Services authentication "authenticate_call" callback.
+ *
+ * @see _services_authenticate_user()
+ *
+ * @param array $auth_settings
+ *   The auth settings provided by Services.
+ *
+ * @throws \Exception If no server is configured yet authentication is required.
+ *
+ * @return mixed
+ *   A non-empty return value indicates an error has occurred.
  */
-function oauth2_server_services_authenticate_call($auth_settings, $controller, $args) {
-  if (empty($auth_settings['require_authentication'])) {
-    return FALSE;
-  }
-  // No server specified, cannot proceed.
+function oauth2_server_services_authenticate_call($auth_settings) {
+  // No server specified: cannot proceed.
   if (empty($auth_settings['server'])) {
-    throw new Exception('No server configured for Services OAuth2 authentication.');
+    watchdog('oauth2_server', 'No server configured for Services OAuth2 authentication.', array(), WATCHDOG_ERROR);
+    return TRUE;
   }
 
-  // Verify access. The request will be aborted if verification fails.
-  $token = oauth2_server_verify_access($auth_settings['server'], $auth_settings['scope']);
-  // If the resource owner is known, switch the current user to it.
-  if ($token['user_id']) {
+  // Check access.
+  $result = oauth2_server_check_access($auth_settings['server'], $auth_settings['scope']);
+  if (is_array($result) && !empty($result['user_id'])) {
+    // The check was successful. If it matches with a user account, then switch
+    // the current user to it.
     global $user;
-    $user = user_load($token['user_id']);
+    $user = user_load($result['user_id']);
+  }
+  elseif ($result instanceof \OAuth2\Response) {
+    // There was an authentication error, or the user did not attempt to
+    // authenticate. If authentication is required for this resource, send an
+    // error response and abort the request. Otherwise, move on without error.
+    if (!empty($auth_settings['require_authentication'])) {
+      oauth2_server_send_response($result);
+    }
   }
 }
 
