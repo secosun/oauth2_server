@@ -16,7 +16,9 @@ function oauth2_server_authorize_page() {
 
   // Save the parameters in session so that they can be fetched later.
   $parameters = drupal_get_query_parameters();
-  $_SESSION['oauth2_server_authorize'] = $parameters;
+  if (!empty($parameters['client_id']) || !empty($parameters['response_type'])) {
+    $_SESSION['oauth2_server_authorize'] = $parameters;
+  }
 
   // The user is not logged in. Redirect to login.
   if (!user_is_logged_in()) {
