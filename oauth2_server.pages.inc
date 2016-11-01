@@ -27,6 +27,11 @@ function oauth2_server_authorize_page() {
     );
     drupal_goto('user/login', array('query' => $query));
   }
+  // If there isn't an OAuth2 authorization in progress, redirect to the front
+  // page and exit.
+  elseif (empty($_SESSION['oauth2_server_authorize'])) {
+    drupal_goto();
+  }
 
   $request = new OAuth2\Request($_SESSION['oauth2_server_authorize']);
 
