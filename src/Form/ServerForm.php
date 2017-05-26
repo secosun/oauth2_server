@@ -11,7 +11,6 @@ use Drupal\Component\Utility\Html;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Url;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -115,11 +114,11 @@ class ServerForm extends EntityForm {
       '#default_value' => !empty($server->settings['use_openid_connect']),
       '#access' => extension_loaded('openssl'),
     );
-    $documentation_link = \Drupal::l('documentation', Url::fromUri('https://www.drupal.org/node/1254698'));
+    $url = 'https://www.drupal.org/node/1254698';
     $form['settings']['use_crypto_tokens'] = array(
       '#type' => 'checkbox',
       '#title' => t('Use JWT Access Tokens'),
-      '#description' => t("Sends encrypted JWT access tokens that aren't stored in the database. See the !documentation for more details.", array('!documentation' => $documentation_link)),
+      '#description' => t("Sends encrypted JWT access tokens that aren't stored in the database. See the <a href=\":url\">documentation</a> for more details.", array(':url' => $url)),
       '#default_value' => !empty($server->settings['use_crypto_tokens']),
       '#access' => extension_loaded('openssl'),
     );
