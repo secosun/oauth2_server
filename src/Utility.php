@@ -161,7 +161,8 @@ class Utility {
       $uri = new Url('<front>', [], ['absolute' => TRUE, 'https' => TRUE]);
       $settings = $server->settings + [
         'issuer' => $uri->toString(),
-      ];
+      ] + $server->settings['advanced_settings'];
+      unset($settings['advanced_settings']);
 
       // The setting 'use_crypto_tokens' was changed to 'use_jwt_access_tokens'
       // in v1.6 of the library. So this provides both.
