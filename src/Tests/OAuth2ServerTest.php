@@ -292,6 +292,10 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
    * Tests the "JWT bearer" grant type.
    */
   public function testJwtBearerGrantType() {
+    $request_time = \Drupal::time()->getRequestTime();
+    $sub_property = \Drupal::config('oauth2_server.oauth')
+      ->get('user_sub_property');
+
     $jwt_util = new Jwt();
     $user = $this->drupalCreateUser(['use oauth2 server']);
     $this->drupalLogin($user);
@@ -299,9 +303,9 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
     $token_url = $this->buildUrl(new Url('oauth2_server.token'));
     $jwt_data = [
       'iss' => $this->clientId,
-      'exp' => time() + 1000,
-      'iat' => time(),
-      'sub' => $user->id(),
+      'exp' => $request_time + 1000,
+      'iat' => $request_time,
+      'sub' => $user->{$sub_property}->value;
       'aud' => $token_url,
       'jti' => '123456',
     ];
@@ -471,8 +475,9 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
     $result = $this->httpGetRequest($info_url);
     $response = json_decode($result->data);
 
+    $sub_property = \Drupal::config('oauth2_server.oauth')->get('user_sub_property');
     $expected_claims = [
-      'sub' => $account->id(),
+      'sub' => $account->{$sub_property}->value,
       'email' => $account->mail->value,
       'email_verified' => TRUE,
       'phone_number' => '123456',
