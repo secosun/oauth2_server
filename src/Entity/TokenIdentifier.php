@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\oauth2_server\Entity\TokenIdentifier.
- */
 
 namespace Drupal\oauth2_server\Entity;
 
@@ -27,6 +23,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
  * )
  */
 class TokenIdentifier extends ContentEntityBase {
+
   /**
    * {@inheritdoc}
    */
@@ -38,27 +35,27 @@ class TokenIdentifier extends ContentEntityBase {
     $fields['client_id'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('OAuth2 Server Client'))
       ->setDescription(t('The OAuth2 Client of the client.'))
-      ->setSettings(array('target_type' => 'oauth2_server_client'));
+      ->setSettings(['target_type' => 'oauth2_server_client']);
 
     $fields['subject'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Subject'))
       ->setDescription(t('The JWT subject, usually a username or email.'))
       ->setTranslatable(FALSE)
-      ->setSettings(array(
+      ->setSettings([
         'not null' => TRUE,
         'max_length' => 255,
         'text_processing' => 0,
-      ));
+      ]);
 
     $fields['jti'] = BaseFieldDefinition::create('string')
       ->setLabel(t('JTI'))
       ->setDescription(t('The JSON Token Identifier.'))
       ->setTranslatable(FALSE)
-      ->setSettings(array(
+      ->setSettings([
         'not null' => TRUE,
         'max_length' => 255,
         'text_processing' => 0,
-      ));
+      ]);
 
     $fields['expires'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Expires'))
@@ -66,4 +63,5 @@ class TokenIdentifier extends ContentEntityBase {
 
     return $fields;
   }
+
 }

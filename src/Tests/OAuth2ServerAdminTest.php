@@ -1,10 +1,4 @@
-<?php
-
-/**
- * @file
- * Contains \Drupal\oauth2_server\Tests\OAuth2ServerAdminTest.
- */
-
+<?ph
 
 namespace Drupal\oauth2_server\Tests;
 

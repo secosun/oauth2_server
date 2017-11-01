@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\oauth2_server\Entity\AuthorizationCode.
- */
 
 namespace Drupal\oauth2_server\Entity;
 
@@ -29,6 +25,7 @@ use Drupal\oauth2_server\AuthorizationCodeInterface;
  * )
  */
 class AuthorizationCode extends ContentEntityBase implements AuthorizationCodeInterface {
+
   /**
    * {@inheritdoc}
    */
@@ -40,27 +37,27 @@ class AuthorizationCode extends ContentEntityBase implements AuthorizationCodeIn
     $fields['client_id'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('OAuth2 Server Client'))
       ->setDescription(t('The OAuth2 Client of the client.'))
-      ->setSettings(array('target_type' => 'oauth2_server_client'));
+      ->setSettings(['target_type' => 'oauth2_server_client']);
 
     $fields['uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('User'))
       ->setDescription(t('The user of the resource owner.'))
-      ->setSettings(array('target_type' => 'user'));
+      ->setSettings(['target_type' => 'user']);
 
     $fields['code'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Code'))
       ->setDescription(t('The authorization code.'))
       ->setTranslatable(FALSE)
-      ->setSettings(array(
+      ->setSettings([
         'not null' => TRUE,
         'max_length' => 255,
         'text_processing' => 0,
-      ));
+      ]);
 
     $fields['scopes'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('Scopes'))
       ->setDescription(t('The scopes of the authorization code.'))
-      ->setSettings(array('target_type' => 'oauth2_server_scope'))
+      ->setSettings(['target_type' => 'oauth2_server_scope'])
       ->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
 
     $fields['redirect_uri'] = BaseFieldDefinition::create('uri')
@@ -75,10 +72,10 @@ class AuthorizationCode extends ContentEntityBase implements AuthorizationCodeIn
       ->setLabel(t('ID Token'))
       ->setDescription(t('The id token, if OpenID Connect was used.'))
       ->setTranslatable(FALSE)
-      ->setSettings(array(
+      ->setSettings([
         'text_processing' => 0,
         'case_sensitive' => FALSE,
-      ));
+      ]);
 
     return $fields;
   }
@@ -104,4 +101,5 @@ class AuthorizationCode extends ContentEntityBase implements AuthorizationCodeIn
 
     return FALSE;
   }
+
 }

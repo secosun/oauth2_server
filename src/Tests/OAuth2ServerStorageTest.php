@@ -1,11 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\oauth2_server\Tests\OAuth2ServerStorageTest.
- */
-
-
 namespace Drupal\oauth2_server\Tests;
 
 use Drupal\simpletest\WebTestBase;
@@ -16,12 +10,13 @@ use Drupal\simpletest\WebTestBase;
  * @group oauth2_server
  */
 class OAuth2ServerStorageTest extends WebTestBase {
+
   /**
    * Modules to install.
    *
    * @var array
    */
-  public static $modules = array('oauth2_server');
+  public static $modules = ['oauth2_server'];
 
   /**
    * The client key of the test client.
@@ -53,9 +48,14 @@ class OAuth2ServerStorageTest extends WebTestBase {
 
   /**
    * The redirect uri used on multiple locations.
+   *
+   * @var string
    */
   protected $redirectUri;
 
+  /**
+   * {@inheritdoc}
+   */
   public function setUp() {
     parent::setUp();
 
@@ -68,17 +68,17 @@ class OAuth2ServerStorageTest extends WebTestBase {
       'settings' => [
         'default_scope' => '',
         'allow_implicit' => TRUE,
-        'grant_types' => array(
+        'grant_types' => [
           'authorization_code' => 'authorization_code',
           'client_credentials' => 'client_credentials',
           'refresh_token' => 'refresh_token',
           'password' => 'password',
-        ),
+        ],
         'always_issue_new_refresh_token' => TRUE,
         'advanced_settings' => [
           'require_exact_redirect_uri' => TRUE,
-        ]
-      ]
+        ],
+      ],
     ]);
     $server->save();
 
@@ -96,6 +96,9 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $this->storage = $this->container->get('oauth2_server.storage');
   }
 
+  /**
+   * Check client credentials.
+   */
   public function testCheckClientCredentials() {
     // Nonexistent client_id.
     $result = $this->storage->checkClientCredentials('fakeclient', 'testpass');
@@ -124,6 +127,9 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $this->assertTrue($result, 'Null client secret accepted if none required.');
   }
 
+  /**
+   * Get client credentials.
+   */
   public function testGetClientDetails() {
     // Nonexistent client_id.
     $details = $this->storage->getClientDetails('fakeclient');
@@ -137,8 +143,11 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $this->assertTrue(array_key_exists('redirect_uri', $details), 'The "redirect_uri" value is present in the client details.');
   }
 
+  /**
+   * Access token.
+   */
   public function testAccessToken() {
-    $user = $this->drupalCreateUser(array('use oauth2 server'));
+    $user = $this->drupalCreateUser(['use oauth2 server']);
 
     $token = $this->storage->getAccessToken('newtoken');
     $this->assertFalse($token, 'Trying to load a nonexistent token is unsuccessful.');
@@ -169,8 +178,11 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $this->assertEqual($token['expires'], $expires, 'The expires timestamp matches the new value.');
   }
 
+  /**
+   * Set refresh token.
+   */
   public function testSetRefreshToken() {
-    $user = $this->drupalCreateUser(array('use oauth2 server'));
+    $user = $this->drupalCreateUser(['use oauth2 server']);
 
     $token = $this->storage->getRefreshToken('refreshtoken');
     $this->assertFalse($token, 'Trying to load a nonexistent token is unsuccessful.');
@@ -192,8 +204,11 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $this->assertEqual($token['expires'], $expires, 'The "expires" key has the expected value.');
   }
 
+  /**
+   * Authorization code.
+   */
   public function testAuthorizationCode() {
-    $user = $this->drupalCreateUser(array('use oauth2 server'));
+    $user = $this->drupalCreateUser(['use oauth2 server']);
 
     $code = $this->storage->getAuthorizationCode('newcode');
     $this->assertFalse($code, 'Trying to load a nonexistent authorization code is unsuccessful.');
@@ -216,7 +231,7 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $this->assertEqual($code['redirect_uri'], 'http://example.com', 'The "redirect_uri" key has the expected value.');
     $this->assertEqual($code['expires'], $expires, 'The "expires" key has the expected value.');
 
-    // Change an existing code
+    // Change an existing code.
     $expires = time() + 42;
     $success = $this->storage->setAuthorizationCode('newcode', $this->clientId, $user->id(), 'http://example.org', $expires);
     $this->assertTrue($success, 'The authorization code was successfully updated.');
@@ -226,10 +241,13 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $this->assertEqual($code['expires'], $expires, 'The expires timestamp matches the new value.');
   }
 
+  /**
+   * Check user credentials.
+   */
   public function testCheckUserCredentials() {
-    $user = $this->drupalCreateUser(array('use oauth2 server'));
+    $user = $this->drupalCreateUser(['use oauth2 server']);
 
-    // Correct credentials
+    // Correct credentials.
     $result = $this->storage->checkUserCredentials($user->name->value, $user->pass_raw);
     $this->assertTrue($result, 'Valid user credentials correctly detected.');
     // Invalid username.
@@ -239,4 +257,5 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $result = $this->storage->checkUserCredentials($user->name->value, 'fakepass');
     $this->assertFalse($result, 'Invalid password correctly detected');
   }
+
 }

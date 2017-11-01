@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\oauth2_server\Form\AuthorizeForm.
- */
 
 namespace Drupal\oauth2_server\Form;
 
@@ -18,10 +14,11 @@ use Drupal\oauth2_server\Utility;
  * Implements the Authorize Form.
  */
 class AuthorizeForm extends FormBase {
+
   /**
-   * The OAuth2Storage
+   * The OAuth2Storage.
    *
-   * @var \Drupal\oauth2_server\OAuth2StorageInterface;
+   * @var \Drupal\oauth2_server\OAuth2StorageInterface
    */
   protected $storage;
 
@@ -45,44 +42,44 @@ class AuthorizeForm extends FormBase {
   }
 
   /**
-   * {@inheritdoc}.
+   * {@inheritdoc}
    */
   public function getFormId() {
     return 'oauth2_server_authorize_form';
   }
 
   /**
-   * {@inheritdoc}.
+   * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, $context = array()) {
-    $form['#title'] = $this->t('Authorize @client to use your account?', array('@client' => $context['client']->label()));
+  public function buildForm(array $form, FormStateInterface $form_state, $context = []) {
+    $form['#title'] = $this->t('Authorize @client to use your account?', ['@client' => $context['client']->label()]);
 
-    $list = array();
+    $list = [];
     foreach ($context['scopes'] as $scope) {
       $list[] = $this->t($scope->description);
     }
 
-    $form['client'] = array(
+    $form['client'] = [
       '#type' => 'value',
       '#value' => $context['client'],
-    );
+    ];
 
-    $form['scopes'] = array(
+    $form['scopes'] = [
       '#title' => $this->t('This application will be able to:'),
       '#theme' => 'item_list',
       '#items' => $list,
       '#type' => 'ul',
-    );
-    $form['authorize'] = array(
+    ];
+    $form['authorize'] = [
       '#type' => 'submit',
       '#value' => t('Yes, I authorize this request.'),
       '#authorized' => TRUE,
-    );
-    $form['cancel'] = array(
+    ];
+    $form['cancel'] = [
       '#type' => 'submit',
       '#value' => t('Cancel'),
       '#authorized' => FALSE,
-    );
+    ];
 
     return $form;
   }
@@ -109,4 +106,5 @@ class AuthorizeForm extends FormBase {
     $oauth2_server->handleAuthorizeRequest($bridgeRequest, $response, $authorized, $this->currentUser()->id());
     $form_state->setResponse($response);
   }
+
 }

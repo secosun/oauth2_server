@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\oauth2_server\Entity\Token.
- */
 
 namespace Drupal\oauth2_server\Entity;
 
@@ -29,6 +25,7 @@ use Drupal\oauth2_server\TokenInterface;
  * )
  */
 class Token extends ContentEntityBase implements TokenInterface {
+
   /**
    * {@inheritdoc}
    */
@@ -40,37 +37,37 @@ class Token extends ContentEntityBase implements TokenInterface {
     $fields['client_id'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('OAuth2 Server Client'))
       ->setDescription(t('The OAuth2 Client of the client.'))
-      ->setSettings(array('target_type' => 'oauth2_server_client'));
+      ->setSettings(['target_type' => 'oauth2_server_client']);
 
     $fields['uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('User'))
       ->setDescription(t('The user of the resource owner.'))
-      ->setSettings(array('target_type' => 'user'));
+      ->setSettings(['target_type' => 'user']);
 
     $fields['type'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Type'))
       ->setDescription(t('The type of the token (access, refresh).'))
       ->setTranslatable(FALSE)
-      ->setSettings(array(
+      ->setSettings([
         'not null' => TRUE,
         'max_length' => 255,
         'text_processing' => 0,
-      ));
+      ]);
 
     $fields['token'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Token'))
       ->setDescription(t('The token.'))
       ->setTranslatable(FALSE)
-      ->setSettings(array(
+      ->setSettings([
         'not null' => TRUE,
         'max_length' => 255,
         'text_processing' => 0,
-      ));
+      ]);
 
     $fields['scopes'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('Scopes'))
       ->setDescription(t('The scopes of the token.'))
-      ->setSettings(array('target_type' => 'oauth2_server_scope'))
+      ->setSettings(['target_type' => 'oauth2_server_scope'])
       ->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
 
     $fields['expires'] = BaseFieldDefinition::create('timestamp')
@@ -105,4 +102,5 @@ class Token extends ContentEntityBase implements TokenInterface {
 
     return FALSE;
   }
+
 }

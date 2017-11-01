@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\oauth2_server\Form\ServerDisableConfirmForm.
- */
-
 namespace Drupal\oauth2_server\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
@@ -20,7 +15,7 @@ class ServerDisableConfirmForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return $this->t('Are you sure you want to disable the OAuth2 server %name?', array('%name' => $this->entity->label()));
+    return $this->t('Are you sure you want to disable the OAuth2 server %name?', ['%name' => $this->entity->label()]);
   }
 
   /**
@@ -52,7 +47,7 @@ class ServerDisableConfirmForm extends EntityConfirmFormBase {
     $server = $this->entity;
     $server->setStatus(FALSE)->save();
 
-    drupal_set_message($this->t('The OAuth2 server %name has been disabled.', array('%name' => $this->entity->label())));
+    drupal_set_message($this->t('The OAuth2 server %name has been disabled.', ['%name' => $this->entity->label()]));
     $form_state->setRedirect('oauth2_server.overview');
   }
 

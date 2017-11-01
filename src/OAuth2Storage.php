@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\oauth2_server\OAuth2Storage.
- */
 
 namespace Drupal\oauth2_server;
 
@@ -13,11 +9,13 @@ use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\user\UserInterface;
 use Drupal\oauth2_server\Utility;
 use Drupal\file\Entity\File;
+use Drupal\oauth2_server\TokenInterface;
 
 /**
  * Provides Drupal OAuth2 storage for the library.
  */
 class OAuth2Storage implements OAuth2StorageInterface {
+
   /**
    * The entity manager.
    *
@@ -44,9 +42,10 @@ class OAuth2Storage implements OAuth2StorageInterface {
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   *
    * @param \Drupal\Core\Password\PasswordInterface $password_hasher
    *   The password hasher.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
    */
   public function __construct(EntityManagerInterface $entity_manager, PasswordInterface $password_hasher, ModuleHandlerInterface $module_handler) {
     $this->entityManager = $entity_manager;
@@ -90,7 +89,6 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return FALSE;
   }
 
-
   /**
    * Get the token from the entity backend.
    *
@@ -125,8 +123,10 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return FALSE;
   }
 
-  /* ClientCredentialsInterface */
-  public function checkClientCredentials($client_id, $client_secret = null) {
+  /**
+   * Check client credentials.
+   */
+  public function checkClientCredentials($client_id, $client_secret = NULL) {
     $client = $this->getClientDetails($client_id);
     if (!$client) {
       return FALSE;
@@ -142,34 +142,46 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return $this->passwordHasher->check($client_secret, $client['client_secret']);
   }
 
+  /**
+   * Is public client.
+   */
   public function isPublicClient($client_id) {
     $client = $this->getClientDetails($client_id);
     return $client && empty($client['client_secret']);
   }
 
+  /**
+   * Get client credentials.
+   */
   public function getClientDetails($client_id) {
     $client = $this->getStorageClient($client_id);
     if ($client) {
       // Return a client array in the format expected by the library.
-      $client = array(
+      $client = [
         'client_id' => $client->client_id,
         'client_secret' => $client->client_secret,
         'public_key' => $client->public_key,
         // The library expects multiple redirect uris to be separated by
         // a space, but the module separates them by a newline, matching
         // Drupal behavior in other areas.
-        'redirect_uri' => str_replace(array("\r\n", "\r", "\n"), ' ', $client->redirect_uri),
-      );
+        'redirect_uri' => str_replace(["\r\n", "\r", "\n"], ' ', $client->redirect_uri),
+      ];
     }
 
     return $client;
   }
 
+  /**
+   * Get client scope.
+   */
   public function getClientScope($client_id) {
     // The module doesn't currently support per-client scopes.
     return NULL;
   }
 
+  /**
+   * Check restricted grant type.
+   */
   public function checkRestrictedGrantType($client_id, $grant_type) {
     $client = $this->getStorageClient($client_id);
     $server = $client->getServer();
@@ -192,7 +204,9 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return in_array($grant_type, $grant_types);
   }
 
-  /* AccessTokenInterface */
+  /**
+   * Get access token.
+   */
   public function getAccessToken($access_token) {
     $token = $this->getStorageToken($access_token);
     if (!$token) {
@@ -205,7 +219,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
       return FALSE;
     }
 
-    $scopes = array();
+    $scopes = [];
     $scope_entities = $token->scopes->referencedEntities();
     foreach ($scope_entities as $scope) {
       $scopes[] = $scope->scope_id;
@@ -213,7 +227,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
     sort($scopes);
 
     // Return a token array in the format expected by the library.
-    $token_array = array(
+    $token_array = [
       'server' => $token->getClient()->getServer()->id(),
       'client_id' => $token->getClient()->client_id,
       'user_id' => $user->id(),
@@ -221,7 +235,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
       'access_token' => $token->token->value,
       'expires' => (int) $token->expires->value,
       'scope' => implode(' ', $scopes),
-    );
+    ];
 
     // Track last access on the token.
     $this->logAccessTime($token);
@@ -231,17 +245,18 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Track the time the token was accessed.
-   *
-   * @param \Drupal\oauth2_server\TokenInterface $token
    */
-  protected function logAccessTime(\Drupal\oauth2_server\TokenInterface $token) {
+  protected function logAccessTime(TokenInterface $token) {
     if (empty($token->last_access->value) || $token->last_access->value != REQUEST_TIME) {
       $token->last_access = REQUEST_TIME;
       $token->save();
     }
   }
 
-  public function setAccessToken($access_token, $client_id, $uid, $expires, $scope = null) {
+  /**
+   * Set access token.
+   */
+  public function setAccessToken($access_token, $client_id, $uid, $expires, $scope = NULL) {
     $client = $this->getStorageClient($client_id);
     if (!$client) {
       throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
@@ -269,14 +284,16 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return $status;
   }
 
-  /* AuthorizationCodeInterface */
+  /**
+   * Get authorization code.
+   */
   public function getAuthorizationCode($code) {
     $code = $this->getStorageAuthorizationCode($code);
     if (!$code) {
       return FALSE;
     }
 
-    $scopes = array();
+    $scopes = [];
     $scope_entities = $code->scopes->referencedEntities();
     foreach ($scope_entities as $scope) {
       $scopes[] = $scope->scope_id;
@@ -284,7 +301,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
     sort($scopes);
 
     // Return a code array in the format expected by the library.
-    $code_array = array(
+    $code_array = [
       'server' => $code->getClient()->getServer()->id(),
       'client_id' => $code->getClient()->client_id,
       'user_id' => $code->getUser()->id(),
@@ -294,7 +311,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
       'expires' => (int) $code->expires->value,
       'scope' => implode(' ', $scopes),
       'id_token' => $code->id_token->value,
-    );
+    ];
 
     // Examine the id_token and alter the OpenID Connect 'sub' property if
     // necessary. The 'sub' property is usually the user's UID, but this is
@@ -316,7 +333,10 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return $code_array;
   }
 
-  public function setAuthorizationCode($code, $client_id, $uid, $redirect_uri, $expires, $scope = null, $id_token = null) {
+  /**
+   * Set authorization code.
+   */
+  public function setAuthorizationCode($code, $client_id, $uid, $redirect_uri, $expires, $scope = NULL, $id_token = NULL) {
     $client = $this->getStorageClient($client_id);
     if (!$client) {
       throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
@@ -345,6 +365,9 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return $status;
   }
 
+  /**
+   * Expire authorization code.
+   */
   public function expireAuthorizationCode($code) {
     $code = $this->getStorageAuthorizationCode($code);
     if ($code) {
@@ -353,6 +376,10 @@ class OAuth2Storage implements OAuth2StorageInterface {
   }
 
   /* JwtBearerInterface */
+
+  /**
+   * Get client key.
+   */
   public function getClientKey($client_id, $subject) {
     // While the API supports a key per user (subject), the module only supports
     // one key per client, since it's the simpler and more frequent use case.
@@ -360,6 +387,9 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return $client ? $client['public_key'] : FALSE;
   }
 
+  /**
+   * Get Jti.
+   */
   public function getJti($client_id, $subject, $audience, $expires, $jti) {
     $client = $this->getStorageClient($client_id);
     if (!$client) {
@@ -377,15 +407,18 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
     if ($found) {
       // JTI found, return the data back in the expected format.
-      return array(
+      return [
         'issuer' => $client_id,
         'subject' => $subject,
         'jti' => $jti,
         'expires' => $expires,
-      );
+      ];
     }
   }
 
+  /**
+   * Set Jti.
+   */
   public function setJti($client_id, $subject, $audience, $expires, $jti) {
     $client = $this->getStorageClient($client_id);
     if (!$client) {
@@ -404,6 +437,10 @@ class OAuth2Storage implements OAuth2StorageInterface {
   }
 
   /* UserCredentialsInterface */
+
+  /**
+   * Check user credentials.
+   */
   public function checkUserCredentials($username, $password) {
     $account = $this->getStorageAccount($username);
 
@@ -414,17 +451,24 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return FALSE;
   }
 
+  /**
+   * Get user details.
+   */
   public function getUserDetails($username) {
     $account = $this->getStorageAccount($username);
 
     if ($account) {
-      return array('user_id' => $account->id());
+      return ['user_id' => $account->id()];
     }
 
     return FALSE;
   }
 
   /* UserClaimsInterface */
+
+  /**
+   * Get user claims.
+   */
   public function getUserClaims($uid, $scope) {
     /** @var \Drupal\user\UserInterface $account */
     $account = $this->entityManager->getStorage('user')->load($uid);
@@ -439,9 +483,9 @@ class OAuth2Storage implements OAuth2StorageInterface {
     $sub_property = \Drupal::config('oauth2_server.oauth')->get('user_sub_property');
 
     // Prepare the default claims.
-    $claims = array(
+    $claims = [
       'sub' => $account->{$sub_property}->value,
-    );
+    ];
 
     if (in_array('email', $requested_scopes)) {
       $claims['email'] = $account->getEmail();
@@ -468,7 +512,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
     // Allow modules to supply additional claims.
     $claims += $this->moduleHandler->invokeAll('oauth2_server_user_claims', [
       'account' => $account,
-      'requested_scopes' => $requested_scopes
+      'requested_scopes' => $requested_scopes,
     ]);
 
     // Finally, allow modules to alter claims.
@@ -483,6 +527,10 @@ class OAuth2Storage implements OAuth2StorageInterface {
   }
 
   /* RefreshTokenInterface */
+
+  /**
+   * Get refresh token.
+   */
   public function getRefreshToken($refresh_token) {
     $token = $this->getStorageToken($refresh_token);
     if (!$token) {
@@ -495,14 +543,14 @@ class OAuth2Storage implements OAuth2StorageInterface {
       return FALSE;
     }
 
-    $scopes = array();
+    $scopes = [];
     $scope_entities = $token->scopes->referencedEntities();
     foreach ($scope_entities as $scope) {
       $scopes[] = $scope->scope_id;
     }
     sort($scopes);
 
-    $token_array = array(
+    $token_array = [
       'server' => $token->getClient()->getServer()->id(),
       'client_id' => $token->getClient()->client_id,
       'user_id' => $token->getUser()->id(),
@@ -510,12 +558,15 @@ class OAuth2Storage implements OAuth2StorageInterface {
       'refresh_token' => $token->token->value,
       'expires' => (int) $token->expires->value,
       'scope' => implode(' ', $scopes),
-    );
+    ];
 
     return $token_array;
   }
 
-  public function setRefreshToken($refresh_token, $client_id, $uid, $expires, $scope = null) {
+  /**
+   * Set refresh token.
+   */
+  public function setRefreshToken($refresh_token, $client_id, $uid, $expires, $scope = NULL) {
     $client = $this->getStorageClient($client_id);
     if (!$client) {
       throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
@@ -542,6 +593,9 @@ class OAuth2Storage implements OAuth2StorageInterface {
     return $status;
   }
 
+  /**
+   * Unset refresh token.
+   */
   public function unsetRefreshToken($refresh_token) {
     $token = $this->getStorageToken($refresh_token);
     $token->delete();
@@ -550,15 +604,15 @@ class OAuth2Storage implements OAuth2StorageInterface {
   /**
    * Sets the "scopes" entityreference field on the passed entity.
    *
-   * @param $entity
+   * @param object $entity
    *   The entity containing the "scopes" entityreference field.
-   * @param $server
+   * @param object $server
    *   The machine name of the server.
-   * @param $scope
+   * @param string $scope
    *   Scopes in a space-separated string.
    */
   private function setScopeData($entity, $server, $scope) {
-    $entity->scopes = array();
+    $entity->scopes = [];
     if ($scope) {
       $scopes = preg_split('/\s+/', $scope);
       $loaded_scopes = $this->entityManager->getStorage('oauth2_server_scope')->loadByProperties(['server_id' => $server->id(), 'scope_id' => $scopes]);
@@ -570,21 +624,31 @@ class OAuth2Storage implements OAuth2StorageInterface {
   }
 
   /* PublicKeyInterface */
-  public function getPublicKey($client_id = null) {
+
+  /**
+   * Get public key.
+   */
+  public function getPublicKey($client_id = NULL) {
     // The library allows for per-client keys. The module uses global keys
     // that are regenerated every day, following Google's example.
     $keys = Utility::getKeys();
     return $keys['public_key'];
   }
 
-  public function getPrivateKey($client_id = null) {
+  /**
+   * Get private key.
+   */
+  public function getPrivateKey($client_id = NULL) {
     // The library allows for per-client keys. The module uses global keys
     // that are regenerated every day, following Google's example.
     $keys = Utility::getKeys();
     return $keys['private_key'];
   }
 
-  public function getEncryptionAlgorithm($client_id = null) {
+  /**
+   * Get encryption algorithm.
+   */
+  public function getEncryptionAlgorithm($client_id = NULL) {
     return 'RS256';
   }
 
@@ -594,7 +658,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
    * @param \Drupal\user\UserInterface $account
    *   The user account object.
    *
-   * @return string|NULL
+   * @return string|null
    *   An absolute URL to the user picture, or NULL if none is found.
    */
   protected function getUserPicture(UserInterface $account) {
@@ -610,4 +674,5 @@ class OAuth2Storage implements OAuth2StorageInterface {
     }
     return NULL;
   }
+
 }

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\oauth2_server\Controller\OAuth2Controller.
- */
-
 namespace Drupal\oauth2_server\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
@@ -24,10 +19,11 @@ use Drupal\oauth2_server\Utility;
  * Provides block routines for OAuth2.
  */
 class OAuth2Controller extends ControllerBase {
+
   /**
-   * The OAuth2Storage
+   * The OAuth2Storage.
    *
-   * @var \Drupal\oauth2_server\OAuth2StorageInterface;
+   * @var \Drupal\oauth2_server\OAuth2StorageInterface
    */
   protected $storage;
 
@@ -50,6 +46,9 @@ class OAuth2Controller extends ControllerBase {
     );
   }
 
+  /**
+   * Authorize.
+   */
   public function authorize(RouteMatchInterface $route_match, Request $request) {
     $this->moduleHandler()->invokeAll('oauth2_server_pre_authorize');
     $bridgeRequest = BridgeRequest::createFromRequest($request);
@@ -109,7 +108,7 @@ class OAuth2Controller extends ControllerBase {
       $scope_names = explode(' ', $scope);
       $scopes = $this->entityManager()->getStorage('oauth2_server_scope')->loadByProperties([
         'server_id' => $client->getServer()->id(),
-        'scope_id' => $scope_names
+        'scope_id' => $scope_names,
       ]);
 
       // Show the authorize form.
@@ -117,6 +116,9 @@ class OAuth2Controller extends ControllerBase {
     }
   }
 
+  /**
+   * Token.
+   */
   public function token(RouteMatchInterface $route_match, Request $request) {
     $bridgeRequest = BridgeRequest::createFromRequest($request);
 
@@ -140,12 +142,15 @@ class OAuth2Controller extends ControllerBase {
 
   }
 
+  /**
+   * Tokens.
+   */
   public function tokens(RouteMatchInterface $route_match, Request $request) {
     $token = $route_match->getRawParameter('oauth2_server_token');
     $token = $this->storage->getAccessToken($token);
     // No token found. Stop here.
     if (!$token || $token['expires'] <= time()) {
-      return new BridgeResponse(array(), 404);
+      return new BridgeResponse([], 404);
     }
 
     // Return the token, without the server and client_id keys.
@@ -153,6 +158,9 @@ class OAuth2Controller extends ControllerBase {
     return new JsonResponse($token);
   }
 
+  /**
+   * User info.
+   */
   public function userInfo(RouteMatchInterface $route_match, Request $request) {
     $bridgeRequest = BridgeRequest::createFromRequest($request);
 
@@ -177,14 +185,20 @@ class OAuth2Controller extends ControllerBase {
     return $response;
   }
 
+  /**
+   * Certificates.
+   */
   public function certificates(RouteMatchInterface $route_match, Request $request) {
     $keys = Utility::getKeys();
-    $certificates = array();
+    $certificates = [];
     $certificates[] = $keys['public_key'];
     return new JsonResponse($certificates);
   }
 
+  /**
+   * Access needs Keys.
+   */
   public function accessNeedsKeys() {
-
   }
+
 }

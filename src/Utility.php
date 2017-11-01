@@ -1,20 +1,17 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\oauth2_server\Utility.
- */
-
 namespace Drupal\oauth2_server;
 
 use Drupal\Core\Url;
 use OAuth2\HttpFoundationBridge\Response as BridgeResponse;
 use OAuth2\HttpFoundationBridge\Request as BridgeRequest;
 use OAuth2\RequestInterface;
-use OAuth2\ResponseInterface;
+use OAuth2\Server;
+use Drupal\oauth2_server\ScopeUtility;
 use Drupal\oauth2_server\ServerInterface;
 use Drupal\oauth2_server\OAuth2StorageInterface;
-use Drupal\oauth2_server\ScopeUtility;
+use OAuth2\OpenID\GrantType\AuthorizationCode;
+use OAuth2\Encryption\Jwt;
 
 /**
  * Contains utility methods for the OAuth2 Server.
@@ -23,37 +20,38 @@ use Drupal\oauth2_server\ScopeUtility;
  *   class into several utility classes).
  */
 class Utility {
+
   /**
    * Returns an array of supported grant types and related data.
    */
   public static function getGrantTypes() {
-    return array(
-      'authorization_code' => array(
+    return [
+      'authorization_code' => [
         'name' => t('Authorization code'),
         'class' => '\OAuth2\OpenID\GrantType\AuthorizationCode',
-      ),
-      'client_credentials' => array(
+      ],
+      'client_credentials' => [
         'name' => t('Client credentials'),
         'class' => '\OAuth2\GrantType\ClientCredentials',
-      ),
-      'urn:ietf:params:oauth:grant-type:jwt-bearer' => array(
+      ],
+      'urn:ietf:params:oauth:grant-type:jwt-bearer' => [
         'name' => t('JWT bearer'),
         'class' => '\OAuth2\GrantType\JwtBearer',
-      ),
-      'refresh_token' => array(
+      ],
+      'refresh_token' => [
         'name' => t('Refresh token'),
         'class' => '\OAuth2\GrantType\RefreshToken',
-        'settings callback' => array(__NAMESPACE__ .'\Form\ServerForm', 'refreshTokenSettings'),
-        'default settings' => array(
+        'settings callback' => [__NAMESPACE__ . '\Form\ServerForm', 'refreshTokenSettings'],
+        'default settings' => [
           'always_issue_new_refresh_token' => FALSE,
           'unset_refresh_token_after_use' => TRUE,
-        ),
-      ),
-      'password' => array(
+        ],
+      ],
+      'password' => [
         'name' => t('User credentials'),
         'class' => '\OAuth2\GrantType\UserCredentials',
-      ),
-    );
+      ],
+    ];
   }
 
   /**
@@ -62,11 +60,11 @@ class Utility {
    * @param string $data
    *   A string containing the base64url encoded data.
    *
-   * @return string|FALSE
+   * @return string|false
    *   The decoded data, or FALSE on failure.
    */
   public static function base64urlDecode($data) {
-    $data = str_replace(array('-', '_'), array('+', '/'), $data);
+    $data = str_replace(['-', '_'], ['+', '/'], $data);
     return base64_decode($data);
   }
 
@@ -80,7 +78,7 @@ class Utility {
    *   The encoded data.
    */
   public static function base64urlEncode($data) {
-    return str_replace(array('+', '/'), array('-', '_'), base64_encode($data));
+    return str_replace(['+', '/'], ['-', '_'], base64_encode($data));
   }
 
   /**
@@ -107,7 +105,8 @@ class Utility {
    * Generates a pair of private and public keys using OpenSSL.
    *
    * The public key is stored in a PEM encoded X.509 certificate, following
-   * Google's example. The certificate can be passed to openssl_verify() directly.
+   * Google's example. The certificate can be passed to openssl_verify()
+   * directly.
    *
    * @return array
    *   An array with the following keys:
@@ -116,9 +115,9 @@ class Utility {
    */
   public static function generateKeys() {
     $module_path = drupal_get_path('module', 'oauth2_server');
-    $config = array(
+    $config = [
       'config' => $module_path . '/oauth2_server.openssl.cnf',
-    );
+    ];
 
     // Generate a private key.
     $resource = openssl_pkey_new($config);
@@ -126,10 +125,10 @@ class Utility {
 
     // Generate a public key certificate valid for 2 days.
     $serial = \Drupal::state()->get('oauth2_server.next_certificate_id', 0);
-    $uri = new Url('<front>' , [], ['absolute' => TRUE, 'https' => TRUE]);
-    $dn = array(
+    $uri = new Url('<front>', [], ['absolute' => TRUE, 'https' => TRUE]);
+    $dn = [
       'CN' => $uri->toString(),
-    );
+    ];
     $csr = openssl_csr_new($dn, $resource, $config);
     $x509 = openssl_csr_sign($csr, NULL, $resource, 2, $config, $serial);
     openssl_x509_export($x509, $public_key_certificate);
@@ -137,20 +136,19 @@ class Utility {
     // guarantee sequential numbers.
     \Drupal::state()->set('oauth2_server.next_certificate_id', ++$serial);
 
-    return array(
+    return [
       'private_key' => $private_key,
       'public_key' => $public_key_certificate,
-    );
+    ];
   }
 
   /**
    * Initializes and returns an OAuth2 server.
    *
-   * @param \Drupal\oauth2_server\ServerInterface|NULL $server
+   * @param \Drupal\oauth2_server\ServerInterface|null $server
    *   The server entity to use for supplying settings to the server, and
    *   initializing the scope. NULL only when we expect the validation to
    *   fail due to an incomplete or invalid request.
-   *
    * @param \Drupal\oauth2_server\OAuth2StorageInterface $storage
    *   The storage service to use for retrieving data.
    *
@@ -160,27 +158,27 @@ class Utility {
   public static function startServer(ServerInterface $server = NULL, OAuth2StorageInterface $storage) {
     $grant_types = static::getGrantTypes();
     if ($server) {
-      $uri = new Url('<front>' , [], ['absolute' => TRUE, 'https' => TRUE]);
-      $settings = $server->settings + array(
-          'issuer' => $uri->toString(),
-        );
+      $uri = new Url('<front>', [], ['absolute' => TRUE, 'https' => TRUE]);
+      $settings = $server->settings + [
+        'issuer' => $uri->toString(),
+      ];
 
-      // The setting 'use_crypto_tokens' was changed to 'use_jwt_access_tokens' in
-      // v1.6 of the library. So this provides both.
+      // The setting 'use_crypto_tokens' was changed to 'use_jwt_access_tokens'
+      // in v1.6 of the library. So this provides both.
       $settings['use_jwt_access_tokens'] = !empty($settings['use_crypto_tokens']) ?: FALSE;
 
       // Initialize the server and add the scope util.
-      $oauth2_server = new \OAuth2\Server($storage, $settings);
-      $scope_util = new \Drupal\oauth2_server\ScopeUtility($server);
+      $oauth2_server = new Server($storage, $settings);
+      $scope_util = new ScopeUtility($server);
       $oauth2_server->setScopeUtil($scope_util);
       // Determine the available grant types based on server settings.
       $enabled_grant_types = array_filter($settings['grant_types']);
     }
     else {
-      $oauth2_server = new \OAuth2\Server($storage);
+      $oauth2_server = new Server($storage);
       // Enable all grant types. One of them will handle the validation failure.
       $enabled_grant_types = array_keys($grant_types);
-      $settings = array();
+      $settings = [];
     }
 
     // Initialize the enabled grant types.
@@ -194,9 +192,10 @@ class Utility {
       }
       $oauth2_server->addGrantType($grant_type);
     }
-    // Implicit flow requires its own instance of OAuth2_GrantType_AuthorizationCode.
+    // Implicit flow requires its own instance of
+    // OAuth2_GrantType_AuthorizationCode.
     if (!empty($settings['allow_implicit'])) {
-      $grant_type = new \OAuth2\OpenID\GrantType\AuthorizationCode($storage, $settings);
+      $grant_type = new AuthorizationCode($storage, $settings);
       $oauth2_server->addGrantType($grant_type, 'implicit');
     }
 
@@ -204,14 +203,14 @@ class Utility {
   }
 
   /**
-   * Get the client credentials from the authorization header or the request body.
+   * Get the client credentials from authorization header or request body.
    *
    * Used during token requests.
    *
-   * @param \OAuth2\HttpFoundationBridge\Request $request
+   * @param \OAuth2\RequestInterface $request
    *   An instance of \OAuth2\HttpFoundationBridge\Request.
    *
-   * @return array|NULL
+   * @return array|null
    *   An array with the following keys:
    *   - client_id: The client key.
    *   - client_secret: The client secret.
@@ -220,32 +219,32 @@ class Utility {
   public static function getClientCredentials(RequestInterface $request) {
     // Get the client credentials from the Authorization header.
     if (!is_null($request->headers('PHP_AUTH_USER'))) {
-      return array(
+      return [
         'client_id' => $request->headers('PHP_AUTH_USER'),
         'client_secret' => $request->headers('PHP_AUTH_PW', ''),
-      );
+      ];
     }
 
     // Get the client credentials from the request body (POST).
     // Per spec, this method is not recommended and should be limited to clients
     // unable to utilize HTTP authentication.
     if (!is_null($request->request('client_id'))) {
-      return array(
+      return [
         'client_id' => $request->request('client_id'),
         'client_secret' => $request->request('client_secret', ''),
-      );
+      ];
     }
 
     // This request contains a JWT, extract the client_id from there.
     if (!is_null($request->request('assertion'))) {
-      $jwt_util = new \OAuth2\Encryption\Jwt();
+      $jwt_util = new Jwt();
       $jwt = $jwt_util->decode($request->request('assertion'), NULL, FALSE);
       if (!empty($jwt['iss'])) {
-        return array(
+        return [
           'client_id' => $jwt['iss'],
           // The JWT bearer grant type doesn't use the client_secret.
           'client_secret' => '',
-        );
+        ];
       }
     }
 
@@ -303,19 +302,25 @@ class Utility {
     // Make sure that the token we have matches our server.
     if ($token['server'] != $server->id()) {
       $response->setError(401, 'invalid_grant', 'The access token provided is invalid');
-      $response->addHttpHeaders(array('WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope)));
+      $response->addHttpHeaders([
+        'WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope),
+      ]);
       return $response;
     }
 
     // Check scope, if provided
-    // If token doesn't have a scope, it's null/empty, or it's insufficient, throw an error.
+    // If token doesn't have a scope, it's null/empty, or it's insufficient,
+    // throw an error.
     $scope_util = new ScopeUtility($server);
     if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$scope_util->checkScope($scope, $token["scope"]))) {
       $response->setError(401, 'insufficient_scope', 'The request requires higher privileges than provided by the access token');
-      $response->addHttpHeaders(array('WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope)));
+      $response->addHttpHeaders([
+        'WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope),
+      ]);
       return $response;
     }
 
     return $token;
   }
+
 }

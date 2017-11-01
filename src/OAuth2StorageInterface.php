@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\oauth2_server\OAuth2StorageInterface.
- */
 
 namespace Drupal\oauth2_server;
 
@@ -15,10 +11,18 @@ use OAuth2\Storage\RefreshTokenInterface;
 use OAuth2\Storage\UserCredentialsInterface;
 use OAuth2\Storage\PublicKeyInterface;
 
-interface OAuth2StorageInterface extends AuthorizationCodeInterface,
-  AccessTokenInterface, ClientCredentialsInterface,
-  JwtBearerInterface, RefreshTokenInterface,
-  UserCredentialsInterface, UserClaimsInterface,
-  PublicKeyInterface
-{
+/**
+ * Interface OAuth2StorageInterface.
+ *
+ * @package Drupal\oauth2_server
+ */
+interface OAuth2StorageInterface extends
+    AuthorizationCodeInterface,
+    AccessTokenInterface,
+    ClientCredentialsInterface,
+    JwtBearerInterface,
+    RefreshTokenInterface,
+    UserCredentialsInterface,
+    UserClaimsInterface,
+    PublicKeyInterface {
 }

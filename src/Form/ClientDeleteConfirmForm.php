@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\oauth2_server\Form\ClientDeleteConfirmForm.
- */
-
 namespace Drupal\oauth2_server\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
@@ -20,7 +15,7 @@ class ClientDeleteConfirmForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return $this->t('Are you sure you want to delete the OAuth2 server client %name?', array('%name' => $this->entity->label()));
+    return $this->t('Are you sure you want to delete the OAuth2 server client %name?', ['%name' => $this->entity->label()]);
   }
 
   /**
@@ -49,7 +44,7 @@ class ClientDeleteConfirmForm extends EntityConfirmFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->entity->delete();
-    drupal_set_message($this->t('The OAuth2 server client %name has been deleted.', array('%name' => $this->entity->label())));
+    drupal_set_message($this->t('The OAuth2 server client %name has been deleted.', ['%name' => $this->entity->label()]));
     $form_state->setRedirect('entity.oauth2_server.clients', ['oauth2_server' => $this->entity->server_id]);
   }
 

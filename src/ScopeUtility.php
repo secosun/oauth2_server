@@ -1,10 +1,4 @@
 <?php
-/**
- * @file
- * Includes the scope utility class.@global
- *
- * @todo this should be rewritten to use dependency injection.
- */
 
 namespace Drupal\oauth2_server;
 
@@ -15,12 +9,21 @@ use Oauth2\RequestInterface;
  * Provides a scope-checking utility to the library.
  */
 class ScopeUtility implements ScopeInterface {
+
   /**
+   * The server.
+   *
    * @var \Drupal\oauth2_server\ServerInterface
    */
   private $server;
 
-  public function __construct($server) {
+  /**
+   * ScopeUtility constructor.
+   *
+   * @param \Drupal\oauth2_server\ServerInterface $server
+   *   The server.
+   */
+  public function __construct(ServerInterface $server) {
     $this->server = $server;
   }
 
@@ -28,6 +31,8 @@ class ScopeUtility implements ScopeInterface {
    * Check if everything in required scope is contained in available scope.
    *
    * @param string $required_scope
+   *   A space-separated string of scopes.
+   * @param string $available_scope
    *   A space-separated string of scopes.
    *
    * @return bool
@@ -38,7 +43,7 @@ class ScopeUtility implements ScopeInterface {
    *
    * @ingroup oauth2_section_7
    */
-  function checkScope($required_scope, $available_scope) {
+  public function checkScope($required_scope, $available_scope) {
     $required_scope = explode(' ', trim($required_scope));
     $available_scope = explode(' ', trim($available_scope));
     return (count(array_diff($required_scope, $available_scope)) == 0);
@@ -47,15 +52,15 @@ class ScopeUtility implements ScopeInterface {
   /**
    * Check if the provided scope exists in storage.
    *
-   * @param $scope
+   * @param string $scope
    *   A space-separated string of scopes.
-   * @param $client_id
+   * @param string $client_id
    *   The requesting client.
    *
    * @return bool
    *   TRUE if it exists, FALSE otherwise.
    */
-  function scopeExists($scope, $client_id = null) {
+  public function scopeExists($scope, $client_id = NULL) {
     $scope = explode(' ', trim($scope));
     // Get all scope entities that match the provided scope.
     // Compare the difference.
@@ -73,7 +78,7 @@ class ScopeUtility implements ScopeInterface {
     \Drupal::moduleHandler()->alter('oauth2_server_scope_access', $context);
 
     if ($loaded_scopes) {
-      $found_scope = array();
+      $found_scope = [];
       foreach ($loaded_scopes as $loaded_scope) {
         $found_scope[] = $loaded_scope->label();
       }
@@ -84,17 +89,23 @@ class ScopeUtility implements ScopeInterface {
     return FALSE;
   }
 
+  /**
+   * Get scope from request.
+   */
   public function getScopeFromRequest(RequestInterface $request) {
-    // "scope" is valid if passed in either POST or QUERY
+    // "scope" is valid if passed in either POST or QUERY.
     return $request->request('scope', $request->query('scope'));
   }
 
+  /**
+   * Get default scope.
+   */
   public function getDefaultScope($client_id = NULL) {
     // Allow any hook_oauth2_server_default_scope() implementations to supply
     // the default scope. The first one to return a scope wins.
     foreach (\Drupal::moduleHandler()->getImplementations('oauth2_server_default_scope') as $module) {
       $function = $module . '_' . 'oauth2_server_default_scope';
-      $args = array($this->server);
+      $args = [$this->server];
       $result = call_user_func_array($function, $args);
       if (is_array($result)) {
         sort($result);
@@ -114,4 +125,5 @@ class ScopeUtility implements ScopeInterface {
 
     return FALSE;
   }
+
 }

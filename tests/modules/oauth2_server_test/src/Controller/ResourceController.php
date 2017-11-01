@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\oauth2_server_test\Controller\ResourceController.
- */
-
 namespace Drupal\oauth2_server_test\Controller;
 
 use Drupal\Core\Controller\ControllerBase;

@@ -1,14 +1,8 @@
 <?php
-/**
- * @file
- * Contains \Drupal\oauth2_server\Entity\Client.
- */
 
 namespace Drupal\oauth2_server\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Config\Entity\ConfigEntityStorage;
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\oauth2_server\ClientInterface;
 
 /**
@@ -47,9 +41,9 @@ use Drupal\oauth2_server\ClientInterface;
  * )
  */
 class Client extends ConfigEntityBase implements ClientInterface {
+
   /**
    * The client id of this client.
-   * Called client_key in the D7 version.
    *
    * @var string
    */
@@ -65,7 +59,7 @@ class Client extends ConfigEntityBase implements ClientInterface {
   /**
    * The loaded server.
    *
-   * @var \Drupal\oauth2_server\ServerInterface $server;
+   * @var \Drupal\oauth2_server\ServerInterface
    */
   protected $server;
 
@@ -109,14 +103,14 @@ class Client extends ConfigEntityBase implements ClientInterface {
    *
    * @var array
    */
-  public $settings = array(
+  public $settings = [
     'override_grant_types' => FALSE,
     'allow_implicit' => FALSE,
-    'grant_types' => array(
+    'grant_types' => [
       'authorization_code' => 'authorization_code',
       'refresh_token' => 'refresh_token',
-    ),
-  );
+    ],
+  ];
 
   /**
    * {@inheritdoc}
@@ -145,7 +139,7 @@ class Client extends ConfigEntityBase implements ClientInterface {
   /**
    * {@inheritdoc}
    */
-  function hashClientSecret($client_secret) {
+  public function hashClientSecret($client_secret) {
     if ($client_secret === '') {
       return $client_secret;
     }
@@ -173,4 +167,5 @@ class Client extends ConfigEntityBase implements ClientInterface {
     $this->server = NULL;
     parent::__sleep();
   }
+
 }

@@ -1,25 +1,18 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\oauth2_server\ServerListBuilder.
- */
-
 namespace Drupal\oauth2_server;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Url;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Builds a listing of oauth2 server entities.
  */
 class ServerListBuilder extends ConfigEntityListBuilder {
+
   /**
    * {@inheritdoc}
    */
@@ -28,16 +21,16 @@ class ServerListBuilder extends ConfigEntityListBuilder {
 
     if ($entity instanceof ServerInterface) {
       $route_parameters['oauth2_server'] = $entity->id();
-      $operations['scopes'] = array(
+      $operations['scopes'] = [
         'title' => $this->t('Scopes'),
         'weight' => 20,
         'url' => new Url('entity.oauth2_server.scopes', $route_parameters),
-      );
-      $operations['clients'] = array(
+      ];
+      $operations['clients'] = [
         'title' => $this->t('Clients'),
         'weight' => 20,
         'url' => new Url('entity.oauth2_server.clients', $route_parameters),
-      );
+      ];
     }
 
     return $operations;
@@ -47,13 +40,13 @@ class ServerListBuilder extends ConfigEntityListBuilder {
    * {@inheritdoc}
    */
   public function buildHeader() {
-    return array(
+    return [
       'label' => $this->t('Label'),
-      'status' => array(
+      'status' => [
         'data' => $this->t('Status'),
-        'class' => array('checkbox'),
-      ),
-    ) + parent::buildHeader();
+        'class' => ['checkbox'],
+      ],
+    ] + parent::buildHeader();
   }
 
   /**
@@ -64,55 +57,55 @@ class ServerListBuilder extends ConfigEntityListBuilder {
     $row = parent::buildRow($entity);
 
     $status_label = $entity->status() ? $this->t('Enabled') : $this->t('Disabled');
-    $status_icon = array(
+    $status_icon = [
       '#theme' => 'image',
       '#uri' => $entity->status() ? 'core/misc/icons/73b355/check.svg' : 'core/misc/icons/ea2800/error.svg',
       '#width' => 18,
       '#height' => 18,
       '#alt' => $status_label,
       '#title' => $status_label,
-    );
+    ];
 
-    return array(
-      'data' => array(
-        'label' => array(
+    return [
+      'data' => [
+        'label' => [
           'data' => $this->getLabel($entity),
-          'class' => array('oauth2-server-name'),
-        ),
-        'status' => array(
+          'class' => ['oauth2-server-name'],
+        ],
+        'status' => [
           'data' => $status_icon,
-          'class' => array('checkbox'),
-        ),
+          'class' => ['checkbox'],
+        ],
         'operations' => $row['operations'],
-      ),
-      'title' => $this->t('ID: @name', array('@name' => $entity->id())),
-      'class' => array(
+      ],
+      'title' => $this->t('ID: @name', ['@name' => $entity->id()]),
+      'class' => [
         Html::cleanCssIdentifier($entity->getEntityTypeId() . '-' . $entity->id()),
-        $entity->status() ? 'oauth2-server-list-enabled' : 'oauth2-server-list-disabled'
-      ),
-    );
+        $entity->status() ? 'oauth2-server-list-enabled' : 'oauth2-server-list-disabled',
+      ],
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
   public function render() {
-    $build = array();
-    $build['table'] = array(
+    $build = [];
+    $build['table'] = [
       '#type' => 'table',
       '#header' => $this->buildHeader(),
       '#title' => $this->getTitle(),
-      '#rows' => array(),
+      '#rows' => [],
       '#cache' => [
         'contexts' => $this->entityType->getListCacheContexts(),
       ],
       '#attributes' => [
         'id' => 'oauth2-server-entity-list',
       ],
-    );
+    ];
 
     $build['table']['#empty'] = $this->t('No servers available. <a href="@link">Add server</a>.', [
-      '@link' => Url::fromRoute('entity.oauth2_server.add_form')->toString()
+      '@link' => Url::fromRoute('entity.oauth2_server.add_form')->toString(),
     ]);
 
     $servers = $this->storage->loadMultiple();
@@ -123,9 +116,9 @@ class ServerListBuilder extends ConfigEntityListBuilder {
       }
     }
 
-    $build['pager'] = array(
+    $build['pager'] = [
       '#type' => 'pager',
-    );
+    ];
 
     return $build;
   }
@@ -148,4 +141,5 @@ class ServerListBuilder extends ConfigEntityListBuilder {
       }
     });
   }
+
 }

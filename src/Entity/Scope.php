@@ -1,13 +1,8 @@
 <?php
-/**
- * @file
- * Contains \Drupal\oauth2_server\Entity\Scope.
- */
 
 namespace Drupal\oauth2_server\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\oauth2_server\ScopeInterface;
 
@@ -43,8 +38,11 @@ use Drupal\oauth2_server\ScopeInterface;
  * )
  */
 class Scope extends ConfigEntityBase implements ScopeInterface {
+
   /**
    * The id used for the scope.
+   *
+   * @var string
    */
   protected $id;
 
@@ -65,7 +63,7 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
   /**
    * The loaded server.
    *
-   * @var \Drupal\oauth2_server\ServerInterface $server;
+   * @var \Drupal\oauth2_server\ServerInterface
    */
   protected $server;
 
@@ -82,7 +80,7 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
    * @return static
    *   The entity object.
    */
-  public static function create(array $values = array()) {
+  public static function create(array $values = []) {
     if (isset($values['server_id']) && isset($values['scope_id'])) {
       $values['id'] = $values['server_id'] . '_' . $values['scope_id'];
     }
@@ -154,4 +152,5 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
     $this->server = NULL;
     parent::__sleep();
   }
+
 }

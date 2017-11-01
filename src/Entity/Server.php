@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\oauth2_server\Entity\Server.
- */
 
 namespace Drupal\oauth2_server\Entity;
 
@@ -74,24 +70,24 @@ class Server extends ConfigEntityBase implements ServerInterface {
    *
    * @var array
    */
-  public $settings = array(
+  public $settings = [
     'default_scope' => '',
     'enforce_state' => TRUE,
     'allow_implicit' => FALSE,
     'use_openid_connect' => FALSE,
     'use_crypto_tokens' => FALSE,
     'store_encrypted_token_string' => FALSE,
-    'grant_types' => array(
+    'grant_types' => [
       'authorization_code' => 'authorization_code',
       'refresh_token' => 'refresh_token',
-    ),
-    'advanced_settings' => array(
+    ],
+    'advanced_settings' => [
       'access_lifetime' => 3600,
       'id_lifetime' => 3600,
       'refresh_token_lifetime' => 1209600,
       'require_exact_redirect_uri' => TRUE,
-    ),
-  );
+    ],
+  ];
 
   /**
    * The name of the providing module if the server has been defined in code.
@@ -120,21 +116,21 @@ class Server extends ConfigEntityBase implements ServerInterface {
   public function postSave(EntityStorageInterface $storage, $update = TRUE) {
     parent::postSave($storage, $update);
 
-    $old_settings = isset($this->original) ? $this->original->settings : array();
+    $old_settings = isset($this->original) ? $this->original->settings : [];
     $previous_value = !empty($old_settings['use_openid_connect']);
     $current_value = !empty($this->settings['use_openid_connect']);
 
     if (!$previous_value && $current_value) {
-      $openid_scopes = array(
-        'openid' => format_string('Know who you are on @site', array('@site' => \Drupal::config('system.site')->get('name'))),
+      $openid_scopes = [
+        'openid' => format_string('Know who you are on @site', ['@site' => \Drupal::config('system.site')->get('name')]),
         'offline_access' => "Access the API when you're not present.",
         'email' => 'View your email address.',
         'profile' => 'View basic information about your account.',
-      );
+      ];
       foreach ($openid_scopes as $id => $description) {
         $scope = $this->entityManager()->getStorage('oauth2_server_scope')->load($this->id() . '_' . $id);
         if (!$scope) {
-          $scope = \Drupal\oauth2_server\Entity\Scope::create([
+          $scope = Scope::create([
             'scope_id' => $id,
             'server_id' => $this->id(),
             'description' => $description,
@@ -145,7 +141,7 @@ class Server extends ConfigEntityBase implements ServerInterface {
     }
     // If OpenID Connect was just disabled, delete its scopes.
     if ($previous_value && !$current_value) {
-      $scope_names = array('openid', 'offline_access', 'email', 'profile');
+      $scope_names = ['openid', 'offline_access', 'email', 'profile'];
       $scopes = $this->entityManager()->getStorage('oauth2_server_scope')->loadByProperties(['server_id' => $this->id(), 'scope_id' => $scope_names]);
       foreach ($scopes as $scope) {
         $scope->delete();
@@ -176,4 +172,5 @@ class Server extends ConfigEntityBase implements ServerInterface {
       $client->delete();
     }
   }
+
 }

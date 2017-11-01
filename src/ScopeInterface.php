@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\oauth2_server\ScopeInterface.
- */
-
 namespace Drupal\oauth2_server;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
@@ -13,6 +8,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
  * Defines the interface for scope entities.
  */
 interface ScopeInterface extends ConfigEntityInterface {
+
   /**
    * Returns the server the scope belongs to.
    *
@@ -28,4 +24,5 @@ interface ScopeInterface extends ConfigEntityInterface {
    *   TRUE or FALSE
    */
   public function isDefault();
+
 }

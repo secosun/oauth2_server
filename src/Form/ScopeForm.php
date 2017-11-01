@@ -1,18 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\oauth2_server\Form\ScopeForm.
- */
-
 namespace Drupal\oauth2_server\Form;
 
-use Drupal\Component\Utility\Html;
-use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Url;
-use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -66,29 +57,29 @@ class ScopeForm extends EntityForm {
     }
 
     $form['#tree'] = TRUE;
-    $form['scope_id'] = array(
+    $form['scope_id'] = [
       '#type' => 'machine_name',
       '#default_value' => !$scope->isNew() ? $scope->scope_id : '',
       '#maxlength' => 50,
       '#required' => TRUE,
-    );
-    $form['server_id'] = array(
+    ];
+    $form['server_id'] = [
       '#type' => 'value',
       '#value' => $server->id(),
-    );
-    $form['description'] = array(
+    ];
+    $form['description'] = [
       '#title' => $this->t('Description'),
       '#type' => 'textfield',
       '#default_value' => $scope->description,
       '#description' => $this->t('Used to describe the scope to the user on the authorization form.'),
       '#required' => TRUE,
-    );
+    ];
 
-    $form['default'] = array(
+    $form['default'] = [
       '#type' => 'checkbox',
       '#title' => t('Default'),
       '#default_value' => $scope->isDefault(),
-    );
+    ];
 
     return parent::form($form, $form_state);
   }
@@ -130,9 +121,10 @@ class ScopeForm extends EntityForm {
       $server->settings['default_scope'] = $this->entity->id();
       $server->save();
     }
-    else if ($server->settings['default_scope'] == $this->entity->getOriginalId()) {
+    elseif ($server->settings['default_scope'] == $this->entity->getOriginalId()) {
       $server->settings['default_scope'] = '';
       $server->save();
     }
   }
+
 }
