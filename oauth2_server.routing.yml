@@ -21,6 +21,8 @@ oauth2_server.userinfo:
   path: '/oauth2/UserInfo'
   defaults:
      _controller: 'Drupal\oauth2_server\Controller\OAuth2Controller::userInfo'
+  options:
+    _auth: [ 'oauth2' ]
   requirements:
     _permission: 'use oauth2 server'
 oauth2_server.certificates:
