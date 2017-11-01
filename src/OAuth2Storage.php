@@ -494,8 +494,8 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
     if (in_array('profile', $requested_scopes)) {
       if (!empty($account->label())) {
-        $claims['name'] = $account->label();
-        $claims['preferred_username'] = $account->label();
+        $claims['name'] = $account->getDisplayName();
+        $claims['preferred_username'] = $account->getAccountName();
       }
       if (!empty($account->timezone)) {
         $claims['zoneinfo'] = $account->getTimeZone();
