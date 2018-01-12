@@ -908,6 +908,13 @@ function oauth2_server_start($server = NULL) {
     // v1.6 of the library. So this provides both.
     $settings['use_jwt_access_tokens'] = !empty($settings['use_crypto_tokens']) ?: FALSE;
 
+    // Ensure lifetime settings are passed as integers (not strings).
+    foreach (['access_lifetime', 'id_lifetime', 'refresh_token_lifetime'] as $key) {
+      if (isset($settings[$key])) {
+        $settings[$key] = (int) $settings[$key];
+      }
+    }
+
     // For JWT access tokens, this setting ensures that only the ID will be
     // stored, not the entire token.
     if ($settings['use_jwt_access_tokens']) {
