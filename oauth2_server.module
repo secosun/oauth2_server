@@ -751,15 +751,17 @@ function oauth2_server_set_properties($entity, $name, $value) {
  * Implements hook_cron().
  */
 function oauth2_server_cron() {
-  // Delete expired tokens.
-  $query = new EntityFieldQuery;
-  $query
-    ->entityCondition('entity_type', 'oauth2_server_token')
-    ->propertyCondition('expires', 0, '<>')
-    ->propertyCondition('expires', REQUEST_TIME, '<=');
-  $result = $query->execute();
-  if ($result) {
-    entity_delete_multiple('oauth2_server_token', array_keys($result['oauth2_server_token']));
+  // Delete expired tokens and authorization codes.
+  $entity_types = ['oauth2_server_token', 'oauth2_server_authorization_code'];
+  foreach ($entity_types as $entity_type) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', $entity_type)
+      ->propertyCondition('expires', 0, '<>')
+      ->propertyCondition('expires', REQUEST_TIME, '<=');
+    $result = $query->execute();
+    if (!empty($result[$entity_type])) {
+      entity_delete_multiple($entity_type, array_keys($result[$entity_type]));
+    }
   }
 
   // Regenerate the keys once a day. Follows Google's practice described in
