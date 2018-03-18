@@ -305,7 +305,7 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
       'iss' => $this->clientId,
       'exp' => $request_time + 1000,
       'iat' => $request_time,
-      'sub' => $user->{$sub_property}->value;
+      'sub' => $user->{$sub_property}->value,
       'aud' => $token_url,
       'jti' => '123456',
     ];
