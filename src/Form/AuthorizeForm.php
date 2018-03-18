@@ -71,9 +71,9 @@ class AuthorizeForm extends FormBase {
       '#type' => 'ul',
     ];
 
-    $form['actions'] = array(
+    $form['actions'] = [
       '#type' => 'actions',
-    );
+    ];
     $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => t('Yes, I authorize this request.'),
