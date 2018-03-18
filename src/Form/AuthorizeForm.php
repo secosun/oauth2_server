@@ -70,12 +70,16 @@ class AuthorizeForm extends FormBase {
       '#items' => $list,
       '#type' => 'ul',
     ];
-    $form['authorize'] = [
+
+    $form['actions'] = array(
+      '#type' => 'actions',
+    );
+    $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => t('Yes, I authorize this request.'),
       '#authorized' => TRUE,
     ];
-    $form['cancel'] = [
+    $form['actions']['cancel'] = [
       '#type' => 'submit',
       '#value' => t('Cancel'),
       '#authorized' => FALSE,
