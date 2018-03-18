@@ -5,7 +5,7 @@
  * Support module for OAuth2 Server testing.
  */
 
-use \Drupal\oauth2_server\Serverinterface;
+use Drupal\oauth2_server\Serverinterface;
 
 /**
  * Implements hook_oauth2_server_user_claims_alter().
