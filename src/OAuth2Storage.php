@@ -214,9 +214,14 @@ class OAuth2Storage implements OAuth2StorageInterface {
     }
 
     $user = $token->getUser();
-    if ($user && $user->isBlocked()) {
-      // If the user is blocked, deny access.
-      return FALSE;
+    $enabled_grant_types = array_filter(
+      $token->getClient()->getServer()->get('settings')['grant_types']
+    );
+    if (!in_array('client_credentials', $enabled_grant_types)) {
+      if ($user && $user->isBlocked()) {
+        // If the user is blocked, deny access.
+        return FALSE;
+      }
     }
 
     $scopes = [];
