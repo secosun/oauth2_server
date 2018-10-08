@@ -252,9 +252,15 @@ class OAuth2Storage implements OAuth2StorageInterface {
    * Track the time the token was accessed.
    */
   protected function logAccessTime(TokenInterface $token) {
-    if (empty($token->last_access->value) || $token->last_access->value != REQUEST_TIME) {
-      $token->last_access = REQUEST_TIME;
-      $token->save();
+    $request_time = \Drupal::time()->getRequestTime();
+    if (empty($token->last_access->value) || $token->last_access->value != $request_time) {
+      $token->last_access = $request_time;
+      try {
+        $token->save();
+      }
+      catch (\Exception $e) {
+        // TODO find a way to reliably handle concurrent updates of last_access.
+      }
     }
   }
 
