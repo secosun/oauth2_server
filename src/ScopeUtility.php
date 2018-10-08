@@ -2,13 +2,13 @@
 
 namespace Drupal\oauth2_server;
 
-use OAuth2\ScopeInterface;
+use OAuth2\ScopeInterface as OAuth2ScopeInterface;
 use Oauth2\RequestInterface;
 
 /**
  * Provides a scope-checking utility to the library.
  */
-class ScopeUtility implements ScopeInterface {
+class ScopeUtility implements OAuth2ScopeInterface {
 
   /**
    * The server.
