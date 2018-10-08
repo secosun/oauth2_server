@@ -2,7 +2,7 @@
 
 namespace Drupal\oauth2_server;
 
-use OAuth2\OpenID\Storage\AuthorizationCodeInterface;
+use OAuth2\OpenID\Storage\AuthorizationCodeInterface as OAuth2AuthorizationCodeInterface;
 use OAuth2\OpenID\Storage\UserClaimsInterface;
 use OAuth2\Storage\AccessTokenInterface;
 use OAuth2\Storage\ClientCredentialsInterface;
@@ -17,7 +17,7 @@ use OAuth2\Storage\PublicKeyInterface;
  * @package Drupal\oauth2_server
  */
 interface OAuth2StorageInterface extends
-    AuthorizationCodeInterface,
+    OAuth2AuthorizationCodeInterface,
     AccessTokenInterface,
     ClientCredentialsInterface,
     JwtBearerInterface,
