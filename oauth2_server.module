@@ -43,6 +43,11 @@ function oauth2_server_libraries_info() {
  */
 function oauth2_server_get_library_path() {
   $path = 'sites/all/libraries/oauth2-server-php';
+  // The testbot installs dependencies listed in composer.json in vendor instead
+  // of sites/all/libraries.
+  if (!file_exists($path) && file_exists(DRUPAL_ROOT . '/vendor/bshaffer/oauth2-server-php')) {
+    $path = DRUPAL_ROOT . '/vendor/bshaffer/oauth2-server-php';
+  }
   // If installed, use the Libraries API to locate the library.
   if (module_exists('libraries')) {
     module_load_include('module', 'libraries');

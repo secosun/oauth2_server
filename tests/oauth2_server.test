@@ -187,13 +187,15 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
     $result = $this->authorizationCodeRequest('code');
 
     // Test the redirect_uri and authorization code.
-    $redirect_url_parts = explode('?', $result->redirect_url);
     $authorize_redirect = FALSE;
     $redirect_uri = url('authorized', array('absolute' => TRUE));
-    if ($result->code == 302 && $redirect_url_parts[0] == $redirect_uri) {
+    // Rather than assuming that clean URLs are enabled let's assume that if
+    // they are not enabled then the q argument is first.
+    if ($result->code == 302 && strpos($result->redirect_url, $redirect_uri, 0) === 0) {
       $authorize_redirect = TRUE;
     }
     $this->assertTrue($authorize_redirect, 'User was properly redirected to the "redirect_uri".');
+    $redirect_url_parts = explode('?', $result->redirect_url);
     $redirect_url_params = drupal_get_query_array($redirect_url_parts[1]);
     $redirect_url_params += array('code' => '');
     $this->assertTrue($redirect_url_params['code'], 'The server returned an authorization code');
