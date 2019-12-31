@@ -47,6 +47,20 @@ class OAuth2ServerAuthorizationCode extends Entity {
    */
   public $id_token;
 
+  /**
+   * The code_challenge, if PKCE was used.
+   *
+   * @var string|NULL
+   */
+  public $challenge;
+
+  /**
+   * The code_challenge_method, if PKCE was used.
+   *
+   * @var string|NULL
+   */
+  public $challenge_method;
+
   public function __construct($values = array()) {
     parent::__construct($values, 'oauth2_server_authorization_code');
   }

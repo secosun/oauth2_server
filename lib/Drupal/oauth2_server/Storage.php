@@ -178,8 +178,8 @@ class Storage implements AuthorizationCodeInterface,
         'expires' => (int) $code_wrapper->expires->value(),
         'scope' => implode(' ', $scopes),
         'id_token' => $code_wrapper->id_token->value(),
-        'code_challenge' => substr($code_wrapper->code_challenge->value(), 1),
-        'code_challenge_method' => $this->convertSingleCharacterToCodeChallengeMethod(substr($code_wrapper->code_challenge->value(), 0, 1)),
+        'code_challenge' => $code->challenge,
+        'code_challenge_method' => $code->challenge_method,
       );
       if (module_exists('uuid')) {
         $code['user_uuid'] = $code_wrapper->user->uuid->value();
@@ -225,9 +225,8 @@ class Storage implements AuthorizationCodeInterface,
       $authorization_code->uid = $uid;
       $authorization_code->code = $code;
       $authorization_code->id_token = $id_token;
-      if ($code_challenge && $code_challenge_method) {
-        $authorization_code->code_challenge = $this->convertCodeChallengeMethodToSingleCharacter($code_challenge_method) . $code_challenge;
-      }
+      $authorization_code->challenge = $code_challenge;
+      $authorization_code->challenge_method = $code_challenge_method;
     }
 
     $authorization_code->redirect_uri = $redirect_uri;
@@ -236,46 +235,6 @@ class Storage implements AuthorizationCodeInterface,
 
     $status = $authorization_code->save();
     return $status;
-  }
-
-  /**
-   * Convert a PKCE code challenge method to a single character for storage.
-   *
-   * @param $code_challenge_method
-   *   The PKCE code challenge method to convert. Should be one of 'plain' or 'S256'.
-   *
-   * @return string
-   *   The single character representing the PCKE code challenge method.
-   */
-  protected function convertCodeChallengeMethodToSingleCharacter($code_challenge_method) {
-    switch ($code_challenge_method) {
-      case 'S256':
-        return 'S';
-
-      case 'plain':
-      default:
-        return 'P';
-    }
-  }
-
-  /**
-   * Convert a single character for storage to a PKCE code challenge method.
-   *
-   * @param $character
-   *   The single character representing the PCKE code challenge method, either 'S' or 'P'.
-   *
-   * @return string
-   *   The PKCE code challenge method to convert. Should be one of 'plain' or 'S256'.
-   */
-  protected function convertSingleCharacterToCodeChallengeMethod($character) {
-    switch ($character) {
-      case 'S':
-        return 'S256';
-
-      case 'P':
-      default:
-        return 'plain';
-    }
   }
 
   public function expireAuthorizationCode($code) {
