@@ -248,6 +248,14 @@ function oauth2_server_schema() {
         'description' => 'The id token, if OpenID Connect was used.',
         'type' => 'text',
       ),
+      'code_challenge' => array(
+        'description' => 'The PCKE code challenge and code challenge method',
+        'type' => 'varchar',
+        // 1 character for the method, 128 for the challenge.
+        'length' => 129,
+        'not null' => TRUE,
+        'default' => '',
+      ),
     ),
     'primary key' => array('code_id'),
     'unique keys' => array(
@@ -498,4 +506,18 @@ function oauth2_server_update_7107() {
     'default' => 0,
   );
   db_add_field('oauth2_server_token', 'created', $spec);
+}
+
+/**
+ * Add the {oauth2_server_authorization_code}.code_challenge field.
+ */
+function oauth2_server_update_7108() {
+  $spec = array(
+    'description' => 'The PCKE code challenge and code challenge method',
+    'type' => 'varchar',
+    'length' => 129,
+    'not null' => TRUE,
+    'default' => '',
+  );
+  db_add_field('oauth2_server_authorization_code', 'code_challenge', $spec);
 }

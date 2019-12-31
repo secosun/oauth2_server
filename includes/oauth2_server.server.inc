@@ -28,6 +28,7 @@ class OAuth2Server extends Entity {
     'default_scope' => '',
     'enforce_state' => TRUE,
     'allow_implicit' => FALSE,
+    'enforce_pkce' => FALSE,
     'use_openid_connect' => FALSE,
     'use_crypto_tokens' => FALSE,
     'store_encrypted_token_string' => FALSE,

@@ -130,6 +130,12 @@ function oauth2_server_form($form, &$form_state, $server, $op = 'edit') {
     '#description' => t('Allows clients to receive an access token without the need for an authorization request token.'),
     '#default_value' => !empty($server->settings['allow_implicit']),
   );
+  $form['settings']['enforce_pkce'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enforce PKCE'),
+    '#description' => t('Forces clients to use PKCE when performing authorization requests.'),
+    '#default_value' => !empty($server->settings['enforce_pkce']),
+  );
   $form['settings']['use_openid_connect'] = array(
     '#type' => 'checkbox',
     '#title' => t('Use OpenID Connect'),
