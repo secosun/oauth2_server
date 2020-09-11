@@ -77,7 +77,7 @@ class ScopeForm extends EntityForm {
 
     $form['default'] = [
       '#type' => 'checkbox',
-      '#title' => t('Default'),
+      '#title' => $this->t('Default'),
       '#default_value' => $scope->isDefault(),
     ];
 

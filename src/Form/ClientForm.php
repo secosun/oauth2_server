@@ -124,7 +124,7 @@ class ClientForm extends EntityForm {
       '#type' => 'textarea',
       '#default_value' => $client->public_key,
       '#required' => TRUE,
-      '#description' => $this->t('Used to decode the JWT when the %JWT grant type is used.', ['%JWT' => t('JWT bearer')]),
+      '#description' => $this->t('Used to decode the JWT when the %JWT grant type is used.', ['%JWT' => $this->t('JWT bearer')]),
       '#weight' => -20,
       // Show the field if JWT bearer is enabled, other grant types don't use
       // it.
@@ -178,7 +178,7 @@ class ClientForm extends EntityForm {
     }
     $form['settings']['grant_types'] = [
       '#type' => 'checkboxes',
-      '#title' => t('Enabled grant types'),
+      '#title' => $this->t('Enabled grant types'),
       '#options' => $grant_type_options,
       '#default_value' => $client->settings['grant_types'],
       '#states' => [
