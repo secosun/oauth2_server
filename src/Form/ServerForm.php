@@ -110,7 +110,7 @@ class ServerForm extends EntityForm {
     $form['settings']['use_crypto_tokens'] = [
       '#type' => 'checkbox',
       '#title' => t('Use JWT Access Tokens'),
-      '#description' => t("Sends encrypted JWT access tokens that aren't stored in the database. See the <a href=\":url\">documentation</a> for more details.", [':url' => $url]),
+      '#description' => t("Sends encrypted JWT access tokens that aren't stored in the database."),
       '#default_value' => !empty($server->settings['use_crypto_tokens']),
       '#access' => extension_loaded('openssl'),
     ];
