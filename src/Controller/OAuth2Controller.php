@@ -200,10 +200,4 @@ class OAuth2Controller extends ControllerBase {
     return new JsonResponse($certificates);
   }
 
-  /**
-   * Access needs Keys.
-   */
-  public function accessNeedsKeys() {
-  }
-
 }

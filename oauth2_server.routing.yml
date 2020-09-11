@@ -30,7 +30,7 @@ oauth2_server.certificates:
   defaults:
      _controller: 'Drupal\oauth2_server\Controller\OAuth2Controller::certificates'
   requirements:
-    _custom_access:  'Drupal\oauth2_server\Controller\OAuth2Controller::accessNeedsKeys'
+    _access: 'TRUE'
 
 # Servers
 oauth2_server.overview:
