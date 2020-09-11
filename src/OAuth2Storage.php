@@ -609,7 +609,11 @@ class OAuth2Storage implements OAuth2StorageInterface {
    */
   public function unsetRefreshToken($refresh_token) {
     $token = $this->getStorageToken($refresh_token);
-    $token->delete();
+
+    // Check token exists before trying to delete.
+    if ($token) {
+      $token->delete();
+    }
   }
 
   /**
