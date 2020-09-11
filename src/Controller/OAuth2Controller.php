@@ -51,7 +51,12 @@ class OAuth2Controller extends ControllerBase {
    */
   public function authorize(RouteMatchInterface $route_match, Request $request) {
     $this->moduleHandler()->invokeAll('oauth2_server_pre_authorize');
-    $bridgeRequest = BridgeRequest::createFromRequest($request);
+
+    // Workaround for https://www.drupal.org/project/oauth2_server/issues/3049250
+    // Create a duplicate request with the parameters removed, so that the
+    // object can survive being serialized.
+    $duplicated_request = $request->duplicate(NULL, NULL, []);
+    $bridgeRequest = BridgeRequest::createFromRequest($duplicated_request);
 
     if ($this->currentUser()->isAnonymous()) {
       $_SESSION['oauth2_server_authorize'] = $bridgeRequest;
