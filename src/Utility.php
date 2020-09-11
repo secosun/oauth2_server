@@ -116,7 +116,7 @@ class Utility {
   public static function generateKeys() {
     $module_path = drupal_get_path('module', 'oauth2_server');
     $config = [
-      'config' => $module_path . '/oauth2_server.openssl.cnf',
+      'config' => DRUPAL_ROOT . '/' . $module_path . '/oauth2_server.openssl.cnf',
     ];
 
     // Generate a private key.
