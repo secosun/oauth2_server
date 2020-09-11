@@ -6,7 +6,7 @@
 [ req ]
 default_bits = 2048
 default_keyfile = key.pem
-default_md = sha1
+default_md = sha256
 string_mask = utf8only
 distinguished_name = req_distinguished_name
 x509_extensions = v3_ca
