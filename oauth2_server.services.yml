@@ -7,3 +7,8 @@ services:
     arguments: ["@config.factory", "@oauth2_server.storage"]
     tags:
       - { name: authentication_provider, provider_id: oauth2, priority: 100 }
+  oauth2_server.page_cache_request_policy.disallow_oauth2_token_requests:
+    class: Drupal\oauth2_server\PageCache\DisallowOauth2Requests
+    public: false
+    tags:
+      - { name: page_cache_request_policy }
