@@ -6,7 +6,9 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\oauth2_server\ServerInterface;
 
 /**
- * Provides block routines for oauth2 server-specific routes.
+ * Class Server Controller.
+ *
+ * @package Drupal\oauth2_server\Controller
  */
 class ServerController extends ControllerBase {
 
@@ -18,13 +20,21 @@ class ServerController extends ControllerBase {
    *
    * @return \Symfony\Component\HttpFoundation\Response
    *   The response to send to the browser.
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function serverBypassEnable(ServerInterface $oauth2_server) {
     $oauth2_server->setStatus(TRUE)->save();
 
     // Notify the user about the status change.
-    drupal_set_message($this->t('The OAuth2 server %name has been enabled.', ['%name' => $oauth2_server->label()]));
-
+    $this->messenger()->addMessage(
+      $this->t(
+        'The OAuth2 server %name has been enabled.',
+        [
+          '%name' => $oauth2_server->label(),
+        ]
+      )
+    );
     return $this->redirect('oauth2_server.overview');
   }
 

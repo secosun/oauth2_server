@@ -1,20 +1,23 @@
 <?php
 
-namespace Drupal\oauth2_server\Tests;
+namespace Drupal\Tests\oauth2_server\Functional;
 
-use Drupal\simpletest\WebTestBase;
+use Drupal\Tests\BrowserTestBase;
 
 /**
- * Tests oauth2 server storage.
+ * The OAuth2 Server admin test case.
  *
  * @group oauth2_server
  */
-class OAuth2ServerStorageTest extends WebTestBase {
+class OAuth2ServerStorageTest extends BrowserTestBase {
 
   /**
-   * Modules to install.
-   *
-   * @var array
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stable';
+
+  /**
+   * {@inheritdoc}
    */
   public static $modules = ['oauth2_server'];
 
@@ -62,7 +65,7 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $this->redirectUri = $this->buildUrl('authorized', ['absolute' => TRUE]);
 
     /** @var \Drupal\oauth2_server\ServerInterface $server */
-    $server = $this->container->get('entity.manager')->getStorage('oauth2_server')->create([
+    $server = $this->container->get('entity_type.manager')->getStorage('oauth2_server')->create([
       'server_id' => 'test_server',
       'name' => 'Test Server',
       'settings' => [
@@ -83,7 +86,7 @@ class OAuth2ServerStorageTest extends WebTestBase {
     $server->save();
 
     /** @var \Drupal\oauth2_server\ClientInterface $client */
-    $this->client = $this->container->get('entity.manager')->getStorage('oauth2_server_client')->create([
+    $this->client = $this->container->get('entity_type.manager')->getStorage('oauth2_server_client')->create([
       'client_id' => $this->clientId,
       'server_id' => $server->id(),
       'name' => 'Test client',
@@ -138,9 +141,9 @@ class OAuth2ServerStorageTest extends WebTestBase {
     // Valid client_id.
     $details = $this->storage->getClientDetails($this->clientId);
     $this->assertNotNull($details, 'Client details successfully returned.');
-    $this->assertTrue(array_key_exists('client_id', $details), 'The "client_id" value is present in the client details.');
-    $this->assertTrue(array_key_exists('client_secret', $details), 'The "client_secret" value is present in the client details.');
-    $this->assertTrue(array_key_exists('redirect_uri', $details), 'The "redirect_uri" value is present in the client details.');
+    $this->assertArrayHasKey('client_id', $details, 'The "client_id" value is present in the client details.');
+    $this->assertArrayHasKey('client_secret', $details, 'The "client_secret" value is present in the client details.');
+    $this->assertArrayHasKey('redirect_uri', $details, 'The "redirect_uri" value is present in the client details.');
   }
 
   /**
@@ -149,20 +152,20 @@ class OAuth2ServerStorageTest extends WebTestBase {
   public function testAccessToken() {
     $user = $this->drupalCreateUser(['use oauth2 server']);
 
-    $token = $this->storage->getAccessToken('newtoken');
+    $token = (bool) $this->storage->getAccessToken('newtoken');
     $this->assertFalse($token, 'Trying to load a nonexistent token is unsuccessful.');
 
     $expires = time() + 20;
-    $success = $this->storage->setAccessToken('newtoken', $this->clientId, $user->id(), $expires);
+    $success = (bool) $this->storage->setAccessToken('newtoken', $this->clientId, $user->id(), $expires);
     $this->assertTrue($success, 'A new access token has been successfully created.');
 
     // Verify the return format of getAccessToken().
     $token = $this->storage->getAccessToken('newtoken');
-    $this->assertTrue($token, 'An access token was successfully returned.');
-    $this->assertTrue(array_key_exists('access_token', $token), 'The "access_token" value is present in the token array.');
-    $this->assertTrue(array_key_exists('client_id', $token), 'The "client_id" value is present in the token array.');
-    $this->assertTrue(array_key_exists('user_id', $token), 'The "user_id" value is present in the token array.');
-    $this->assertTrue(array_key_exists('expires', $token), 'The "expires" value is present in the token array.');
+    $this->assertTrue((bool) $token, 'An access token was successfully returned.');
+    $this->assertArrayHasKey('access_token', $token, 'The "access_token" value is present in the token array.');
+    $this->assertArrayHasKey('client_id', $token, 'The "client_id" value is present in the token array.');
+    $this->assertArrayHasKey('user_id', $token, 'The "user_id" value is present in the token array.');
+    $this->assertArrayHasKey('expires', $token, 'The "expires" value is present in the token array.');
     $this->assertEqual($token['access_token'], 'newtoken', 'The "access_token" key has the expected value.');
     $this->assertEqual($token['client_id'], $this->clientId, 'The "client_id" key has the expected value.');
     $this->assertEqual($token['user_id'], $user->id(), 'The "user_id" key has the expected value.');
@@ -170,11 +173,11 @@ class OAuth2ServerStorageTest extends WebTestBase {
 
     // Update the token.
     $expires = time() + 42;
-    $success = $this->storage->setAccessToken('newtoken', $this->clientId, $user->id(), $expires);
+    $success = (bool) $this->storage->setAccessToken('newtoken', $this->clientId, $user->id(), $expires);
     $this->assertTrue($success, 'The access token was successfully updated.');
 
     $token = $this->storage->getAccessToken('newtoken');
-    $this->assertTrue($token, 'An access token was successfully returned.');
+    $this->assertTrue((bool) $token, 'An access token was successfully returned.');
     $this->assertEqual($token['expires'], $expires, 'The expires timestamp matches the new value.');
   }
 
@@ -184,20 +187,20 @@ class OAuth2ServerStorageTest extends WebTestBase {
   public function testSetRefreshToken() {
     $user = $this->drupalCreateUser(['use oauth2 server']);
 
-    $token = $this->storage->getRefreshToken('refreshtoken');
+    $token = (bool) $this->storage->getRefreshToken('refreshtoken');
     $this->assertFalse($token, 'Trying to load a nonexistent token is unsuccessful.');
 
     $expires = time() + 20;
-    $success = $this->storage->setRefreshToken('refreshtoken', $this->clientId, $user->id(), $expires);
+    $success = (bool) $this->storage->setRefreshToken('refreshtoken', $this->clientId, $user->id(), $expires);
     $this->assertTrue($success, 'A new refresh token has been successfully created.');
 
     // Verify the return format of getRefreshToken().
     $token = $this->storage->getRefreshToken('refreshtoken');
-    $this->assertTrue($token, 'A refresh token was successfully returned.');
-    $this->assertTrue(array_key_exists('refresh_token', $token), 'The "refresh_token" value is present in the token array.');
-    $this->assertTrue(array_key_exists('client_id', $token), 'The "client_id" value is present in the token array.');
-    $this->assertTrue(array_key_exists('user_id', $token), 'The "user_id" value is present in the token array.');
-    $this->assertTrue(array_key_exists('expires', $token), 'The "expires" value is present in the token array.');
+    $this->assertTrue((bool) $token, 'A refresh token was successfully returned.');
+    $this->assertArrayHasKey('refresh_token', $token, 'The "refresh_token" value is present in the token array.');
+    $this->assertArrayHasKey('client_id', $token, 'The "client_id" value is present in the token array.');
+    $this->assertArrayHasKey('user_id', $token, 'The "user_id" value is present in the token array.');
+    $this->assertArrayHasKey('expires', $token, 'The "expires" value is present in the token array.');
     $this->assertEqual($token['refresh_token'], 'refreshtoken', 'The "refresh_token" key has the expected value.');
     $this->assertEqual($token['client_id'], $this->clientId, 'The "client_id" key has the expected value.');
     $this->assertEqual($token['user_id'], $user->id(), 'The "user_id" key has the expected value.');
@@ -210,21 +213,21 @@ class OAuth2ServerStorageTest extends WebTestBase {
   public function testAuthorizationCode() {
     $user = $this->drupalCreateUser(['use oauth2 server']);
 
-    $code = $this->storage->getAuthorizationCode('newcode');
+    $code = (bool) $this->storage->getAuthorizationCode('newcode');
     $this->assertFalse($code, 'Trying to load a nonexistent authorization code is unsuccessful.');
 
     $expires = time() + 20;
-    $success = $this->storage->setAuthorizationCode('newcode', $this->clientId, $user->id(), 'http://example.com', $expires);
+    $success = (bool) $this->storage->setAuthorizationCode('newcode', $this->clientId, $user->id(), 'http://example.com', $expires);
     $this->assertTrue($success, 'A new authorization code was successfully created.');
 
     // Verify the return format of getAuthorizationCode().
     $code = $this->storage->getAuthorizationCode('newcode');
-    $this->assertTrue($code, 'An authorization code was successfully returned.');
-    $this->assertTrue(array_key_exists('authorization_code', $code), 'The "authorization_code" value is present in the code array.');
-    $this->assertTrue(array_key_exists('client_id', $code), 'The "client_id" value is present in the code array.');
-    $this->assertTrue(array_key_exists('user_id', $code), 'The "user_id" value is present in the code array.');
-    $this->assertTrue(array_key_exists('redirect_uri', $code), 'The "redirect_uri" value is present in the code array.');
-    $this->assertTrue(array_key_exists('expires', $code), 'The "expires" value is present in the code array.');
+    $this->assertTrue((bool) $code, 'An authorization code was successfully returned.');
+    $this->assertArrayHasKey('authorization_code', $code, 'The "authorization_code" value is present in the code array.');
+    $this->assertArrayHasKey('client_id', $code, 'The "client_id" value is present in the code array.');
+    $this->assertArrayHasKey('user_id', $code, 'The "user_id" value is present in the code array.');
+    $this->assertArrayHasKey('redirect_uri', $code, 'The "redirect_uri" value is present in the code array.');
+    $this->assertArrayHasKey('expires', $code, 'The "expires" value is present in the code array.');
     $this->assertEqual($code['authorization_code'], 'newcode', 'The "authorization_code" key has the expected value.');
     $this->assertEqual($code['client_id'], $this->clientId, 'The "client_id" key has the expected value.');
     $this->assertEqual($code['user_id'], $user->id(), 'The "user_id" key has the expected value.');
@@ -233,11 +236,11 @@ class OAuth2ServerStorageTest extends WebTestBase {
 
     // Change an existing code.
     $expires = time() + 42;
-    $success = $this->storage->setAuthorizationCode('newcode', $this->clientId, $user->id(), 'http://example.org', $expires);
+    $success = (bool) $this->storage->setAuthorizationCode('newcode', $this->clientId, $user->id(), 'http://example.org', $expires);
     $this->assertTrue($success, 'The authorization code was successfully updated.');
 
     $code = $this->storage->getAuthorizationCode('newcode');
-    $this->assertTrue($code, 'An authorization code was successfully returned.');
+    $this->assertTrue((bool) $code, 'An authorization code was successfully returned.');
     $this->assertEqual($code['expires'], $expires, 'The expires timestamp matches the new value.');
   }
 

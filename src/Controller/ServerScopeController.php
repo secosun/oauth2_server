@@ -7,7 +7,9 @@ use Drupal\oauth2_server\ServerInterface;
 use Drupal\oauth2_server\ScopeInterface;
 
 /**
- * Provides block routines for oauth2 server's scope-specific routes.
+ * Class Server Scope Controller.
+ *
+ * @package Drupal\oauth2_server\Controller
  */
 class ServerScopeController extends ControllerBase {
 
@@ -17,11 +19,12 @@ class ServerScopeController extends ControllerBase {
    * @param \Drupal\oauth2_server\ServerInterface $oauth2_server
    *   The server to display the scopes of.
    *
-   * @return \Symfony\Component\HttpFoundation\Response
-   *   The response to send to the browser.
+   * @return array
+   *   The renderable array.
    */
   public function serverScopes(ServerInterface $oauth2_server) {
-    return $this->entityManager()->getListBuilder('oauth2_server_scope')->render($oauth2_server);
+    return $this->entityTypeManager()->getListBuilder('oauth2_server_scope')
+      ->render($oauth2_server);
   }
 
   /**
@@ -44,12 +47,17 @@ class ServerScopeController extends ControllerBase {
    *   The server the scope should belong to.
    *
    * @return array
-   *   The renderable form.
+   *   The renderable form array.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function serverAddScope(ServerInterface $oauth2_server) {
-    $scope = $this->entityManager()->getStorage('oauth2_server_scope')->create(['server_id' => $oauth2_server->id()]);
-    $form = $this->entityFormBuilder()->getForm($scope, 'add', ['oauth2_server' => $oauth2_server]);
-    return $form;
+    $scope = $this->entityTypeManager()
+      ->getStorage('oauth2_server_scope')
+      ->create(['server_id' => $oauth2_server->id()]);
+    return $this->entityFormBuilder()
+      ->getForm($scope, 'add', ['oauth2_server' => $oauth2_server]);
   }
 
   /**
@@ -64,8 +72,8 @@ class ServerScopeController extends ControllerBase {
    *   The renderable form.
    */
   public function serverEditScope(ServerInterface $oauth2_server, ScopeInterface $oauth2_server_scope) {
-    $form = $this->entityFormBuilder()->getForm($oauth2_server_scope, 'edit', ['oauth2_server' => $oauth2_server]);
-    return $form;
+    return $this->entityFormBuilder()
+      ->getForm($oauth2_server_scope, 'edit', ['oauth2_server' => $oauth2_server]);
   }
 
   /**
@@ -80,8 +88,8 @@ class ServerScopeController extends ControllerBase {
    *   The renderable form.
    */
   public function serverDeleteScope(ServerInterface $oauth2_server, ScopeInterface $oauth2_server_scope) {
-    $form = $this->entityFormBuilder()->getForm($oauth2_server_scope, 'delete', ['oauth2_server' => $oauth2_server]);
-    return $form;
+    return $this->entityFormBuilder()
+      ->getForm($oauth2_server_scope, 'delete', ['oauth2_server' => $oauth2_server]);
   }
 
 }

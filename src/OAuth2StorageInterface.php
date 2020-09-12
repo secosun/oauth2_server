@@ -12,7 +12,7 @@ use OAuth2\Storage\UserCredentialsInterface;
 use OAuth2\Storage\PublicKeyInterface;
 
 /**
- * Interface OAuth2StorageInterface.
+ * Interface OAuth2 Storage Interface.
  *
  * @package Drupal\oauth2_server
  */

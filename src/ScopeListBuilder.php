@@ -7,11 +7,11 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
-use Drupal\oauth2_server\ServerInterface;
-use Drupal\oauth2_server\ScopeInterface;
 
 /**
  * Builds a listing of oauth2 server entities.
+ *
+ * @package Drupal\oauth2_server
  */
 class ScopeListBuilder extends ConfigEntityListBuilder {
 
@@ -20,7 +20,6 @@ class ScopeListBuilder extends ConfigEntityListBuilder {
    */
   public function getDefaultOperations(EntityInterface $entity) {
     $operations = parent::getDefaultOperations($entity);
-
     if ($entity instanceof ScopeInterface) {
       $route_parameters['oauth2_server'] = $entity->getServer()->id();
       $route_parameters['oauth2_server_scope'] = $entity->id();
@@ -36,7 +35,6 @@ class ScopeListBuilder extends ConfigEntityListBuilder {
         'url' => new Url('entity.oauth2_server.scopes.delete_form', $route_parameters),
       ];
     }
-
     return $operations;
   }
 
@@ -55,11 +53,10 @@ class ScopeListBuilder extends ConfigEntityListBuilder {
   public function buildRow(EntityInterface $entity) {
     /** @var \Drupal\Core\Config\Entity\ConfigEntityInterface $entity */
     $row = parent::buildRow($entity);
-
     return [
       'data' => [
         'label' => [
-          'data' => $this->getLabel($entity),
+          'data' => $entity->label(),
           'class' => ['oauth2-server-scope-name'],
         ],
         'operations' => $row['operations'],
@@ -94,15 +91,16 @@ class ScopeListBuilder extends ConfigEntityListBuilder {
         'id' => 'oauth2-server-scope-entity-list',
       ],
     ];
-
     $build['table']['#empty'] = $this->t('No scopes available. <a href="@link">Add scope</a>.', [
       '@link' => Url::fromRoute('entity.oauth2_server.scopes.add_form', ['oauth2_server' => $oauth2_server->id()])->toString(),
     ]);
 
     if ($oauth2_server) {
+      /** @var \Drupal\oauth2_server\ScopeInterface[] $scopes */
       $scopes = $this->storage->loadByProperties(['server_id' => $oauth2_server->id()]);
     }
     else {
+      /** @var \Drupal\oauth2_server\ScopeInterface[] $scopes */
       $scopes = $this->storage->loadMultiple();
     }
 
@@ -116,7 +114,6 @@ class ScopeListBuilder extends ConfigEntityListBuilder {
     $build['pager'] = [
       '#type' => 'pager',
     ];
-
     return $build;
   }
 

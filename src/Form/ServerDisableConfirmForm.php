@@ -7,7 +7,9 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
- * Defines a confirm form for disabling a server.
+ * Class Server Disable Confirm Form.
+ *
+ * @package Drupal\oauth2_server\Form
  */
 class ServerDisableConfirmForm extends EntityConfirmFormBase {
 
@@ -47,7 +49,7 @@ class ServerDisableConfirmForm extends EntityConfirmFormBase {
     $server = $this->entity;
     $server->setStatus(FALSE)->save();
 
-    drupal_set_message($this->t('The OAuth2 server %name has been disabled.', ['%name' => $this->entity->label()]));
+    $this->messenger()->addMessage($this->t('The OAuth2 server %name has been disabled.', ['%name' => $this->entity->label()]));
     $form_state->setRedirect('oauth2_server.overview');
   }
 

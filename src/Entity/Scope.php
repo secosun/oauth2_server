@@ -94,7 +94,6 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
     if (!empty($this->server_id) && !empty($this->scope_id)) {
       return $this->server_id . '_' . $this->scope_id;
     }
-
     return isset($this->id) ? $this->id : NULL;
   }
 
@@ -110,7 +109,8 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
    */
   public function getServer() {
     if (!$this->server && $this->server_id) {
-      $this->server = \Drupal::entityManager()->getStorage('oauth2_server')->load($this->server_id);
+      $this->server = \Drupal::entityTypeManager()->getStorage('oauth2_server')
+        ->load($this->server_id);
     }
     return $this->server;
   }
@@ -120,7 +120,6 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
    */
   public function isDefault() {
     $server = $this->getServer();
-
     if (!empty($this->scope_id) && $server->settings['default_scope'] == $this->id()) {
       return TRUE;
     }

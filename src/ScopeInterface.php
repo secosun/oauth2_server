@@ -6,6 +6,8 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 
 /**
  * Defines the interface for scope entities.
+ *
+ * @package Drupal\oauth2_server
  */
 interface ScopeInterface extends ConfigEntityInterface {
 

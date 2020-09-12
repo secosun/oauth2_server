@@ -2,17 +2,19 @@
 
 namespace Drupal\oauth2_server;
 
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Password\PasswordInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\user\UserInterface;
-use Drupal\oauth2_server\Utility;
 use Drupal\file\Entity\File;
-use Drupal\oauth2_server\TokenInterface;
 
 /**
  * Provides Drupal OAuth2 storage for the library.
+ *
+ * @package Drupal\oauth2_server
  */
 class OAuth2Storage implements OAuth2StorageInterface {
 
@@ -38,51 +40,94 @@ class OAuth2Storage implements OAuth2StorageInterface {
   protected $moduleHandler;
 
   /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * The time object.
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
+  protected $time;
+
+  /**
    * Constructs a new OAuth2Storage.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    * @param \Drupal\Core\Password\PasswordInterface $password_hasher
    *   The password hasher.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time object.
    */
-  public function __construct(EntityManagerInterface $entity_manager, PasswordInterface $password_hasher, ModuleHandlerInterface $module_handler) {
-    $this->entityManager = $entity_manager;
+  public function __construct(
+      EntityTypeManagerInterface $entity_type_manager,
+      PasswordInterface $password_hasher,
+      ModuleHandlerInterface $module_handler,
+      ConfigFactoryInterface $config_factory,
+      TimeInterface $time
+  ) {
+    $this->entityManager = $entity_type_manager;
     $this->passwordHasher = $password_hasher;
     $this->moduleHandler = $module_handler;
+    $this->configFactory = $config_factory;
+    $this->time = $time;
   }
 
   /**
    * Retrieve the account from the storage.
    *
    * @param string $username
-   *   The username or emailaddress of the account.
+   *   The username or email address of the account.
    *
-   * @return bool|\Drupal\user\UserInterface
-   *   The account loaded from the storage.
+   * @return \Drupal\user\UserInterface|bool
+   *   The account loaded from the storage or false.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getStorageAccount($username) {
-    $users = $this->entityManager->getStorage('user')->loadByProperties(['name' => $username]);
+    /** @var \Drupal\user\UserInterface[] $users */
+    $users = $this->entityManager->getStorage('user')
+      ->loadByProperties(['name' => $username]);
     if ($users) {
       return reset($users);
     }
     else {
       // An email address might have been supplied instead of the username.
-      $users = $this->entityManager->getStorage('user')->loadByProperties(['mail' => $username]);
+      /** @var \Drupal\user\UserInterface[] $users */
+      $users = $this->entityManager->getStorage('user')
+        ->loadByProperties(['mail' => $username]);
       if ($users) {
         return reset($users);
       }
     }
-
     return FALSE;
   }
 
   /**
-   * {@inheritdoc}
+   * Get the client from the entity backend.
+   *
+   * @param string $client_id
+   *   The client id to find.
+   *
+   * @return \Drupal\oauth2_server\ClientInterface|bool
+   *   A client entity or false.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getStorageClient($client_id) {
-    $clients = $this->entityManager->getStorage('oauth2_server_client')->loadByProperties(['client_id' => $client_id]);
+    /** @var \Drupal\oauth2_server\ClientInterface[] $clients */
+    $clients = $this->entityManager->getStorage('oauth2_server_client')
+      ->loadByProperties(['client_id' => $client_id]);
     if ($clients) {
       return reset($clients);
     }
@@ -97,9 +142,14 @@ class OAuth2Storage implements OAuth2StorageInterface {
    *
    * @return \Drupal\oauth2_server\TokenInterface|bool
    *   Returns the token or FALSE.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getStorageToken($token) {
-    $tokens = $this->entityManager->getStorage('oauth2_server_token')->loadByProperties(['token' => $token]);
+    /** @var \Drupal\oauth2_server\TokenInterface[] $tokens */
+    $tokens = $this->entityManager->getStorage('oauth2_server_token')
+      ->loadByProperties(['token' => $token]);
     if ($tokens) {
       return reset($tokens);
     }
@@ -110,13 +160,18 @@ class OAuth2Storage implements OAuth2StorageInterface {
    * Get the authorization code from the entity backend.
    *
    * @param string $code
-   *   The code.
+   *   The authorization code string.
    *
    * @return \Drupal\oauth2_server\AuthorizationCodeInterface|bool
    *   Returns the code or FALSE.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getStorageAuthorizationCode($code) {
-    $codes = $this->entityManager->getStorage('oauth2_server_authorization_code')->loadByProperties(['code' => $code]);
+    /** @var \Drupal\oauth2_server\AuthorizationCodeInterface[] $codes */
+    $codes = $this->entityManager->getStorage('oauth2_server_authorization_code')
+      ->loadByProperties(['code' => $code]);
     if ($codes) {
       return reset($codes);
     }
@@ -125,6 +180,17 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Check client credentials.
+   *
+   * @param string $client_id
+   *   The client id string.
+   * @param string|null $client_secret
+   *   The client secret string.
+   *
+   * @return bool
+   *   A boolean whether the credentials are correct.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function checkClientCredentials($client_id, $client_secret = NULL) {
     $client = $this->getClientDetails($client_id);
@@ -135,15 +201,24 @@ class OAuth2Storage implements OAuth2StorageInterface {
     // The client may omit the client secret or provide NULL, and expect that to
     // be treated the same as an empty string.
     // See https://tools.ietf.org/html/rfc6749#section-2.3.1
-    if ($client['client_secret'] === '' && ($client_secret === '' || $client_secret === NULL)) {
+    if ($client['client_secret'] === '' &&
+       ($client_secret === '' || $client_secret === NULL)) {
       return TRUE;
     }
-
     return $this->passwordHasher->check($client_secret, $client['client_secret']);
   }
 
   /**
    * Is public client.
+   *
+   * @param string $client_id
+   *   The client id string.
+   *
+   * @return bool
+   *   Whether this is a public client.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function isPublicClient($client_id) {
     $client = $this->getClientDetails($client_id);
@@ -152,8 +227,18 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Get client credentials.
+   *
+   * @param string $client_id
+   *   The client id string.
+   *
+   * @return array|bool|\Drupal\oauth2_server\Entity\Client
+   *   An client array.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getClientDetails($client_id) {
+    /** @var \Drupal\oauth2_server\ClientInterface $client */
     $client = $this->getStorageClient($client_id);
     if ($client) {
       // Return a client array in the format expected by the library.
@@ -164,25 +249,45 @@ class OAuth2Storage implements OAuth2StorageInterface {
         // The library expects multiple redirect uris to be separated by
         // a space, but the module separates them by a newline, matching
         // Drupal behavior in other areas.
-        'redirect_uri' => str_replace(["\r\n", "\r", "\n"], ' ', $client->redirect_uri),
+        'redirect_uri' => str_replace(
+          ["\r\n", "\r", "\n"],
+          ' ',
+          $client->redirect_uri
+        ),
       ];
     }
-
     return $client;
   }
 
   /**
    * Get client scope.
+   *
+   * @param string $client_id
+   *   The client id string.
+   *
+   * @return null
+   *   The module doesn't currently support per-client scopes.
    */
   public function getClientScope($client_id) {
-    // The module doesn't currently support per-client scopes.
     return NULL;
   }
 
   /**
    * Check restricted grant type.
+   *
+   * @param string $client_id
+   *   The client id string.
+   * @param string $grant_type
+   *   The grant type string.
+   *
+   * @return bool
+   *   Whether the grant type is available.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function checkRestrictedGrantType($client_id, $grant_type) {
+    /** @var \Drupal\oauth2_server\ClientInterface $client */
     $client = $this->getStorageClient($client_id);
     $server = $client->getServer();
     if (!empty($client->settings['override_grant_types'])) {
@@ -200,14 +305,23 @@ class OAuth2Storage implements OAuth2StorageInterface {
     if ($allow_implicit) {
       $grant_types['implicit'] = 'implicit';
     }
-
     return in_array($grant_type, $grant_types);
   }
 
   /**
    * Get access token.
+   *
+   * @param string $access_token
+   *   The access token string.
+   *
+   * @return array|bool
+   *   An access token array or false.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getAccessToken($access_token) {
+    /** @var \Drupal\oauth2_server\TokenInterface $token */
     $token = $this->getStorageToken($access_token);
     if (!$token) {
       return FALSE;
@@ -225,6 +339,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
     }
 
     $scopes = [];
+    /** @var \Drupal\oauth2_server\ScopeInterface[] $scope_entities */
     $scope_entities = $token->scopes->referencedEntities();
     foreach ($scope_entities as $scope) {
       $scopes[] = $scope->scope_id;
@@ -244,28 +359,48 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
     // Track last access on the token.
     $this->logAccessTime($token);
-
     return $token_array;
   }
 
   /**
    * Track the time the token was accessed.
+   *
+   * @param \Drupal\oauth2_server\TokenInterface $token
+   *   A token object.
    */
   protected function logAccessTime(TokenInterface $token) {
-    $request_time = \Drupal::time()->getRequestTime();
-    if (empty($token->last_access->value) || $token->last_access->value != $request_time) {
-      $token->last_access = $request_time;
+    if (empty($token->last_access->value) ||
+        $token->last_access->value != $this->time->getRequestTime()) {
+      $token->last_access = $this->time->getRequestTime();
       try {
         $token->save();
       }
       catch (\Exception $e) {
-        // TODO find a way to reliably handle concurrent updates of last_access.
+        // @todo find a way to reliably handle concurrent updates of last_access.
       }
     }
   }
 
   /**
    * Set access token.
+   *
+   * @param string $access_token
+   *   The access token string.
+   * @param string $client_id
+   *   The client id string.
+   * @param int $uid
+   *   The user id.
+   * @param int $expires
+   *   The timestamp the token expires.
+   * @param string|null $scope
+   *   The scope string.
+   *
+   * @return int
+   *   Whether the access token could be saved or not.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function setAccessToken($access_token, $client_id, $uid, $expires, $scope = NULL) {
     $client = $this->getStorageClient($client_id);
@@ -278,11 +413,13 @@ class OAuth2Storage implements OAuth2StorageInterface {
     if (!$token) {
       // The username is not required, the "Client credentials" grant type
       // doesn't provide it, for instance.
-      if (!$uid || !$this->entityManager->getStorage('user')->load($uid)) {
+      if (!$uid ||
+          !$this->entityManager->getStorage('user')->load($uid)) {
         $uid = 0;
       }
 
-      $token = $this->entityManager->getStorage('oauth2_server_token')->create(['type' => 'access']);
+      $token = $this->entityManager->getStorage('oauth2_server_token')
+        ->create(['type' => 'access']);
       $token->client_id = $client->id();
       $token->uid = $uid;
       $token->token = $access_token;
@@ -291,20 +428,30 @@ class OAuth2Storage implements OAuth2StorageInterface {
     $token->expires = $expires;
     $this->setScopeData($token, $client->getServer(), $scope);
 
-    $status = $token->save();
-    return $status;
+    return $token->save();
   }
 
   /**
    * Get authorization code.
+   *
+   * @param string $code
+   *   The authorization code string.
+   *
+   * @return array|bool
+   *   An authorization code array or false.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getAuthorizationCode($code) {
+    /** @var \Drupal\oauth2_server\AuthorizationCodeInterface $code */
     $code = $this->getStorageAuthorizationCode($code);
     if (!$code) {
       return FALSE;
     }
 
     $scopes = [];
+    /** @var \Drupal\oauth2_server\ScopeInterface[] $scope_entities */
     $scope_entities = $code->scopes->referencedEntities();
     foreach ($scope_entities as $scope) {
       $scopes[] = $scope->scope_id;
@@ -328,7 +475,8 @@ class OAuth2Storage implements OAuth2StorageInterface {
     // necessary. The 'sub' property is usually the user's UID, but this is
     // configurable for backwards compatibility reasons. See:
     // https://www.drupal.org/node/2274357#comment-9779467
-    $sub_property = \Drupal::config('oauth2_server.oauth')->get('user_sub_property');
+    $sub_property = $this->configFactory->get('oauth2_server.oauth')
+      ->get('user_sub_property');
     if (!empty($code_array['id_token']) && $sub_property != 'uid') {
       $account = $code->getUser();
       $desired_sub = $account->{$sub_property}->value;
@@ -340,27 +488,52 @@ class OAuth2Storage implements OAuth2StorageInterface {
         $code_array['id_token'] = implode('.', $parts);
       }
     }
-
     return $code_array;
   }
 
   /**
    * Set authorization code.
+   *
+   * @param string $code
+   *   The authorization code string.
+   * @param mixed $client_id
+   *   The client id string.
+   * @param int $uid
+   *   The user uid.
+   * @param string $redirect_uri
+   *   The redirect uri string.
+   * @param int $expires
+   *   The timestamp the authorization code expires.
+   * @param string|null $scope
+   *   The scope string.
+   * @param string|null $id_token
+   *   The token string.
+   *
+   * @return int
+   *   Whether the authorization code could be saved or not.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function setAuthorizationCode($code, $client_id, $uid, $redirect_uri, $expires, $scope = NULL, $id_token = NULL) {
+    /** @var \Drupal\oauth2_server\ClientInterface $client */
     $client = $this->getStorageClient($client_id);
     if (!$client) {
       throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
     }
 
     // If no code was found, start with a new entity.
+    /** @var \Drupal\oauth2_server\AuthorizationCodeInterface $authorization_code */
     $authorization_code = $this->getStorageAuthorizationCode($code);
     if (!$authorization_code) {
+      /** @var \Drupal\user\UserInterface $user */
       $user = $this->entityManager->getStorage('user')->load($uid);
       if (!$user) {
         throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
       }
 
+      /** @var \Drupal\oauth2_server\AuthorizationCodeInterface $authorization_code */
       $authorization_code = $this->entityManager->getStorage('oauth2_server_authorization_code')->create([]);
       $authorization_code->client_id = $client->id();
       $authorization_code->uid = $user->id();
@@ -372,17 +545,24 @@ class OAuth2Storage implements OAuth2StorageInterface {
     $authorization_code->expires = $expires;
     $this->setScopeData($authorization_code, $client->getServer(), $scope);
 
-    $status = $authorization_code->save();
-    return $status;
+    return $authorization_code->save();
   }
 
   /**
    * Expire authorization code.
+   *
+   * @param string $code
+   *   The authorization code.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function expireAuthorizationCode($code) {
-    $code = $this->getStorageAuthorizationCode($code);
-    if ($code) {
-      $code->delete();
+    /** @var \Drupal\oauth2_server\AuthorizationCodeInterface $authorization_code */
+    $authorization_code = $this->getStorageAuthorizationCode($code);
+    if ($authorization_code) {
+      $authorization_code->delete();
     }
   }
 
@@ -390,6 +570,17 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Get client key.
+   *
+   * @param string $client_id
+   *   The client id string.
+   * @param string $subject
+   *   The subject string.
+   *
+   * @return string|bool
+   *   The client id public key or false.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getClientKey($client_id, $subject) {
     // While the API supports a key per user (subject), the module only supports
@@ -400,12 +591,30 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Get Jti.
+   *
+   * @param string $client_id
+   *   The client id string.
+   * @param string $subject
+   *   The subject string.
+   * @param string $audience
+   *   The audience string.
+   * @param int $expires
+   *   The expiration timestamp.
+   * @param string $jti
+   *   The jti string.
+   *
+   * @return array|void
+   *   An Jti array.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getJti($client_id, $subject, $audience, $expires, $jti) {
     $client = $this->getStorageClient($client_id);
     if (!$client) {
       // The client_id should be validated prior to this method being called,
       // but the library doesn't do that currently.
+      // phpcs:ignore Drupal.Commenting.FunctionComment.InvalidReturnNotVoid
       return;
     }
 
@@ -429,6 +638,21 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Set Jti.
+   *
+   * @param string $client_id
+   *   The client id string.
+   * @param string $subject
+   *   The subject string.
+   * @param string $audience
+   *   The audience string.
+   * @param int $expires
+   *   The expiration timestamp.
+   * @param string $jti
+   *   The jti string.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function setJti($client_id, $subject, $audience, $expires, $jti) {
     $client = $this->getStorageClient($client_id);
@@ -451,27 +675,43 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Check user credentials.
+   *
+   * @param string $username
+   *   The username string.
+   * @param string $password
+   *   The password string.
+   *
+   * @return bool
+   *   Whether the credentials are valid or not.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function checkUserCredentials($username, $password) {
     $account = $this->getStorageAccount($username);
-
     if ($account && $account->isActive()) {
       return $this->passwordHasher->check($password, $account->getPassword());
     }
-
     return FALSE;
   }
 
   /**
    * Get user details.
+   *
+   * @param string $username
+   *   The username string.
+   *
+   * @return array|bool
+   *   The user details array or false.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getUserDetails($username) {
     $account = $this->getStorageAccount($username);
-
     if ($account) {
       return ['user_id' => $account->id()];
     }
-
     return FALSE;
   }
 
@@ -479,10 +719,23 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Get user claims.
+   *
+   * @param int $uid
+   *   The user id integer.
+   * @param string $scope
+   *   The scope string.
+   *
+   * @return array
+   *   An associative array of claim strings.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\Core\Entity\EntityMalformedException
    */
   public function getUserClaims($uid, $scope) {
     /** @var \Drupal\user\UserInterface $account */
-    $account = $this->entityManager->getStorage('user')->load($uid);
+    $account = $this->entityManager->getStorage('user')
+      ->load($uid);
     if (!$account) {
       throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
     }
@@ -491,7 +744,8 @@ class OAuth2Storage implements OAuth2StorageInterface {
     // The OpenID Connect 'sub' (Subject Identifier) property is usually the
     // user's UID, but this is configurable for backwards compatibility reasons.
     // See: https://www.drupal.org/node/2274357#comment-9779467
-    $sub_property = \Drupal::config('oauth2_server.oauth')->get('user_sub_property');
+    $sub_property = $this->configFactory->get('oauth2_server.oauth')
+      ->get('user_sub_property');
 
     // Prepare the default claims.
     $claims = [
@@ -500,7 +754,8 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
     if (in_array('email', $requested_scopes)) {
       $claims['email'] = $account->getEmail();
-      $claims['email_verified'] = \Drupal::config('user.settings')->get('verify_mail');
+      $claims['email_verified'] = $this->configFactory->get('user.settings')
+        ->get('verify_mail');
     }
 
     if (in_array('profile', $requested_scopes)) {
@@ -513,7 +768,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
       }
       $anonymous_user = new AnonymousUserSession();
       if ($anonymous_user->hasPermission('access user profiles')) {
-        $claims['profile'] = $account->url('canonical', ['absolute' => TRUE]);
+        $claims['profile'] = $account->toUrl('canonical', ['absolute' => TRUE]);
       }
       if ($picture = $this->getUserPicture($account)) {
         $claims['picture'] = $picture;
@@ -533,7 +788,6 @@ class OAuth2Storage implements OAuth2StorageInterface {
       'requested_scopes' => $requested_scopes,
     ];
     $this->moduleHandler->alter('oauth2_server_user_claims', $context);
-
     return $claims;
   }
 
@@ -541,8 +795,18 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Get refresh token.
+   *
+   * @param string $refresh_token
+   *   The refresh token string.
+   *
+   * @return array|bool
+   *   The token array or false.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getRefreshToken($refresh_token) {
+    /** @var \Drupal\oauth2_server\TokenInterface $token */
     $token = $this->getStorageToken($refresh_token);
     if (!$token) {
       return FALSE;
@@ -555,13 +819,14 @@ class OAuth2Storage implements OAuth2StorageInterface {
     }
 
     $scopes = [];
+    /** @var \Drupal\oauth2_server\ScopeInterface $token */
     $scope_entities = $token->scopes->referencedEntities();
     foreach ($scope_entities as $scope) {
       $scopes[] = $scope->scope_id;
     }
     sort($scopes);
 
-    $token_array = [
+    return [
       'server' => $token->getClient()->getServer()->id(),
       'client_id' => $token->getClient()->client_id,
       'user_id' => $token->getUser()->id(),
@@ -570,20 +835,38 @@ class OAuth2Storage implements OAuth2StorageInterface {
       'expires' => (int) $token->expires->value,
       'scope' => implode(' ', $scopes),
     ];
-
-    return $token_array;
   }
 
   /**
    * Set refresh token.
+   *
+   * @param string $refresh_token
+   *   The refresh token string.
+   * @param string $client_id
+   *   The client id string.
+   * @param int $uid
+   *   The user id integer.
+   * @param int $expires
+   *   The expiration timestamp.
+   * @param string|null $scope
+   *   The scope string.
+   *
+   * @return int
+   *   Whether the token was saved or not.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function setRefreshToken($refresh_token, $client_id, $uid, $expires, $scope = NULL) {
+    /** @var \Drupal\oauth2_server\ClientInterface $client */
     $client = $this->getStorageClient($client_id);
     if (!$client) {
       throw new \InvalidArgumentException("The supplied client couldn't be loaded.");
     }
 
     // If no token was found, start with a new entity.
+    /** @var \Drupal\oauth2_server\TokenInterface $token */
     $token = $this->getStorageToken($refresh_token);
     if (!$token) {
       $user = $this->entityManager->getStorage('user')->load($uid);
@@ -591,7 +874,8 @@ class OAuth2Storage implements OAuth2StorageInterface {
         throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
       }
 
-      $token = $this->entityManager->getStorage('oauth2_server_token')->create(['type' => 'refresh']);
+      $token = $this->entityManager->getStorage('oauth2_server_token')
+        ->create(['type' => 'refresh']);
       $token->client_id = $client->id();
       $token->uid = $uid;
       $token->token = $refresh_token;
@@ -599,15 +883,21 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
     $token->expires = $expires;
     $this->setScopeData($token, $client->getServer(), $scope);
-    $status = $token->save();
-
-    return $status;
+    return $token->save();
   }
 
   /**
    * Unset refresh token.
+   *
+   * @param string $refresh_token
+   *   The refresh token string.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function unsetRefreshToken($refresh_token) {
+    /** @var \Drupal\oauth2_server\TokenInterface $token */
     $token = $this->getStorageToken($refresh_token);
 
     // Check token exists before trying to delete.
@@ -625,12 +915,21 @@ class OAuth2Storage implements OAuth2StorageInterface {
    *   The machine name of the server.
    * @param string $scope
    *   Scopes in a space-separated string.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   private function setScopeData($entity, $server, $scope) {
     $entity->scopes = [];
     if ($scope) {
       $scopes = preg_split('/\s+/', $scope);
-      $loaded_scopes = $this->entityManager->getStorage('oauth2_server_scope')->loadByProperties(['server_id' => $server->id(), 'scope_id' => $scopes]);
+      /** @var \Drupal\oauth2_server\ScopeInterface[] $loaded_scopes */
+      $loaded_scopes = $this->entityManager
+        ->getStorage('oauth2_server_scope')
+        ->loadByProperties([
+          'server_id' => $server->id(),
+          'scope_id' => $scopes,
+        ]);
       ksort($loaded_scopes);
       foreach ($loaded_scopes as $loaded_scope) {
         $entity->scopes[] = $loaded_scope->id();
@@ -642,16 +941,28 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Get public key.
+   *
+   * @param string|null $client_id
+   *   The client id string.
+   *
+   * @return string
+   *   The public key string.
    */
   public function getPublicKey($client_id = NULL) {
-    // The library allows for per-client keys. The module uses global keys
-    // that are regenerated every day, following Google's example.
+    // The library allows for per-client keys. The module uses global keys that
+    // are regenerated every day, following Google's example.
     $keys = Utility::getKeys();
     return $keys['public_key'];
   }
 
   /**
    * Get private key.
+   *
+   * @param string|null $client_id
+   *   The client id string.
+   *
+   * @return string
+   *   The private key string.
    */
   public function getPrivateKey($client_id = NULL) {
     // The library allows for per-client keys. The module uses global keys
@@ -662,6 +973,12 @@ class OAuth2Storage implements OAuth2StorageInterface {
 
   /**
    * Get encryption algorithm.
+   *
+   * @param string|null $client_id
+   *   The client id string.
+   *
+   * @return string
+   *   The encryption algorithm identifier string.
    */
   public function getEncryptionAlgorithm($client_id = NULL) {
     return 'RS256';
@@ -675,6 +992,8 @@ class OAuth2Storage implements OAuth2StorageInterface {
    *
    * @return string|null
    *   An absolute URL to the user picture, or NULL if none is found.
+   *
+   * @throws \Drupal\Core\Entity\EntityMalformedException
    */
   protected function getUserPicture(UserInterface $account) {
     if (!user_picture_enabled()) {
@@ -684,7 +1003,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
     if ($account->user_picture && $account->user_picture->target_id) {
       $file = File::load($account->user_picture->target_id);
       if ($file) {
-        return $file->url('canonical', ['absolute' => TRUE]);
+        return $file->toUrl('canonical', ['absolute' => TRUE]);
       }
     }
     return NULL;

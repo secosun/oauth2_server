@@ -11,7 +11,9 @@ use Drupal\oauth2_server\OAuth2StorageInterface;
 use Drupal\oauth2_server\Utility;
 
 /**
- * Implements the Authorize Form.
+ * Class Authorize Form.
+ *
+ * @package Drupal\oauth2_server\Form
  */
 class AuthorizeForm extends FormBase {
 
@@ -23,7 +25,7 @@ class AuthorizeForm extends FormBase {
   protected $storage;
 
   /**
-   * Constructs a new \Drupal\oauth2_server\Controller\OAuth2Controller object.
+   * Authorize Form constructor.
    *
    * @param \Drupal\oauth2_server\OAuth2StorageInterface $oauth2_storage
    *   The OAuth2 storage object.
@@ -56,6 +58,7 @@ class AuthorizeForm extends FormBase {
 
     $list = [];
     foreach ($context['scopes'] as $scope) {
+      // phpcs:ignore Drupal.Semantics.FunctionT.NotLiteralString
       $list[] = $this->t($scope->description);
     }
 
@@ -63,14 +66,12 @@ class AuthorizeForm extends FormBase {
       '#type' => 'value',
       '#value' => $context['client'],
     ];
-
     $form['scopes'] = [
       '#title' => $this->t('This application will be able to:'),
       '#theme' => 'item_list',
       '#items' => $list,
       '#type' => 'ul',
     ];
-
     $form['actions'] = [
       '#type' => 'actions',
     ];
@@ -84,7 +85,6 @@ class AuthorizeForm extends FormBase {
       '#value' => t('Cancel'),
       '#authorized' => FALSE,
     ];
-
     return $form;
   }
 

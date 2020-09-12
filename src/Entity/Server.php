@@ -5,6 +5,7 @@ namespace Drupal\oauth2_server\Entity;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\oauth2_server\ServerInterface;
+use Drupal\Component\Render\FormattableMarkup;
 
 /**
  * Defines the OAuth2 server entity.
@@ -51,6 +52,7 @@ use Drupal\oauth2_server\ServerInterface;
  * )
  */
 class Server extends ConfigEntityBase implements ServerInterface {
+
   /**
    * The machine name of this server.
    *
@@ -122,13 +124,15 @@ class Server extends ConfigEntityBase implements ServerInterface {
 
     if (!$previous_value && $current_value) {
       $openid_scopes = [
-        'openid' => format_string('Know who you are on @site', ['@site' => \Drupal::config('system.site')->get('name')]),
+        'openid' => new FormattableMarkup('Know who you are on @site', ['@site' => \Drupal::config('system.site')->get('name')]),
         'offline_access' => "Access the API when you're not present.",
         'email' => 'View your email address.',
         'profile' => 'View basic information about your account.',
       ];
       foreach ($openid_scopes as $id => $description) {
-        $scope = $this->entityManager()->getStorage('oauth2_server_scope')->load($this->id() . '_' . $id);
+        /** @var \Drupal\oauth2_server\ScopeInterface $scope */
+        $scope = $this->entityTypeManager()->getStorage('oauth2_server_scope')
+          ->load($this->id() . '_' . $id);
         if (!$scope) {
           $scope = Scope::create([
             'scope_id' => $id,
@@ -139,10 +143,16 @@ class Server extends ConfigEntityBase implements ServerInterface {
         }
       }
     }
+
     // If OpenID Connect was just disabled, delete its scopes.
     if ($previous_value && !$current_value) {
       $scope_names = ['openid', 'offline_access', 'email', 'profile'];
-      $scopes = $this->entityManager()->getStorage('oauth2_server_scope')->loadByProperties(['server_id' => $this->id(), 'scope_id' => $scope_names]);
+      /** @var \Drupal\oauth2_server\ScopeInterface[] $scopes */
+      $scopes = $this->entityTypeManager()->getStorage('oauth2_server_scope')
+        ->loadByProperties([
+          'server_id' => $this->id(),
+          'scope_id' => $scope_names,
+        ]);
       foreach ($scopes as $scope) {
         $scope->delete();
       }
@@ -161,13 +171,17 @@ class Server extends ConfigEntityBase implements ServerInterface {
     parent::delete();
 
     // Clean up scopes.
-    $scopes = $this->entityManager()->getStorage('oauth2_server_scope')->loadByProperties(['server_id' => $this->id()]);
+    /** @var \Drupal\oauth2_server\ScopeInterface[] $scopes */
+    $scopes = $this->entityTypeManager()->getStorage('oauth2_server_scope')
+      ->loadByProperties(['server_id' => $this->id()]);
     foreach ($scopes as $scope) {
       $scope->delete();
     }
 
     // Clean up clients.
-    $clients = $this->entityManager()->getStorage('oauth2_server_client')->loadByProperties(['server_id' => $this->id()]);
+    /** @var \Drupal\oauth2_server\ClientInterface[] $clients */
+    $clients = $this->entityTypeManager()->getStorage('oauth2_server_client')
+      ->loadByProperties(['server_id' => $this->id()]);
     foreach ($clients as $client) {
       $client->delete();
     }

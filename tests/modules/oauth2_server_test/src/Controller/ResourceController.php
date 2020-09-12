@@ -24,6 +24,9 @@ class ResourceController extends ControllerBase {
    *
    * @return array|\OAuth2\Response|\Symfony\Component\HttpFoundation\JsonResponse
    *   The json response.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function test(RouteMatchInterface $route_match, Request $request) {
     $scope = $route_match->getRawParameter('oauth2_server_scope');

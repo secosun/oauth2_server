@@ -7,7 +7,9 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
- * Defines a confirm form for deleting a client.
+ * Class Client Delete Confirm Form.
+ *
+ * @package Drupal\oauth2_server\Form
  */
 class ClientDeleteConfirmForm extends EntityConfirmFormBase {
 
@@ -44,7 +46,7 @@ class ClientDeleteConfirmForm extends EntityConfirmFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->entity->delete();
-    drupal_set_message($this->t('The OAuth2 server client %name has been deleted.', ['%name' => $this->entity->label()]));
+    $this->messenger()->addMessage($this->t('The OAuth2 server client %name has been deleted.', ['%name' => $this->entity->label()]));
     $form_state->setRedirect('entity.oauth2_server.clients', ['oauth2_server' => $this->entity->server_id]);
   }
 

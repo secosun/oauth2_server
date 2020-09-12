@@ -40,7 +40,6 @@ oauth2_server.overview:
     _entity_list: 'oauth2_server'
   requirements:
     _permission: 'administer oauth2 server'
-
 entity.oauth2_server.add_form:
   path: '/admin/structure/oauth2-servers/add-server'
   defaults:

@@ -1,14 +1,15 @@
 services:
   oauth2_server.storage:
     class: Drupal\oauth2_server\OAuth2Storage
-    arguments: ['@entity.manager', '@password', '@module_handler']
+    arguments: ['@entity_type.manager', '@password', '@module_handler', '@config.factory', '@datetime.time']
   authentication.oauth2_server:
     class: Drupal\oauth2_server\Authentication\Provider\OAuth2DrupalAuthProvider
-    arguments: ["@config.factory", "@oauth2_server.storage"]
+    arguments: ['@entity_type.manager', '@oauth2_server.storage', '@config.factory', '@logger.factory', '@datetime.time']
     tags:
       - { name: authentication_provider, provider_id: oauth2, priority: 100 }
   oauth2_server.page_cache_request_policy.disallow_oauth2_token_requests:
     class: Drupal\oauth2_server\PageCache\DisallowOauth2Requests
+    arguments: ['@authentication.oauth2_server']
     public: false
     tags:
       - { name: page_cache_request_policy }

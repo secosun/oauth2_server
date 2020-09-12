@@ -16,7 +16,9 @@ use Drupal\oauth2_server\ScopeUtility;
 use Drupal\oauth2_server\Utility;
 
 /**
- * Provides block routines for OAuth2.
+ * Class OAuth2 Controller.
+ *
+ * @package Drupal\oauth2_server\Controller
  */
 class OAuth2Controller extends ControllerBase {
 
@@ -48,11 +50,22 @@ class OAuth2Controller extends ControllerBase {
 
   /**
    * Authorize.
+   *
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The route match object.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return array|\OAuth2\HttpFoundationBridge\Response|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
+   *   A form array or a response object.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function authorize(RouteMatchInterface $route_match, Request $request) {
     $this->moduleHandler()->invokeAll('oauth2_server_pre_authorize');
 
-    // Workaround for https://www.drupal.org/project/oauth2_server/issues/3049250
+    // Workaround https://www.drupal.org/project/oauth2_server/issues/3049250
     // Create a duplicate request with the parameters removed, so that the
     // object can survive being serialized.
     $duplicated_request = $request->duplicate(NULL, NULL, []);
@@ -60,28 +73,32 @@ class OAuth2Controller extends ControllerBase {
 
     if ($this->currentUser()->isAnonymous()) {
       $_SESSION['oauth2_server_authorize'] = $bridgeRequest;
-
       $url = new Url('user.login', [], ['query' => ['destination' => '/oauth2/authorize']]);
       $url->setAbsolute(TRUE);
-
       return new RedirectResponse($url->toString());
     }
 
-    // A login happened. Create the request with parameters from the session.
+    // A login happened: Create the request with parameters from the session.
     if (!empty($_SESSION['oauth2_server_authorize'])) {
       $bridgeRequest = $_SESSION['oauth2_server_authorize'];
     }
 
     $client = FALSE;
     if ($bridgeRequest->get('client_id')) {
-      $clients = $this->entityManager()->getStorage('oauth2_server_client')->loadByProperties(['client_id' => $bridgeRequest->get('client_id')]);
+      /** @var \Drupal\oauth2_server\ClientInterface[] $clients */
+      $clients = $this->entityTypeManager()->getStorage('oauth2_server_client')
+        ->loadByProperties([
+          'client_id' => $bridgeRequest->get('client_id'),
+        ]);
       if ($clients) {
-        /** @var \Drupal\oauth2_server\ClientInterface $client */
         $client = reset($clients);
       }
     }
     if (!$client) {
-      return new JsonResponse(['error' => 'Client could not be found.'], JsonResponse::HTTP_NOT_FOUND);
+      return new JsonResponse(
+        ['error' => 'Client could not be found.'],
+        JsonResponse::HTTP_NOT_FOUND
+      );
     }
 
     // Initialize the server.
@@ -90,9 +107,10 @@ class OAuth2Controller extends ControllerBase {
     // Automatic authorization is enabled for this client. Finish authorization.
     // handleAuthorizeRequest() will call validateAuthorizeRequest().
     $response = new BridgeResponse();
-    if ($client && $client->automatic_authorization) {
+    if ($client->automatic_authorization) {
       unset($_SESSION['oauth2_server_authorize']);
-      $oauth2_server->handleAuthorizeRequest($bridgeRequest, $response, TRUE, $this->currentUser()->id());
+      $oauth2_server
+        ->handleAuthorizeRequest($bridgeRequest, $response, TRUE, $this->currentUser()->id());
       return $response;
     }
     else {
@@ -111,48 +129,79 @@ class OAuth2Controller extends ControllerBase {
       }
       // Convert the scope string to a set of entities.
       $scope_names = explode(' ', $scope);
-      $scopes = $this->entityManager()->getStorage('oauth2_server_scope')->loadByProperties([
-        'server_id' => $client->getServer()->id(),
-        'scope_id' => $scope_names,
-      ]);
+      $scopes = $this->entityTypeManager()->getStorage('oauth2_server_scope')
+        ->loadByProperties([
+          'server_id' => $client->getServer()->id(),
+          'scope_id' => $scope_names,
+        ]);
 
       // Show the authorize form.
-      return $this->formBuilder()->getForm('Drupal\oauth2_server\Form\AuthorizeForm', ['client' => $client, 'scopes' => $scopes]);
+      return $this->formBuilder()->getForm(
+        'Drupal\oauth2_server\Form\AuthorizeForm',
+        [
+          'client' => $client,
+          'scopes' => $scopes,
+        ]
+      );
     }
   }
 
   /**
    * Token.
+   *
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The route match object.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \OAuth2\HttpFoundationBridge\Response|\Symfony\Component\HttpFoundation\JsonResponse
+   *   A response object.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function token(RouteMatchInterface $route_match, Request $request) {
     $bridgeRequest = BridgeRequest::createFromRequest($request);
-
     $client_credentials = Utility::getClientCredentials($bridgeRequest);
+
     // Get the client and use it to load the server and initialize the server.
     $client = FALSE;
     if ($client_credentials) {
-      $clients = $this->entityManager()->getStorage('oauth2_server_client')->loadByProperties(['client_id' => $client_credentials['client_id']]);
+      /** @var \Drupal\oauth2_server\ClientInterface[] $clients */
+      $clients = $this->entityTypeManager()->getStorage('oauth2_server_client')
+        ->loadByProperties(['client_id' => $client_credentials['client_id']]);
       if ($clients) {
         $client = reset($clients);
       }
     }
     if (!$client) {
-      return new JsonResponse(['error' => 'Client could not be found.'], JsonResponse::HTTP_NOT_FOUND);
+      return new JsonResponse(
+        ['error' => 'Client could not be found.'],
+        JsonResponse::HTTP_NOT_FOUND
+      );
     }
 
     $response = new BridgeResponse();
     $oauth2_server = Utility::startServer($client->getServer(), $this->storage);
     $oauth2_server->handleTokenRequest($bridgeRequest, $response);
     return $response;
-
   }
 
   /**
    * Tokens.
+   *
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The route match object.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \OAuth2\HttpFoundationBridge\Response|\Symfony\Component\HttpFoundation\JsonResponse
+   *   The response object.
    */
   public function tokens(RouteMatchInterface $route_match, Request $request) {
     $token = $route_match->getRawParameter('oauth2_server_token');
     $token = $this->storage->getAccessToken($token);
+
     // No token found. Stop here.
     if (!$token || $token['expires'] <= time()) {
       return new BridgeResponse([], 404);
@@ -165,15 +214,28 @@ class OAuth2Controller extends ControllerBase {
 
   /**
    * User info.
+   *
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The route match object.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \OAuth2\HttpFoundationBridge\Response
+   *   The response object.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function userInfo(RouteMatchInterface $route_match, Request $request) {
     $bridgeRequest = BridgeRequest::createFromRequest($request);
-
     $client_credentials = Utility::getClientCredentials($bridgeRequest);
+
     // Get the client and use it to load the server and initialize the server.
     $client = FALSE;
     if ($client_credentials) {
-      $clients = $this->entityManager()->getStorage('oauth2_server_client')->loadByProperties(['client_id' => $client_credentials['client_id']]);
+      /** @var \Drupal\oauth2_server\ClientInterface[] $clients */
+      $clients = $this->entityTypeManager()->getStorage('oauth2_server_client')
+        ->loadByProperties(['client_id' => $client_credentials['client_id']]);
       if ($clients) {
         $client = reset($clients);
       }
@@ -192,6 +254,14 @@ class OAuth2Controller extends ControllerBase {
 
   /**
    * Certificates.
+   *
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The route match object.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   The response object.
    */
   public function certificates(RouteMatchInterface $route_match, Request $request) {
     $keys = Utility::getKeys();

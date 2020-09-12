@@ -86,9 +86,9 @@ class Token extends ContentEntityBase implements TokenInterface {
    */
   public function getUser() {
     if ($uid = $this->uid->getValue()) {
-      return $this->entityManager()->getStorage('user')->load($uid[0]['target_id']);
+      return $this->entityTypeManager()->getStorage('user')
+        ->load($uid[0]['target_id']);
     }
-
     return FALSE;
   }
 
@@ -97,9 +97,9 @@ class Token extends ContentEntityBase implements TokenInterface {
    */
   public function getClient() {
     if ($client_id = $this->client_id->getValue()) {
-      return $this->entityManager()->getStorage('oauth2_server_client')->load($client_id[0]['target_id']);
+      return $this->entityTypeManager()->getStorage('oauth2_server_client')
+        ->load($client_id[0]['target_id']);
     }
-
     return FALSE;
   }
 

@@ -7,14 +7,13 @@ use OAuth2\HttpFoundationBridge\Response as BridgeResponse;
 use OAuth2\HttpFoundationBridge\Request as BridgeRequest;
 use OAuth2\RequestInterface;
 use OAuth2\Server;
-use Drupal\oauth2_server\ScopeUtility;
-use Drupal\oauth2_server\ServerInterface;
-use Drupal\oauth2_server\OAuth2StorageInterface;
 use OAuth2\OpenID\GrantType\AuthorizationCode;
 use OAuth2\Encryption\Jwt;
 
 /**
  * Contains utility methods for the OAuth2 Server.
+ *
+ * @package Drupal\oauth2_server
  *
  * @todo Maybe move some of these methods to other classes (and/or split this
  *   class into several utility classes).
@@ -41,7 +40,10 @@ class Utility {
       'refresh_token' => [
         'name' => t('Refresh token'),
         'class' => '\OAuth2\GrantType\RefreshToken',
-        'settings callback' => [__NAMESPACE__ . '\Form\ServerForm', 'refreshTokenSettings'],
+        'settings callback' => [
+          __NAMESPACE__ . '\Form\ServerForm',
+          'refreshTokenSettings',
+        ],
         'default settings' => [
           'always_issue_new_refresh_token' => FALSE,
           'unset_refresh_token_after_use' => TRUE,
@@ -124,7 +126,8 @@ class Utility {
     openssl_pkey_export($resource, $private_key);
 
     // Generate a public key certificate valid for 2 days.
-    $serial = \Drupal::state()->get('oauth2_server.next_certificate_id', 0);
+    $serial = \Drupal::state()
+      ->get('oauth2_server.next_certificate_id', 0);
     $uri = new Url('<front>', [], ['absolute' => TRUE, 'https' => TRUE]);
     $dn = [
       'CN' => $uri->toString(),
@@ -134,7 +137,8 @@ class Utility {
     openssl_x509_export($x509, $public_key_certificate);
     // Increment the id for next time. db_next_id() is not used since it can't
     // guarantee sequential numbers.
-    \Drupal::state()->set('oauth2_server.next_certificate_id', ++$serial);
+    \Drupal::state()
+      ->set('oauth2_server.next_certificate_id', ++$serial);
 
     return [
       'private_key' => $private_key,
@@ -172,11 +176,13 @@ class Utility {
       $oauth2_server = new Server($storage, $settings);
       $scope_util = new ScopeUtility($server);
       $oauth2_server->setScopeUtil($scope_util);
+
       // Determine the available grant types based on server settings.
       $enabled_grant_types = array_filter($settings['grant_types']);
     }
     else {
       $oauth2_server = new Server($storage);
+
       // Enable all grant types. One of them will handle the validation failure.
       $enabled_grant_types = array_keys($grant_types);
       $settings = [];
@@ -193,13 +199,14 @@ class Utility {
       }
       $oauth2_server->addGrantType($grant_type);
     }
+
     // Implicit flow requires its own instance of
     // OAuth2_GrantType_AuthorizationCode.
     if (!empty($settings['allow_implicit'])) {
+      // @todo The $settings parameter doesn't seem to be used.
       $grant_type = new AuthorizationCode($storage, $settings);
       $oauth2_server->addGrantType($grant_type, 'implicit');
     }
-
     return $oauth2_server;
   }
 
@@ -258,9 +265,14 @@ class Utility {
    * @return bool
    *   TRUE if at least one server uses JWT Access Tokens or OpenID Connect,
    *   FALSE otherwise.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public static function siteNeedsKeys() {
-    $servers = \Drupal::entityManager()->getStorage('oauth2_server')->loadMultiple();
+    /** @var \Drupal\oauth2_server\ServerInterface[] $servers */
+    $servers = \Drupal::entityTypeManager()->getStorage('oauth2_server')
+      ->loadMultiple();
     foreach ($servers as $server) {
       if (!empty($server->settings['use_crypto_tokens'])) {
         return TRUE;
@@ -269,7 +281,6 @@ class Utility {
         return TRUE;
       }
     }
-
     return FALSE;
   }
 
@@ -278,23 +289,30 @@ class Utility {
    *
    * @param string $server_name
    *   The name of the server for which access should be verified.
-   * @param string $scope
+   * @param string|null $scope
    *   An optional string of space-separated scopes to check.
    *
-   * @return \OAuth2\Response|array
+   * @return \OAuth2\ResponseInterface|array
    *   A valid access token if found, otherwise an \OAuth2\Response object
    *   containing an appropriate response message and status code.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public static function checkAccess($server_name, $scope = NULL) {
-    $server = \Drupal::entityManager()->getStorage('oauth2_server')->load($server_name);
+    /** @var \Drupal\oauth2_server\ServerInterface $server */
+    $server = \Drupal::entityTypeManager()->getStorage('oauth2_server')
+      ->load($server_name);
     $storage = \Drupal::service('oauth2_server.storage');
     $oauth2_server = Utility::startServer($server, $storage);
     $response = new BridgeResponse();
 
-    $request = \Drupal::requestStack()->getCurrentRequest();
+    $request = \Drupal::requestStack()
+      ->getCurrentRequest();
     $bridgeRequest = BridgeRequest::createFromRequest($request);
 
     $token = $oauth2_server->getAccessTokenData($bridgeRequest, $response);
+
     // If there's no token, that means validation failed. Stop here.
     if (!$token) {
       return $response;
@@ -309,18 +327,17 @@ class Utility {
       return $response;
     }
 
-    // Check scope, if provided
-    // If token doesn't have a scope, it's null/empty, or it's insufficient,
-    // throw an error.
+    // Check scope, if provided. If token doesn't have a scope, it's null/empty,
+    // or it's insufficient, throw an error.
     $scope_util = new ScopeUtility($server);
-    if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$scope_util->checkScope($scope, $token["scope"]))) {
+    if ($scope &&
+       (!isset($token["scope"]) || !$token["scope"] || !$scope_util->checkScope($scope, $token["scope"]))) {
       $response->setError(401, 'insufficient_scope', 'The request requires higher privileges than provided by the access token');
       $response->addHttpHeaders([
         'WWW-Authenticate' => sprintf('%s, realm="%s", scope="%s"', 'bearer', 'Service', $scope),
       ]);
       return $response;
     }
-
     return $token;
   }
 

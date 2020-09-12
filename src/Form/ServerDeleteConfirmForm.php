@@ -7,7 +7,9 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
- * Defines a confirm form for deleting a server.
+ * Class Server Delete Confirm Form.
+ *
+ * @package Drupal\oauth2_server\Form
  */
 class ServerDeleteConfirmForm extends EntityConfirmFormBase {
 
@@ -44,7 +46,7 @@ class ServerDeleteConfirmForm extends EntityConfirmFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->entity->delete();
-    drupal_set_message($this->t('The OAuth2 server %name has been deleted.', ['%name' => $this->entity->label()]));
+    $this->messenger()->addMessage($this->t('The OAuth2 server %name has been deleted.', ['%name' => $this->entity->label()]));
     $form_state->setRedirect('oauth2_server.overview');
   }
 

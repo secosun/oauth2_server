@@ -7,11 +7,11 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
-use Drupal\oauth2_server\ServerInterface;
-use Drupal\oauth2_server\ClientInterface;
 
 /**
  * Builds a listing of oauth2 server client entities.
+ *
+ * @package Drupal\oauth2_server
  */
 class ClientListBuilder extends ConfigEntityListBuilder {
 
@@ -20,7 +20,6 @@ class ClientListBuilder extends ConfigEntityListBuilder {
    */
   public function getDefaultOperations(EntityInterface $entity) {
     $operations = parent::getDefaultOperations($entity);
-
     if ($entity instanceof ClientInterface) {
       $route_parameters['oauth2_server'] = $entity->getServer()->id();
       $route_parameters['oauth2_server_client'] = $entity->id();
@@ -36,7 +35,6 @@ class ClientListBuilder extends ConfigEntityListBuilder {
         'url' => new Url('entity.oauth2_server.clients.delete_form', $route_parameters),
       ];
     }
-
     return $operations;
   }
 
@@ -59,7 +57,7 @@ class ClientListBuilder extends ConfigEntityListBuilder {
     return [
       'data' => [
         'label' => [
-          'data' => $this->getLabel($entity),
+          'data' => $entity->label(),
           'class' => ['oauth2-server-client-name'],
         ],
         'operations' => $row['operations'],
@@ -100,9 +98,12 @@ class ClientListBuilder extends ConfigEntityListBuilder {
     ]);
 
     if ($oauth2_server) {
-      $clients = $this->storage->loadByProperties(['server_id' => $oauth2_server->id()]);
+      /** @var \Drupal\oauth2_server\ClientInterface[] $client */
+      $clients = $this->storage
+        ->loadByProperties(['server_id' => $oauth2_server->id()]);
     }
     else {
+      /** @var \Drupal\oauth2_server\ClientInterface[] $clients */
       $clients = $this->storage->loadMultiple();
     }
 
@@ -116,7 +117,6 @@ class ClientListBuilder extends ConfigEntityListBuilder {
     $build['pager'] = [
       '#type' => 'pager',
     ];
-
     return $build;
   }
 

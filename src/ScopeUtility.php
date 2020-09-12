@@ -7,6 +7,8 @@ use Oauth2\RequestInterface;
 
 /**
  * Provides a scope-checking utility to the library.
+ *
+ * @package Drupal\oauth2_server
  */
 class ScopeUtility implements OAuth2ScopeInterface {
 
@@ -54,11 +56,14 @@ class ScopeUtility implements OAuth2ScopeInterface {
    *
    * @param string $scope
    *   A space-separated string of scopes.
-   * @param string $client_id
+   * @param string|null $client_id
    *   The requesting client.
    *
    * @return bool
    *   TRUE if it exists, FALSE otherwise.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function scopeExists($scope, $client_id = NULL) {
     $scope = explode(' ', trim($scope));
@@ -70,7 +75,9 @@ class ScopeUtility implements OAuth2ScopeInterface {
     $results = $query->execute();
 
     $scope_ids = array_keys($results);
-    $loaded_scopes = \Drupal::entityManager()->getStorage('oauth2_server_scope')->loadMultiple($scope_ids);
+    /** @var \Drupal\oauth2_server\ScopeInterface[] $loaded_scopes */
+    $loaded_scopes = \Drupal::entityTypeManager()->getStorage('oauth2_server_scope')
+      ->loadMultiple($scope_ids);
 
     // Previously $query->addTag('oauth2_server_scope_access') was used but in
     // the config entities the query alter does not run. Use an alter.
@@ -82,15 +89,19 @@ class ScopeUtility implements OAuth2ScopeInterface {
       foreach ($loaded_scopes as $loaded_scope) {
         $found_scope[] = $loaded_scope->label();
       }
-
       return (count(array_diff($scope, $found_scope)) == 0);
     }
-
     return FALSE;
   }
 
   /**
    * Get scope from request.
+   *
+   * @param \Oauth2\RequestInterface $request
+   *   The request object.
+   *
+   * @return string
+   *   The scope string.
    */
   public function getScopeFromRequest(RequestInterface $request) {
     // "scope" is valid if passed in either POST or QUERY.
@@ -99,6 +110,15 @@ class ScopeUtility implements OAuth2ScopeInterface {
 
   /**
    * Get default scope.
+   *
+   * @param string|null $client_id
+   *   The client id string.
+   *
+   * @return string
+   *   The scope string.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function getDefaultScope($client_id = NULL) {
     // Allow any hook_oauth2_server_default_scope() implementations to supply
@@ -116,13 +136,13 @@ class ScopeUtility implements OAuth2ScopeInterface {
     // If there's a valid default scope set in server settings, return it.
     $default_scope = $this->server->settings['default_scope'];
     if (!empty($default_scope)) {
-      $loaded_scope = \Drupal::entityManager()->getStorage('oauth2_server_scope')->load($default_scope);
-
+      /** @var \Drupal\oauth2_server\ScopeInterface[] $loaded_scope */
+      $loaded_scope = \Drupal::entityTypeManager()->getStorage('oauth2_server_scope')
+        ->load($default_scope);
       if ($loaded_scope) {
         return $loaded_scope->scope_id;
       }
     }
-
     return FALSE;
   }
 

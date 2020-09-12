@@ -25,6 +25,7 @@ function oauth2_server_test_oauth2_server_default_scope(ServerInterface $server)
   if ($server->id() == 'test_server') {
     return ['basic', 'admin'];
   }
+  return [];
 }
 
 /**

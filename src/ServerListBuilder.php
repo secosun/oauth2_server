@@ -10,6 +10,8 @@ use Drupal\Core\Url;
 
 /**
  * Builds a listing of oauth2 server entities.
+ *
+ * @package Drupal\oauth2_server
  */
 class ServerListBuilder extends ConfigEntityListBuilder {
 
@@ -18,7 +20,6 @@ class ServerListBuilder extends ConfigEntityListBuilder {
    */
   public function getDefaultOperations(EntityInterface $entity) {
     $operations = parent::getDefaultOperations($entity);
-
     if ($entity instanceof ServerInterface) {
       $route_parameters['oauth2_server'] = $entity->id();
       $operations['scopes'] = [
@@ -32,7 +33,6 @@ class ServerListBuilder extends ConfigEntityListBuilder {
         'url' => new Url('entity.oauth2_server.clients', $route_parameters),
       ];
     }
-
     return $operations;
   }
 
@@ -55,7 +55,6 @@ class ServerListBuilder extends ConfigEntityListBuilder {
   public function buildRow(EntityInterface $entity) {
     /** @var \Drupal\Core\Config\Entity\ConfigEntityInterface $entity */
     $row = parent::buildRow($entity);
-
     $status_label = $entity->status() ? $this->t('Enabled') : $this->t('Disabled');
     $status_icon = [
       '#theme' => 'image',
@@ -65,11 +64,10 @@ class ServerListBuilder extends ConfigEntityListBuilder {
       '#alt' => $status_label,
       '#title' => $status_label,
     ];
-
     return [
       'data' => [
         'label' => [
-          'data' => $this->getLabel($entity),
+          'data' => $entity->label(),
           'class' => ['oauth2-server-name'],
         ],
         'status' => [
@@ -103,11 +101,11 @@ class ServerListBuilder extends ConfigEntityListBuilder {
         'id' => 'oauth2-server-entity-list',
       ],
     ];
-
     $build['table']['#empty'] = $this->t('No servers available. <a href="@link">Add server</a>.', [
       '@link' => Url::fromRoute('entity.oauth2_server.add_form')->toString(),
     ]);
 
+    /** @var \Drupal\oauth2_server\ServerInterface[] $servers */
     $servers = $this->storage->loadMultiple();
     $this->sortByStatusThenAlphabetically($servers);
     foreach ($servers as $entity) {
@@ -119,7 +117,6 @@ class ServerListBuilder extends ConfigEntityListBuilder {
     $build['pager'] = [
       '#type' => 'pager',
     ];
-
     return $build;
   }
 

@@ -2,8 +2,11 @@
 
 namespace Drupal\oauth2_server\Authentication\Provider;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -11,25 +14,18 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Drupal\oauth2_server\OAuth2StorageInterface;
 
 /**
- * Class OAuth2DrupalAuthProvider.
+ * OAuth2 Drupal Auth Provider.
  *
  * @package Drupal\oauth2_server\Authentication\Provider
  */
 class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
 
   /**
-   * The config factory.
+   * The entity type manager.
    *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected $configFactory;
-
-  /**
-   * The entity manager.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
-   */
-  protected $entityManager;
+  protected $entityTypeManager;
 
   /**
    * The OAuth2Storage.
@@ -39,17 +35,52 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
   protected $storage;
 
   /**
-   * Constructs a HTTP basic authentication provider object.
+   * The config factory.
    *
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The config factory.
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * The logger factory.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
+   */
+  protected $loggerFactory;
+
+  /**
+   * The time object.
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
+  protected $time;
+
+  /**
+   * OAuth2 Drupal Auth Provider constructor.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    * @param \Drupal\oauth2_server\OAuth2StorageInterface $oauth2_storage
    *   The OAuth2 storage object.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory
+   *   The logger factory.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time object.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, OAuth2StorageInterface $oauth2_storage) {
+  public function __construct(
+      EntityTypeManagerInterface $entity_type_manager,
+      OAuth2StorageInterface $oauth2_storage,
+      ConfigFactoryInterface $config_factory,
+      LoggerChannelFactoryInterface $logger_factory,
+      TimeInterface $time
+  ) {
     $this->configFactory = $config_factory;
-    $this->entityManager = \Drupal::getContainer()->get('entity.manager');
     $this->storage = $oauth2_storage;
+    $this->entityTypeManager = $entity_type_manager;
+    $this->loggerFactory = $logger_factory;
+    $this->time = $time;
   }
 
   /**
@@ -89,9 +120,11 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
     // the client adds the access token to the request URI query component
     // using the "access_token" parameter.
     // See https://tools.ietf.org/html/rfc6750#section-2.3
-    if (!empty($request->get('access_token')) && stripos(trim($request->getContent()), 'access_token') === FALSE) {
+    if (!empty($request->get('access_token')) &&
+        stripos(trim($request->getContent()), 'access_token') === FALSE) {
       $method[] = t('URI Query Parameter');
     }
+
     // There are three methods of sending bearer access tokens in
     // resource requests to resource servers.
     // Clients MUST NOT use more than one method to transmit the token in each
@@ -106,7 +139,6 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
    * {@inheritdoc}
    */
   public function authenticate(Request $request) {
-
     try {
       if (!empty($request->headers->get('authorization'))) {
         $token = $this->getInfoToken($request->headers->get('authorization'), 'token');
@@ -114,23 +146,29 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
       if (!empty($request->get('access_token'))) {
         $token = $request->get('access_token');
       }
+
       // Determine if $token is empty.
       if (empty($token)) {
         throw new \InvalidArgumentException("The client has not transmitted the token in the request.");
       }
+
       // Retrieve access token data.
       $info = $this->storage->getAccessToken($token);
       if (empty($info)) {
         throw new \InvalidArgumentException("The token: " . $token . " provided is not registered.");
       }
+
       // Determine if $info['server'] is empty.
       if (empty($info['server'])) {
         throw new \Exception("OAuth2 server was not set");
       }
+
       // Set $oauth2_server_name.
       $oauth2_server_name = 'oauth2_server.server.' . $info['server'];
+
       // Retrieves the configuration object.
-      $config = \Drupal::config($oauth2_server_name);
+      $config = $this->configFactory->get($oauth2_server_name);
+
       // Determine if $config is empty.
       if (empty($config)) {
         throw new \Exception("The config for '.$oauth2_server_name.' server could not be loaded.");
@@ -139,25 +177,37 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
       if (empty($oauth2_server_settings['advanced_settings']) || empty($oauth2_server_settings['advanced_settings']['access_lifetime'])) {
         throw new \Exception("The access_lifetime was not set.");
       }
-      if (REQUEST_TIME > ($info['expires'] + $oauth2_server_settings['advanced_settings']['access_lifetime'])) {
+      if ($this->time->getRequestTime() > ($info['expires'] + $oauth2_server_settings['advanced_settings']['access_lifetime'])) {
         throw new \Exception("The token is expired.");
       }
-
-      return $this->entityManager->getStorage('user')->load($info['user_id']);
+      return $this->entityTypeManager->getStorage('user')->load($info['user_id']);
     }
     catch (\Exception $e) {
-      \Drupal::logger('access denied')->warning($e->getMessage());
-      return $this->entityManager->getStorage('user')->load(0);
+      $this->loggerFactory->get('access denied')->warning($e->getMessage());
+      return $this->entityTypeManager->getStorage('user')->load(0);
     }
   }
 
   /**
-   * {@inheritdoc}
+   * Cleanup.
+   *
+   * @todo Doesn't appear to be used.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
    */
   public function cleanup(Request $request) {}
 
   /**
-   * {@inheritdoc}
+   * Handle exception.
+   *
+   * @todo Doesn't appear to be used.
+   *
+   * @param \Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent $event
+   *   The exception object.
+   *
+   * @return bool
+   *   Whether the exception s valid or not.
    */
   public function handleException(GetResponseForExceptionEvent $event) {
     $exception = $event->getException();
@@ -171,9 +221,9 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
   /**
    * Generates keys from "Authorization" request header field.
    *
-   * @param string $authorization
+   * @param string|null $authorization
    *   The "Authorization" request header field.
-   * @param string $key
+   * @param string|null $key
    *   Token / authentication_scheme.
    *
    * @return array|false
@@ -182,7 +232,6 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
    *   - token: (string) $token.
    */
   protected function getInfoToken($authorization = NULL, $key = NULL) {
-
     if (empty($authorization)) {
       return FALSE;
     }

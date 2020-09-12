@@ -6,6 +6,8 @@ use Drupal\Core\Entity\ContentEntityInterface;
 
 /**
  * Defines the interface for token entities.
+ *
+ * @package Drupal\oauth2_server
  */
 interface TokenInterface extends ContentEntityInterface {
 

@@ -3,12 +3,14 @@
 namespace Drupal\oauth2_server\Form;
 
 use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Provides form for scope instance forms.
+ * Class Scope Form.
+ *
+ * @package Drupal\oauth2_server\Form
  */
 class ScopeForm extends EntityForm {
 
@@ -27,13 +29,16 @@ class ScopeForm extends EntityForm {
   protected $storage;
 
   /**
-   * Constructs a ScopeForm object.
+   * Scope Form constructor.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function __construct(EntityManagerInterface $entity_manager) {
-    $this->storage = $entity_manager->getStorage('oauth2_server_scope');
+  public function __construct(EntityTypeManagerInterface $entity_type_manager) {
+    $this->storage = $entity_type_manager->getStorage('oauth2_server_scope');
   }
 
   /**
@@ -41,7 +46,7 @@ class ScopeForm extends EntityForm {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager')
+      $container->get('entity_type.manager')
     );
   }
 
@@ -74,13 +79,11 @@ class ScopeForm extends EntityForm {
       '#description' => $this->t('Used to describe the scope to the user on the authorization form.'),
       '#required' => TRUE,
     ];
-
     $form['default'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Default'),
       '#default_value' => $scope->isDefault(),
     ];
-
     return parent::form($form, $form_state);
   }
 
@@ -90,7 +93,6 @@ class ScopeForm extends EntityForm {
   protected function actions(array $form, FormStateInterface $form_state) {
     $actions = parent::actions($form, $form_state);
     $actions['submit']['#value'] = $this->t('Save scope');
-
     return $actions;
   }
 
@@ -99,8 +101,8 @@ class ScopeForm extends EntityForm {
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
     parent::validateForm($form, $form_state);
-
-    if ($this->entity->isNew() || $this->entity->getOriginalId() != $this->entity->id()) {
+    if ($this->entity->isNew() ||
+        $this->entity->getOriginalId() != $this->entity->id()) {
       $exists = $this->storage->load($this->entity->id());
       if ($exists) {
         $form_state->setErrorByName('scope_id', $this->t('This Scope ID already exists.'));
@@ -113,8 +115,13 @@ class ScopeForm extends EntityForm {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     parent::submitForm($form, $form_state);
-    drupal_set_message($this->t('The scope configuration has been saved.'));
-    $form_state->setRedirect('entity.oauth2_server.scopes', ['oauth2_server' => $form_state->get('oauth2_server')->id()]);
+    $this->messenger()->addMessage($this->t('The scope configuration has been saved.'));
+    $form_state->setRedirect(
+      'entity.oauth2_server.scopes',
+      [
+        'oauth2_server' => $form_state->get('oauth2_server')->id(),
+      ]
+    );
 
     $server = $this->entity->getServer();
     if ($form_state->getValue('default')) {

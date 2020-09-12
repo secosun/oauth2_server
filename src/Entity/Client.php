@@ -131,7 +131,8 @@ class Client extends ConfigEntityBase implements ClientInterface {
    */
   public function getServer() {
     if (!$this->server && $this->server_id) {
-      $this->server = \Drupal::entityManager()->getStorage('oauth2_server')->load($this->server_id);
+      $this->server = \Drupal::entityTypeManager()->getStorage('oauth2_server')
+        ->load($this->server_id);
     }
     return $this->server;
   }
@@ -156,7 +157,6 @@ class Client extends ConfigEntityBase implements ClientInterface {
     if (isset($values['unhashed_client_secret'])) {
       $values['client_secret'] = $this->hashClientSecret($values['unhashed_client_secret']);
     }
-
     parent::__construct($values, $entity_type);
   }
 

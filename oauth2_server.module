@@ -20,6 +20,7 @@ function oauth2_server_cron() {
   $result = $query->execute();
 
   if ($result) {
+    /** @var \Drupal\oauth2_server\TokenInterface[] $tokens */
     $tokens = \Drupal::entityTypeManager()->getStorage('oauth2_server_token')
       ->loadMultiple(array_keys($result));
     \Drupal::entityTypeManager()->getStorage('oauth2_server_token')
@@ -32,7 +33,9 @@ function oauth2_server_cron() {
 
   // No need to do anything if hook_cron() is invoked from tests.
   if ($needs_keys) {
-    $last_generated = \Drupal::state()->get('oauth2_server.last_generated', 0);
+    $last_generated = \Drupal::state()
+      ->get('oauth2_server.last_generated', 0);
+
     // Check if the keys were last generated more than 23h30min ago.
     if ($request_time - $last_generated > 84600) {
       $keys = Utility::generateKeys();
