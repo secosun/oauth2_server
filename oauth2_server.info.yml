@@ -2,7 +2,7 @@ name: OAuth2 Server
 type: module
 description: 'Provides OAuth2 server functionality.'
 package: OAuth2
-core: 8.x
+core_version_requirement: ^8 || ^9
 configure: oauth2_server.overview
 dependencies:
  - entity_reference
