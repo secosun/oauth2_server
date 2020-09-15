@@ -73,7 +73,7 @@ class OAuth2Controller extends ControllerBase {
 
     if ($this->currentUser()->isAnonymous()) {
       $_SESSION['oauth2_server_authorize'] = $bridgeRequest;
-      $url = new Url('user.login', [], ['query' => ['destination' => '/oauth2/authorize']]);
+      $url = new Url('user.login', [], ['query' => ['destination' => Url::fromRoute('oauth2_server.authorize')->toString()]]);
       $url->setAbsolute(TRUE);
       return new RedirectResponse($url->toString());
     }
