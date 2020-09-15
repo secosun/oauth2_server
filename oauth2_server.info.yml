@@ -5,4 +5,4 @@ package: OAuth2
 core_version_requirement: ^8 || ^9
 configure: oauth2_server.overview
 dependencies:
- - entity_reference
+ - drupal:entity_reference
