@@ -18,14 +18,13 @@ function oauth2_server_test_oauth2_server_user_claims_alter(&$context) {
 }
 
 /**
- * Implements oauth2_server_default_scope().
+ * Implements hook_oauth2_server_default_scope().
  */
 function oauth2_server_test_oauth2_server_default_scope(ServerInterface $server) {
   // Grant "basic" and "admin" scopes by default.
   if ($server->id() == 'test_server') {
     return ['basic', 'admin'];
   }
-  return [];
 }
 
 /**
