@@ -21,9 +21,9 @@ class OAuth2Storage implements OAuth2StorageInterface {
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected $entityManager;
+  protected $entityTypeManager;
 
   /**
    * The password hasher.
@@ -74,7 +74,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
       ConfigFactoryInterface $config_factory,
       TimeInterface $time
   ) {
-    $this->entityManager = $entity_type_manager;
+    $this->entityTypeManager = $entity_type_manager;
     $this->passwordHasher = $password_hasher;
     $this->moduleHandler = $module_handler;
     $this->configFactory = $config_factory;
@@ -95,7 +95,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
    */
   public function getStorageAccount($username) {
     /** @var \Drupal\user\UserInterface[] $users */
-    $users = $this->entityManager->getStorage('user')
+    $users = $this->entityTypeManager->getStorage('user')
       ->loadByProperties(['name' => $username]);
     if ($users) {
       return reset($users);
@@ -103,7 +103,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
     else {
       // An email address might have been supplied instead of the username.
       /** @var \Drupal\user\UserInterface[] $users */
-      $users = $this->entityManager->getStorage('user')
+      $users = $this->entityTypeManager->getStorage('user')
         ->loadByProperties(['mail' => $username]);
       if ($users) {
         return reset($users);
@@ -126,7 +126,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
    */
   public function getStorageClient($client_id) {
     /** @var \Drupal\oauth2_server\ClientInterface[] $clients */
-    $clients = $this->entityManager->getStorage('oauth2_server_client')
+    $clients = $this->entityTypeManager->getStorage('oauth2_server_client')
       ->loadByProperties(['client_id' => $client_id]);
     if ($clients) {
       return reset($clients);
@@ -148,7 +148,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
    */
   public function getStorageToken($token) {
     /** @var \Drupal\oauth2_server\TokenInterface[] $tokens */
-    $tokens = $this->entityManager->getStorage('oauth2_server_token')
+    $tokens = $this->entityTypeManager->getStorage('oauth2_server_token')
       ->loadByProperties(['token' => $token]);
     if ($tokens) {
       return reset($tokens);
@@ -170,7 +170,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
    */
   public function getStorageAuthorizationCode($code) {
     /** @var \Drupal\oauth2_server\AuthorizationCodeInterface[] $codes */
-    $codes = $this->entityManager->getStorage('oauth2_server_authorization_code')
+    $codes = $this->entityTypeManager->getStorage('oauth2_server_authorization_code')
       ->loadByProperties(['code' => $code]);
     if ($codes) {
       return reset($codes);
@@ -414,11 +414,11 @@ class OAuth2Storage implements OAuth2StorageInterface {
       // The username is not required, the "Client credentials" grant type
       // doesn't provide it, for instance.
       if (!$uid ||
-          !$this->entityManager->getStorage('user')->load($uid)) {
+          !$this->entityTypeManager->getStorage('user')->load($uid)) {
         $uid = 0;
       }
 
-      $token = $this->entityManager->getStorage('oauth2_server_token')
+      $token = $this->entityTypeManager->getStorage('oauth2_server_token')
         ->create(['type' => 'access']);
       $token->client_id = $client->id();
       $token->uid = $uid;
@@ -528,13 +528,13 @@ class OAuth2Storage implements OAuth2StorageInterface {
     $authorization_code = $this->getStorageAuthorizationCode($code);
     if (!$authorization_code) {
       /** @var \Drupal\user\UserInterface $user */
-      $user = $this->entityManager->getStorage('user')->load($uid);
+      $user = $this->entityTypeManager->getStorage('user')->load($uid);
       if (!$user) {
         throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
       }
 
       /** @var \Drupal\oauth2_server\AuthorizationCodeInterface $authorization_code */
-      $authorization_code = $this->entityManager->getStorage('oauth2_server_authorization_code')->create([]);
+      $authorization_code = $this->entityTypeManager->getStorage('oauth2_server_authorization_code')->create([]);
       $authorization_code->client_id = $client->id();
       $authorization_code->uid = $user->id();
       $authorization_code->code = $code;
@@ -618,7 +618,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
       return;
     }
 
-    $found = $this->entityManager->getStorage('oauth2_server_jti')->loadByProperties([
+    $found = $this->entityTypeManager->getStorage('oauth2_server_jti')->loadByProperties([
       'client_id' => $client->id(),
       'subject' => $subject,
       'jti' => $jti,
@@ -662,7 +662,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
       return;
     }
 
-    $entity = $this->entityManager->getStorage('oauth2_server_jti')->create([
+    $entity = $this->entityTypeManager->getStorage('oauth2_server_jti')->create([
       'client_id' => $client->id(),
       'subject' => $subject,
       'jti' => $jti,
@@ -734,7 +734,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
    */
   public function getUserClaims($uid, $scope) {
     /** @var \Drupal\user\UserInterface $account */
-    $account = $this->entityManager->getStorage('user')
+    $account = $this->entityTypeManager->getStorage('user')
       ->load($uid);
     if (!$account) {
       throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
@@ -869,12 +869,12 @@ class OAuth2Storage implements OAuth2StorageInterface {
     /** @var \Drupal\oauth2_server\TokenInterface $token */
     $token = $this->getStorageToken($refresh_token);
     if (!$token) {
-      $user = $this->entityManager->getStorage('user')->load($uid);
+      $user = $this->entityTypeManager->getStorage('user')->load($uid);
       if (!$user) {
         throw new \InvalidArgumentException("The supplied user couldn't be loaded.");
       }
 
-      $token = $this->entityManager->getStorage('oauth2_server_token')
+      $token = $this->entityTypeManager->getStorage('oauth2_server_token')
         ->create(['type' => 'refresh']);
       $token->client_id = $client->id();
       $token->uid = $uid;
@@ -924,7 +924,7 @@ class OAuth2Storage implements OAuth2StorageInterface {
     if ($scope) {
       $scopes = preg_split('/\s+/', $scope);
       /** @var \Drupal\oauth2_server\ScopeInterface[] $loaded_scopes */
-      $loaded_scopes = $this->entityManager
+      $loaded_scopes = $this->entityTypeManager
         ->getStorage('oauth2_server_scope')
         ->loadByProperties([
           'server_id' => $server->id(),
