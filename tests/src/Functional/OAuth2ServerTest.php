@@ -173,7 +173,6 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
 
   /**
    * Tests the authorization part of the flow.
-   * @group dev
    */
   public function testAuthorization() {
     // Create a user, log the user in, and retry the request.
@@ -605,7 +604,6 @@ IJpQWcPiClejygMqUb8ZAkEA6SFArj46gwFaERr+D8wMizfZdxhzEuMMG3angAuV
 
   /**
    * Test that access is denied when using a token for a blocked user.
-   * @group dev
    */
   public function testBlockedUserTokenFails() {
     // Get a normal access token for a normal user.
