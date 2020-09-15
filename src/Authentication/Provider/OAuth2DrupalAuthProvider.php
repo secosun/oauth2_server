@@ -184,7 +184,6 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
     }
     catch (\Exception $e) {
       $this->loggerFactory->get('access denied')->warning($e->getMessage());
-      //return $this->entityTypeManager->getStorage('user')->load(0);
       throw new AccessDeniedHttpException($e->getMessage(), $e);
     }
   }
